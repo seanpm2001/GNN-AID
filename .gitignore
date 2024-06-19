@@ -4,7 +4,11 @@
 *.so
 *.orig
 
-__pycache__
+### Python template
+# Byte-compiled / optimized / DLL files
+*__pycache__*
+*.py[cod]
+*$py.class
 
 .cache
 .idea
@@ -39,3 +43,6 @@ gnn
 torch_install
 src/.vscode
 data__DatasetsTest_tmp/
+
+# Mac OS extentions
+*.DS_Store
