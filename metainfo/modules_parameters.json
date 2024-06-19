@@ -1,0 +1,170 @@
+{
+ "GCNConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "aggr": ["Aggregation", "string", "add", ["add", "mean", "min", "max", "mul", "None"], "The aggregation scheme to use"],
+  "improved": ["Improved", "bool", false, null, "If set to True, the layer computes A + 2I"],
+  "add_self_loops": ["Self-loops", "bool", true, null, "If set to False, will not add self-loops to the input graph"],
+  "normalize": ["Normalize", "bool", true, null, "Whether to add self-loops and compute symmetric normalization coefficients on the fly"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["GCNConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "SAGEConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "aggr":["Aggregation", "string", "mean", ["add", "mean", "min", "max", "lstm"], "The aggregation scheme to use"],
+  "normalize":["Normalize", "bool", false, null, "Whether to add self-loops and compute symmetric normalization coefficients on the fly"],
+  "root_weight":["Root weight", "bool", true, null, "If set to False, the layer will not learn the weight matrix separately for the features of the root vertex"],
+  "bias":["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["SAGEConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "GATConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "heads": ["Heads", "int", 1, {"min": 1}, "Number of multi-head-attentions"],
+  "concat": ["Concat", "bool", true, null, "If set to False, the multi-head attentions are averaged instead of concatenated"],
+  "negative_slope": ["Negative slope", "float", 0.2, {"min": 0, "max": 1, "step": 0.1}, "LeakyReLU angle of the negative slope"],
+  "dropout": ["Dropout", "float", 0, {"min": 0, "max": 1, "step": 0.01}, "Dropout probability of the normalized attention coefficients which exposes each node to a stochastically sampled neighborhood during training"],
+  "add_self_loops": ["Add self-loops", "bool", true, null, "If set to False, will not add self-loops to the input graph"],
+  "edge_dim": ["Edge feat dim", "int", null, {"min": 1, "special": [null]}, "Edge feature dimensionality (in case there are any)."],
+  "fill_value": ["Fill value", "string", "mean", ["add", "mean", "min", "max", "mul"], "Edge feature dimensionality (in case there are any)"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["GATConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "SGConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "K": ["Hops", "int", 1, {"min": 1}, "Number of hops"],
+  "cached": ["Cached", "bool", false, null, ""],
+  "add_self_loops": ["Add self-loops", "bool", true, null, "If set to False, will not add self-loops to the input graph"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["SGConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+  "GINConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "_technical_parameter":
+		{
+			"import_info":  ["GINConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+  "TAGConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "K": ["Hops", "int", 3, {"min": 1}, "Number of hops"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "normalize":["Normalize", "bool", false, null, "Whether to add self-loops and compute symmetric normalization coefficients on the fly"],
+  "_technical_parameter":
+		{
+			"import_info":  ["TAGConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+  "ARMAConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "num_stacks": ["Stacks", "int", 1, {"min": 1}, "Number of parallel stacks"],
+  "num_layers": ["Layers", "int", 1, {"min": 1}, "Number of layers"],
+  "shared_weights": ["Shared weights", "bool", false, null, "If set to True the layers in each stack will share the same parameters."],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "dropout": ["Dropout", "float", 0, {"min": 0, "max": 1, "step": 0.0001}, "Dropout probability of the skip connection"],
+  "_technical_parameter":
+		{
+			"import_info":  ["ARMAConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+  "SSGConv": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "alpha": ["Teleport probability", "float", 0.1, {"min": 0, "max": 1, "step": 0.001}, "Teleport probability"],
+  "K": ["Hops", "int", 1, {"min": 1}, "Number of hops"],
+  "cached": ["Cached", "bool", false, null, ""],
+  "add_self_loops": ["Add self-loops", "bool", true, null, "If set to False, will not add self-loops to the input graph"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["SSGConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "GMM": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "dim": ["Dim", "int", 1, {"min": 1}, "Pseudo-coordinate dimensionality"],
+  "kernel_size": ["Kernel size", "int", 1, {"min": 1}, "Number of kernels K"],
+  "cached": ["Cached", "bool", false, null, ""],
+  "separate_gaussians": ["Separate gaussians", "bool", false, null, "If set to True, will learn separate GMMs for every pair of input and output channel, inspired by traditional CNNs"],
+  "aggr": ["Aggregation", "string", "mean", ["add", "mean", "max"], "The aggregation scheme to use"],
+  "root_weight": ["Root weight flag", "bool", true, null, "If set to False, the layer will not add transformed root node features to the output"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["GMM", ["models_builder.custom_layers"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "CGConv": {
+  "dim": ["Edge feature dimensionality", "int", 0, {"min": 0}, "Edge feature dimensionality"],
+  "aggr": ["Aggregation", "string", "add", ["add", "mean", "max"], "The aggregation scheme to use"],
+  "batch_norm": ["Batch norm flag", "bool", false, null, "If set to True, will make use of batch normalization"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["CGConv", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "APPNP": {
+  "K": ["Hops", "int", 1, {"min": 1}, "Number of hops"],
+  "alpha": ["Teleport probability", "float", 0.1, {"min": 0, "max": 1, "step": 0.001}, "Teleport probability"],
+  "dropout": ["Dropout", "float", 0, {"min": 0, "max": 1, "step": 0.01}, "Dropout probability of the normalized attention coefficients which exposes each node to a stochastically sampled neighborhood during training"],
+  "cached": ["Cached", "bool", false, null, ""],
+  "add_self_loops": ["Add self-loops", "bool", true, null, "If set to False, will not add self-loops to the input graph"],
+  "normalize":["Normalize", "bool", true, null, "Whether to add self-loops and compute symmetric normalization coefficients on the fly"],
+  "_technical_parameter":
+		{
+			"import_info":  ["APPNP", ["torch_geometric.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "x=x, edge_index=edge_index"
+		}
+ },
+ "Linear": {
+  "out_channels": ["Output size", "int", 16, {"min": 1}, "Size of output sample"],
+  "bias": ["Bias", "bool", true, null, "If set to False, the layer will not learn an additive bias"],
+  "_technical_parameter":
+		{
+			"import_info":  ["Linear", ["torch.nn"]],
+            "need_full_gnn_flag": false,
+            "forward_parameters": "input=x"
+		}
+ },
+ "Prot": {
+  "num_prototypes_per_class": ["Prototypes per class", "int", 3, {"min": 1}, "Number of prototypes to be learned for each class"],
+  "eps": ["Epsilon", "float", 1e-4, {"min": 0, "step": 0.0001}, "Used in the denominator in computing similarity between prototypes: log((dist+1) / (dist+eps))"],
+  "_technical_parameter":
+		{
+			"import_info":  ["ProtLayer", ["models_builder.custom_layers"]],
+            "need_full_gnn_flag": true,
+            "forward_parameters": "x=x, full_gnn_id=id(self)"
+		}
+ }
+}

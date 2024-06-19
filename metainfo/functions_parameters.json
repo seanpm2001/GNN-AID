@@ -1,0 +1,29 @@
+{
+ "BatchNorm1d": {
+ 	"eps": ["Eps", "float", 0.00001, {"min": 0.000001, "step": 0.00001}, "a value added to the denominator for numerical stability."],
+ 	"momentum":["Momentum", "float", 0.1, {"min": 0, "step": 0.0001, "special": [null]}, "the value used for the running_mean and running_var computation. Can be set to None for cumulative moving average (i.e. simple average)"],
+ 	"affine":["Affine", "bool", true, null, "a boolean value that when set to True, this module has learnable affine parameters"]
+ },
+ "BatchNorm2d": {
+ 	"eps": ["Eps", "float", 0.00001, {"min": 0.000001, "step": 0.00001}, "a value added to the denominator for numerical stability"],
+ 	"momentum": ["Momentum", "float", 0.1, {"min": 0, "step": 0.0001, "special": [null]}, "the value used for the running_mean and running_var computation. Can be set to None for cumulative moving average (i.e. simple average)"],
+ 	"affine": ["Affine", "bool", true, null, "a boolean value that when set to True, this module has learnable affine parameters."]
+ },
+ "BatchNorm3d": {
+ 	"eps": ["Eps", "float", 0.00001, {"min": 0.000001, "step": 0.00001}, "a value added to the denominator for numerical stability."],
+ 	"momentum":["Momentum", "float", 0.1, {"min": 0, "step": 0.0001, "special": [null]}, "the value used for the running_mean and running_var computation. Can be set to None for cumulative moving average (i.e. simple average)"],
+ 	"affine":["Affine", "bool", true, null, "a boolean value that when set to True, this module has learnable affine parameters."]
+ },
+ "ELU": {
+     "alpha": ["alpha", "float", 1.0, {"min": 0, "step": 0.1}, "The alpha value for ELU calculation (see ELU formulae)"]
+ },
+ "LeakyReLU": {
+     "negative_slope": ["negative_slope", "float", 0.01, {"min": 0, "step": 0.001}, "Controls the angle of the negative slope"]
+ },
+ "CrossEntropyLoss": {
+  "reduction": ["Reduction", "string", "mean", ["none","mean","sum"], "Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'. 'none': no reduction will be applied, 'mean': the weighted mean of the output is taken, 'sum': the output will be summed"]
+ },
+ "NLLLoss": {
+  "reduction": ["Reduction", "string", "mean", ["none","mean","sum"], "Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'. 'none': no reduction will be applied, 'mean': the weighted mean of the output is taken, 'sum': the output will be summed. Note: size_average and reduce are in the process of being deprecated, and in the meantime, specifying either of those two args will override reduction."]
+ }
+}

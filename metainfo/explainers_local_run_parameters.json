@@ -1,0 +1,71 @@
+{
+ "Zorro": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "tau": ["tau", "float", 0.15, {"min": 0, "max": 1, "step": 0.01}, "Tau-metric of explanation from the article"],
+  "recursion_depth": ["Recursion depth", "int", Infinity, {"min": 1, "special": [Infinity]}, "?"],
+  "save_initial_improve": ["Save initial improve", "bool", false, null, "?"],
+  "_technical_parameter": {
+   "dataset": ["single"]
+  }
+ },
+
+ "SubgraphX": {
+  "max_nodes": ["Max nodes","int",5,{"min": 1},null],
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "_technical_parameter": {
+   "dataset": ["single", "multiple"]
+  }
+ },
+
+ "GNNExplainer(torch-geom)": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "_technical_parameter": {
+   "dataset": ["single", "multiple"]
+   }
+  },
+
+ "GNNExplainer(dig)": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "_technical_parameter": {
+   "dataset": ["single", "multiple"]
+  }
+ },
+
+ "GraphMask": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "_technical_parameter": {
+   "dataset": ["single"]
+  }
+ },
+
+ "PGMExplainer": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "_technical_parameter": {
+   "dataset": ["single"]
+  }
+ },
+
+ "PGExplainer": {
+  "idx": ["idx","int",0,{"min": 0},null]
+ },
+
+ "PGExplainer(dig)": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "top_k": ["top_k","int",5,{"min": 1},null],
+  "_technical_parameter": {
+   "dataset": ["single"]
+  }
+ },
+
+ "_Dummy": {
+  "element_idx": ["Node","int",0,{"min": 0},null],
+  "local_run_arg": ["run arg","int",1,{"min": 0},"Just an argument for local run"],
+  "_technical_parameter": {
+   "dataset": ["single", "multiple"],
+   "locality": ["global", "local"],
+   "locality_filter": {"global": ["global_run_arg"], "local": ["local_run_arg"]}
+   }
+  }
+
+}
+

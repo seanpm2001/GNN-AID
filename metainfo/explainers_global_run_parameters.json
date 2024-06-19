@@ -1,0 +1,22 @@
+{
+ "ProtGNN": {
+  "_technical_parameter": {
+   "dataset": ["multiple"]
+   }
+ },
+
+ "_Dummy": {
+  "global_run_arg": ["run arg","int",1,{"min": 0},"Just an argument for global run"],
+  "_technical_parameter": {
+   "dataset": ["single", "multiple"]
+   }
+  },
+
+  "NeuralAnalysis": {
+   "depth": ["depth", "int", 3, {"min":  1}, "Max atoms in composite concept"],
+   "_technical_parameter": {
+    "dataset": ["multiple"]
+   }
+ }
+}
+

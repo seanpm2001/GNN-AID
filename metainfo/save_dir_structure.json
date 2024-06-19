@@ -1,0 +1,105 @@
+{
+  "data_root": {
+    "domain": {
+      "add_key_name_flag": false,
+      "files_info": null
+    },
+    "group": {
+      "add_key_name_flag": false,
+      "files_info": null
+    },
+    "graph": {
+      "add_key_name_flag": false,
+      "files_info": null
+    }
+  },
+
+  "data_prepared": {
+    "prepared": {
+      "add_key_name_flag": null,
+      "files_info": null
+    },
+    "features": {
+      "add_key_name_flag": true,
+      "files_info": null
+    },
+    "labeling": {
+      "add_key_name_flag": true,
+      "files_info": null
+    },
+    "dataset_attack_type": {
+      "add_key_name_flag": true,
+      "files_info": null
+    },
+    "dataset_ver_ind": {
+      "add_key_name_flag": true,
+      "files_info": null
+    }
+  },
+
+  "models": {
+    "gnn": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "gnn_model_manager": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "epochs": {
+      "add_key_name_flag": true,
+      "files_info": null
+    },
+    "model_attack_type": {
+      "add_key_name_flag": true,
+      "files_info": null
+    },
+    "model_ver_ind": {
+      "add_key_name_flag": true,
+      "files_info": null
+    }
+  },
+
+  "explanations": {
+    "explainer_name": {
+      "add_key_name_flag": false,
+      "files_info": null
+    },
+    "explainer_init_kwargs": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "explainer_run_kwargs": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "explainer_attack_type": {
+      "add_key_name_flag": true,
+      "files_info": null
+    },
+    "explainer_ver_ind": {
+      "add_key_name_flag": true,
+      "files_info": null
+    }
+  }
+}

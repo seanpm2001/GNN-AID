@@ -1,0 +1,77 @@
+{
+ "allowable_transitions": ["nn", "ng", "gg"],
+ "allowable_strong_restrictions": [
+  "first_model", "last_model",
+  "first_node", "last_node",
+  "first_graph", "last_graph"
+ ],
+
+ "layers_restrictions": {
+  "GCNConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "SAGEConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "GATConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "TAGConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "ARMAConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "SSGConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "SGConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "APPNP": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "GMM": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "CGConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "GINConv": {
+   "valid_label" : ["n"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "Linear": {
+   "valid_label" : ["n", "g"],
+   "strong_restrictions": [],
+   "model_manager_restrictions": []
+  },
+  "Prot": {
+   "valid_label" : ["g"],
+   "strong_restrictions": ["last_model", "last_graph"],
+   "model_manager_restrictions": ["ProtGNNModelManager"]
+  }
+ }
+}
+

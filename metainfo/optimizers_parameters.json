@@ -1,0 +1,145 @@
+{"Adam":
+	{
+		"lr": ["learn rate", "float", 0.001, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"beta1": ["beta1", "float", 0.9, {}, "coefficient used for computing running averages of gradient and its square"],
+		"beta2": ["beta2", "float", 0.999, {}, "coefficient used for computing running averages of gradient and its square"],
+		"eps": ["Epsilon", "float", 0.00000001, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 5e-4, {}, "weight decay (L2 penalty)"],
+		"amsgrad": ["AMSGrad", "bool", false, {}, "whether to use the AMSGrad"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [[
+			"tuple", ["beta1", "beta2"], "betas"]]
+		}
+	},
+	"Adadelta":
+	{
+		"lr": ["learn rate", "float", 1.0, {"min": 0.0001, "step": 1}, "coefficient that scale delta before it is applied to the parameters"],
+		"rho": ["rho", "float", 0.9, {}, "coefficient used for computing a running average of squared gradients"],
+		"eps": ["Epsilon", "float", 1e-6, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"]
+	},
+	"Adagrad":
+	{
+		"lr": ["learn rate", "float", 0.01, {"min": 0.0001, "step": 0.01}, "learning rate"],
+		"lr_decay": ["lr decay", "float", 0, {}, "learning rate decay"],
+		"eps": ["Epsilon", "float", 1e-10, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"]
+	},
+	"AdamW":
+	{
+		"lr": ["learn rate", "float", 0.001, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"beta1": ["beta1", "float", 0.9, {}, "coefficient used for computing running averages of gradient and its square"],
+		"beta2": ["beta2", "float", 0.999, {}, "coefficient used for computing running averages of gradient and its square"],
+		"eps": ["Epsilon", "float", 1e-8, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0.01, {}, "weight decay coefficient"],
+		"amsgrad": ["AMSGrad", "bool", false, {}, "whether to use the AMSGrad"],
+		"maximize": ["maximize", "bool", false, {}, "maximize the params based on the objective, instead of minimizing"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [[
+			"tuple", ["beta1", "beta2"], "betas"]]
+		}
+	},
+	"SparseAdam":
+	{
+		"lr": ["learn rate", "float", 0.001, {"min": 0.0001, "step": 0.001}, "learning rate "],
+		"beta1": ["beta1", "float", 0.9, {}, "coefficients used for computing running averages of gradient and its square"],
+		"beta2": ["beta2", "float", 0.999, {}, "coefficients used for computing running averages of gradient and its square"],
+		"eps": ["Epsilon", "float", 1e-8, {}, "term added to the denominator to improve numerical stability"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [[
+			"tuple", ["beta1", "beta2"], "betas"]]
+		}
+	},
+	"Adamax":
+	{
+		"lr": ["learn rate", "float", 0.002, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"beta1": ["beta1", "float", 0.9, {}, "coefficient used for computing running averages of gradient and its square"],
+		"beta2": ["beta2", "float", 0.999, {}, "coefficient used for computing running averages of gradient and its square"],
+		"eps": ["Epsilon", "float", 1e-8, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0.01, {}, "weight decay (L2 penalty)"],
+		"maximize": ["maximize", "bool", false, {}, "maximize the params based on the objective, instead of minimizing"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [[
+			"tuple", ["beta1", "beta2"], "betas"]]
+		}
+	},
+	"ASGD":
+	{
+		"lr": ["learn rate", "float", 0.01, {"min": 0.0001, "step": 0.01}, "learning rate"],
+		"lambd": ["lambd", "float", 0.0001, {}, "decay term"],
+		"alpha": ["alpha", "float", 0.75, {}, "power for eta update"],
+		"t0": ["t0", "float", 1000000.0, {}, "point at which to start averaging"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"]
+	},
+	"LBFGS":
+	{
+		"lr": ["learn rate", "float", 1, {"min": 0.0001, "step": 1}, "learning rate"],
+		"tolerance_grad": ["tolerance_grad", "float", 1e-7, {}, "termination tolerance on first order optimality"],
+		"tolerance_change": ["tolerance_change", "float", 1e-9, {}, "termination tolerance on function value/parameter change"],
+		"history_size": ["history size", "int", 100, {}, "update history size"]
+	},
+	"NAdam":
+	{
+		"lr": ["learn rate", "float", 0.002, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"beta1": ["beta1", "float", 0.9, {}, "coefficient used for computing running averages of gradient and its square"],
+		"beta2": ["beta2", "float", 0.999, {}, "coefficient used for computing running averages of gradient and its square"],
+		"eps": ["Epsilon", "float", 1e-8, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"],
+		"momentum_decay":  ["Momentum decay", "float", 0.004, {}, "momentum momentum_decay"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [[
+			"tuple", ["beta1", "beta2"], "betas"]]
+		}
+	},
+	"RAdam":
+	{
+		"lr": ["learn rate", "float", 0.001, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"beta1": ["beta1", "float", 0.9, {}, "coefficient used for computing running averages of gradient and its square"],
+		"beta2": ["beta2", "float", 0.999, {}, "coefficient used for computing running averages of gradient and its square"],
+		"eps": ["Epsilon", "float", 1e-8, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [[
+			"tuple", ["beta1", "beta2"], "betas"]]
+		}
+	},
+	"RMSprop":
+	{
+		"lr": ["learn rate", "float", 0.01, {"min": 0.0001, "step": 0.01}, "learning rate"],
+		"alpha": ["alpha", "float", 0.99, {}, "smoothing constant"],
+		"eps": ["Epsilon", "float", 1e-8, {}, "term added to the denominator to improve numerical stability"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"],
+		"momentum":  ["momentum", "float", 0, {}, "momentum factor"],
+		"centered": ["centered", "bool", false, {}, "if True, compute the centered RMSProp, the gradient is normalized by an estimation of its variance"]
+	},
+	"Rprop":
+	{
+		"lr": ["learn rate", "float", 0.001, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"eta1": ["eta1", "float", 0.5, {}, "etaminus"],
+		"eta2": ["eta2", "float", 1.2, {}, "etaplus"],
+		"step_sizes1": ["step_sizes1", "float", 1e-06, {}, "first element of pair of minimal and maximal allowed step sizes"],
+		"step_sizes2": ["step_sizes2", "float", 50, {}, "second element of pair of minimal and maximal allowed step sizes"],
+		"_technical_parameter":
+		{
+			"parameters_grouping":  [
+				["tuple", ["eta1", "eta2"], "etas"],
+				["tuple", ["step_sizes1", "step_sizes2"], "step_sizes"]
+			]
+		}
+	},
+	"SGD":
+	{
+		"lr": ["learn rate", "float", 0.001, {"min": 0.0001, "step": 0.001}, "learning rate"],
+		"weight_decay":  ["Weight decay (L2)", "float", 0, {}, "weight decay (L2 penalty)"],
+		"momentum":  ["momentum", "float", 0, {}, "momentum factor"],
+		"dampening":  ["dampening", "float", 0, {}, "dampening for momentum"],
+		"nesterov": ["nesterov", "bool", false, {}, "enables Nesterov momentum"],
+		"maximize": ["maximize", "bool", false, {}, "maximize the params based on the objective, instead of minimizing"]
+	}
+}
