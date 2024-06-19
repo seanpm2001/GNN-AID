@@ -6,7 +6,7 @@ from torch import device
 
 from aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, EXPLAINERS_INIT_PARAMETERS_PATH
 # from explainers.explainers_manager import FrameworkExplainersManager
-# from models_builder.gnn_models import FrameworkGNNModelManager, Metric
+from models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from aux.configs import ModelManagerConfig, ModelModificationConfig, ExplainerInitConfig, ExplainerRunConfig, \
     ConfigPattern, ExplainerModificationConfig
 from base.datasets_processing import DatasetManager
@@ -115,59 +115,59 @@ def test_SubgraphX():
     #         }
     #     }
     # )
-    # manager_config = ModelManagerConfig(**{
-    #         "mask_features": [],
-    #         "optimizer": {
-    #             # "_config_class": "Config",
-    #             "_class_name": "Adam",
-    #             # "_import_path": OPTIMIZERS_PARAMETERS_PATH,
-    #             # "_class_import_info": ["torch.optim"],
-    #             "_config_kwargs": {},
-    #         }
-    #     }
-    # )
-    #
-    # # train_test_split = [0.8, 0.2]
-    # # train_test_split = [0.6, 0.4]
-    # steps_epochs = 200
-    # gnn_model_manager = FrameworkGNNModelManager(
-    #     gnn=gnn,
-    #     dataset_path=results_dataset_path,
-    #     manager_config=manager_config,
-    #     modification=ModelModificationConfig(model_ver_ind=0, epochs=steps_epochs)
-    # )
-    #
-    # # save_model_flag = False
-    # save_model_flag = True
-    #
-    # # data.x = data.x.float()
-    # gnn_model_manager.gnn.to(my_device)
-    # data = data.to(my_device)
-    #
-    # warnings.warn("Start training")
-    # dataset.train_test_split()
-    #
-    # try:
-    #     # raise FileNotFoundError()
-    #     gnn_model_manager.load_model_executor()
-    # except FileNotFoundError:
-    #     gnn_model_manager.epochs = gnn_model_manager.modification.epochs = 0
-    #     train_test_split_path = gnn_model_manager.train_model(gen_dataset=dataset, steps=steps_epochs,
-    #                                                           save_model_flag=save_model_flag,
-    #                                                           metrics=[Metric("F1", mask='train', average=None)])
-    #
-    #     if train_test_split_path is not None:
-    #         dataset.save_train_test_mask(train_test_split_path)
-    #         train_mask, val_mask, test_mask, train_test_sizes = torch.load(train_test_split_path / 'train_test_split')[
-    #                                                             :]
-    #         dataset.train_mask, dataset.val_mask, dataset.test_mask = train_mask, val_mask, test_mask
-    #         data.percent_train_class, data.percent_test_class = train_test_sizes
-    #
-    # warnings.warn("Training was successful")
-    #
-    # metric_loc = gnn_model_manager.evaluate_model(
-    #     gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
-    # print(metric_loc)
+    manager_config = ModelManagerConfig(**{
+            "mask_features": [],
+            "optimizer": {
+                # "_config_class": "Config",
+                "_class_name": "Adam",
+                # "_import_path": OPTIMIZERS_PARAMETERS_PATH,
+                # "_class_import_info": ["torch.optim"],
+                "_config_kwargs": {},
+            }
+        }
+    )
+
+    # train_test_split = [0.8, 0.2]
+    # train_test_split = [0.6, 0.4]
+    steps_epochs = 200
+    gnn_model_manager = FrameworkGNNModelManager(
+        gnn=gnn,
+        dataset_path=results_dataset_path,
+        manager_config=manager_config,
+        modification=ModelModificationConfig(model_ver_ind=0, epochs=steps_epochs)
+    )
+
+    # save_model_flag = False
+    save_model_flag = True
+
+    # data.x = data.x.float()
+    gnn_model_manager.gnn.to(my_device)
+    data = data.to(my_device)
+
+    warnings.warn("Start training")
+    dataset.train_test_split()
+
+    try:
+        # raise FileNotFoundError()
+        gnn_model_manager.load_model_executor()
+    except FileNotFoundError:
+        gnn_model_manager.epochs = gnn_model_manager.modification.epochs = 0
+        train_test_split_path = gnn_model_manager.train_model(gen_dataset=dataset, steps=steps_epochs,
+                                                              save_model_flag=save_model_flag,
+                                                              metrics=[Metric("F1", mask='train', average=None)])
+
+        if train_test_split_path is not None:
+            dataset.save_train_test_mask(train_test_split_path)
+            train_mask, val_mask, test_mask, train_test_sizes = torch.load(train_test_split_path / 'train_test_split')[
+                                                                :]
+            dataset.train_mask, dataset.val_mask, dataset.test_mask = train_mask, val_mask, test_mask
+            data.percent_train_class, data.percent_test_class = train_test_sizes
+
+    warnings.warn("Training was successful")
+
+    metric_loc = gnn_model_manager.evaluate_model(
+        gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
+    print(metric_loc)
 
     # embeddings = gnn_model_manager.gnn.get_all_layer_embeddings(
     #     dataset.dataset._data.x, dataset.dataset._data.edge_index
@@ -242,3 +242,35 @@ def test_SubgraphX():
 if __name__ == '__main__':
     test_SubgraphX()
 
+    # metric_val = []
+    #
+    # for _ in range(10):
+    #     metric_val.append(test_SubgraphX())
+    #
+    # print(metric_val)
+    #
+    # print(max(metric_val))
+    # print(min(metric_val))
+    # print(sum(metric_val) / len(metric_val))
+
+    # import numpy as np
+    # params = {
+    #     "SubgraphX": [
+    #         # name, label, type, def, possible, tip
+    #         ["num_hops", "Hops", "int", None, {"min": 1, "special": [np.inf]}, "The number of hops to extract neighborhood of target node"],
+    #         ["explain_graph", "Explain", "bool", True, None, "Whether to explain graph classification model"],
+    #         ["rollout", "Rollout", "int", 20, {"min": 1}, "Number of iteration to get the prediction"],
+    #         ["min_atoms", "Min atoms", "int", 5, {"min": 1}, "Number of atoms of the leaf node in search tree"],
+    #         ["c_puct", "C-puct", "float", 10, {"min": 0}, "The hyperparameter which encourages the exploration"],
+    #         ["expand_atoms", "Expand atoms", "int", 14, {"min": 1}, "The number of atoms to expand when extend the child nodes in the search tree"],
+    #         ["high2low", "High to low", "bool", False, None, "Whether to expand children nodes from high degree to low degree when extend the child nodes in the search tree"],
+    #         ["local_radius", "Local radius", "int", 4, {"min": 1}, "Number of local radius to calculate"],
+    #         ["sample_num", "Samples", "int", 100, {"min": 1}, "Sampling time of monte carlo sampling approximation for mc_shapley"],
+    #         ["reward_method", "Reward", "string", "mc_l_shapley", ["gnn_score","l_shapley","mc_shapley","mc_l_shapley","nc_mc_l_shapley"], "The command string to select the subgraph_building_method"],
+    #         ["subgraph_building_method", "Subgraph building", "string", "zero_filling", ["zero_filling","split"], "The command string for different subgraph building method,  such as `zero_filling`, `split` (default: `zero_filling`)"],
+    #         ["max_nodes", "Max nodes", "int", 5, {"min": 1}, None],
+    #         # ["vis"			FALSE			],
+    #     ]
+    # }
+    # import json
+    # print(json.dumps(params))
