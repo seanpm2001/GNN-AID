@@ -6,7 +6,7 @@ from torch import default_generator, randperm
 from torch_geometric.data import Dataset, InMemoryDataset
 
 from aux.configs import DatasetConfig, DatasetVarConfig
-# from aux.custom_decorators import timing_decorator
+from aux.custom_decorators import timing_decorator
 from aux.declaration import Declare
 from aux.utils import TORCH_GEOM_GRAPHS_PATH
 
@@ -710,7 +710,7 @@ class DatasetManager:
 
     # QUE Misha, Kirill - can we use get_by_config always instead of it?
     @staticmethod
-    # @timing_decorator
+    @timing_decorator
     def get_by_config(dataset_config: DatasetConfig,
                       dataset_var_config: DatasetVarConfig = None) -> GeneralDataset:
         """ Get GeneralDataset by dataset config. Used from the frontend.
@@ -736,7 +736,7 @@ class DatasetManager:
         return gen_dataset
 
     @staticmethod
-    # @timing_decorator
+    @timing_decorator
     def get_by_full_name(full_name=None, **kwargs):
         """
         Get PTG dataset by its full name tuple.
