@@ -20,8 +20,8 @@ from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_
     TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
-# from explainers.ProtGNN.MCTS import mcts_args
-# from web_interface.back_front.utils import SocketConnect
+from explainers.ProtGNN.MCTS import mcts_args
+from web_interface.back_front.utils import SocketConnect
 
 
 class Metric:
