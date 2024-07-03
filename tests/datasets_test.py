@@ -1,3 +1,7 @@
+import collections
+import collections.abc
+collections.Callable = collections.abc.Callable
+
 import signal
 import unittest
 import shutil
