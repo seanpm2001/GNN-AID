@@ -144,7 +144,7 @@ class NeuralAnalysisExplainer(Explainer):
 
         n_graphs = len(new_dataset)
         print("TEST")
-        concept_set = ConceptSet(new_dataset, self.task, omega=omega, pbar=self.pbar)
+        concept_set = ConceptSet(new_dataset, self.task, omega=omega, pbar=self.pbar, device=self.device)
         print("TEST")
 
         print('Performing inference')
