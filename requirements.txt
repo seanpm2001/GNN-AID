@@ -18,6 +18,7 @@ matplotlib
 
 # Possible (check!)
 dgl
+psutil
 # tf2onnx==1.14.0
 # onnx2torch==1.2.0
 # onnx==1.10.0
