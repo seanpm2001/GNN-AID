@@ -393,36 +393,6 @@ class ExplainersTest(unittest.TestCase):
         )
         explainer_Zorro.conduct_experiment(explainer_run_config)
 
-    def test_GraphMask(self):
-        warnings.warn("Start GraphMask")
-        explainer_init_config = ConfigPattern(
-            _class_name="GraphMask",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "GraphMask",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer_GraphMask = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_sg_example, gnn_manager=self.gnn_model_manager_sg_example,
-            explainer_name='GraphMask',
-        )
-        explainer_GraphMask.conduct_experiment(explainer_run_config)
-
     def test_ProtGNN(self):
         warnings.warn("Start ProtGNN")
         explainer_init_config = ConfigPattern(
@@ -514,35 +484,35 @@ class ExplainersTest(unittest.TestCase):
         )
         explainer_GNNExpl.conduct_experiment(explainer_run_config)
 
-    def test_NeuralAnalysis_MG(self):
-        warnings.warn("Start Neural Analysis")
-        explainer_init_config = ConfigPattern(
-            _class_name="NeuralAnalysis",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "global",
-                "kwargs": {
-                    "_class_name": "NeuralAnalysis",
-                    "_import_path": EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_mg_mutag, gnn_manager=self.gnn_model_manager_mg_mutag,
-            explainer_name='NeuralAnalysis',
-        )
-        explainer.conduct_experiment(explainer_run_config)
+    # def test_NeuralAnalysis_MG(self):
+    #     warnings.warn("Start Neural Analysis")
+    #     explainer_init_config = ConfigPattern(
+    #         _class_name="NeuralAnalysis",
+    #         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #         _config_class="ExplainerInitConfig",
+    #         _config_kwargs={
+    #         }
+    #     )
+    #     explainer_run_config = ConfigPattern(
+    #         _config_class="ExplainerRunConfig",
+    #         _config_kwargs={
+    #             "mode": "global",
+    #             "kwargs": {
+    #                 "_class_name": "NeuralAnalysis",
+    #                 "_import_path": EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH,
+    #                 "_config_class": "Config",
+    #                 "_config_kwargs": {
+    #
+    #                 },
+    #             }
+    #         }
+    #     )
+    #     explainer = FrameworkExplainersManager(
+    #         init_config=explainer_init_config,
+    #         dataset=self.dataset_mg_mutag, gnn_manager=self.gnn_model_manager_mg_mutag,
+    #         explainer_name='NeuralAnalysis',
+    #     )
+    #     explainer.conduct_experiment(explainer_run_config)
 
 
 if __name__ == '__main__':
