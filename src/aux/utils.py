@@ -3,6 +3,7 @@ import json
 import warnings
 from pathlib import Path
 from pydoc import locate
+import numpy as np
 
 root_dir = Path(__file__).parent.parent.parent.resolve()  # directory of source root
 root_dir_len = len(root_dir.parts)
