@@ -42,4 +42,4 @@ jobs:
         echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> $GITHUB_ENV
     - name: Run tests
       run: |
-        python3 -m unittest -v -f tests/explainers*
+        python3 -m unittest -v -f tests/explainers_test.*

@@ -484,6 +484,36 @@ class ExplainersTest(unittest.TestCase):
         )
         explainer_GNNExpl.conduct_experiment(explainer_run_config)
 
+    def test_GNNExpl_DIG_MG(self):
+        warnings.warn("Start GNNExplainer_DIG")
+        explainer_init_config = ConfigPattern(
+            _class_name="GNNExplainer(dig)",
+            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+            _config_class="ExplainerInitConfig",
+            _config_kwargs={
+            }
+        )
+        explainer_run_config = ConfigPattern(
+            _config_class="ExplainerRunConfig",
+            _config_kwargs={
+                "mode": "local",
+                "kwargs": {
+                    "_class_name": "GNNExplainer(dig)",
+                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+                    "_config_class": "Config",
+                    "_config_kwargs": {
+
+                    },
+                }
+            }
+        )
+        explainer_GNNExpl = FrameworkExplainersManager(
+            init_config=explainer_init_config,
+            dataset=self.dataset_mg_small, gnn_manager=self.gnn_model_manager_mg_small,
+            explainer_name='GNNExplainer(dig)',
+        )
+        explainer_GNNExpl.conduct_experiment(explainer_run_config)
+
     def test_GNNExpl_PYG_SG(self):
         warnings.warn("Start GNNExplainer_PYG")
         explainer_init_config = ConfigPattern(
