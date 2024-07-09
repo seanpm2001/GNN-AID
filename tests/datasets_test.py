@@ -1,5 +1,6 @@
 import collections
 import collections.abc
+
 collections.Callable = collections.abc.Callable
 
 import signal
@@ -11,6 +12,7 @@ from torch_geometric.data import InMemoryDataset, Data, Dataset
 
 # Monkey path GRAPHS_DIR - before other imports
 from aux import utils
+
 if not str(utils.GRAPHS_DIR).endswith("__DatasetsTest_tmp"):
     tmp_dir = utils.GRAPHS_DIR.parent / (utils.GRAPHS_DIR.name + "__DatasetsTest_tmp")
     utils.GRAPHS_DIR = tmp_dir
@@ -32,6 +34,7 @@ class DatasetsTest(unittest.TestCase):
     class UserApiDataset(Dataset):
         """ Generates 3 graphs with random features on the fly.
         """
+
         def __init__(self, root):
             super().__init__(root)
 
@@ -67,6 +70,7 @@ class DatasetsTest(unittest.TestCase):
 
             def process(self):
                 torch.save(self.collate(self.data_list), self.processed_paths[0])
+
         self.UserLocalDataset = UserLocalDataset
 
         # DatasetsTest.UserApiDataset = UserApiDataset
@@ -222,7 +226,7 @@ class DatasetsTest(unittest.TestCase):
             dataset_ver_ind=0)
         gen_dataset.build(dvc1)
         self.assertTrue(gen_dataset.num_classes, 2)
-        self.assertTrue(gen_dataset.num_node_features, 1+3+2)
+        self.assertTrue(gen_dataset.num_node_features, 1 + 3 + 2)
 
         # Load built
         gen_dataset.build(dvc1)
@@ -236,7 +240,7 @@ class DatasetsTest(unittest.TestCase):
             dataset_ver_ind=0)
         gen_dataset.build(dvc2)
         self.assertTrue(gen_dataset.num_classes, 3)
-        self.assertTrue(gen_dataset.num_node_features, 3+1)
+        self.assertTrue(gen_dataset.num_node_features, 3 + 1)
 
     def test_custom_ij_multi(self):
         """ """
@@ -288,7 +292,7 @@ class DatasetsTest(unittest.TestCase):
             }, f)
         (raw / 'test.labels').mkdir()
         with open(raw / 'test.labels' / 'binary', 'w') as f:
-            json.dump({"0": 1, "1": 0,"2": 0}, f)
+            json.dump({"0": 1, "1": 0, "2": 0}, f)
         with open(raw / 'test.labels' / 'threeClasses', 'w') as f:
             json.dump({"0": 0, "1": 1, "2": 2}, f)
 
