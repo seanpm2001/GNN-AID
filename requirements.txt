@@ -1,6 +1,7 @@
 numpy==1.23.4
 multiprocess
 pydantic
+tqdm
 
 # For front-end javascript web-interface
 flask==2.2.3
