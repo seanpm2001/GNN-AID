@@ -11,6 +11,7 @@ redis
 scipy==1.14.0
 scikit-learn==1.4.0
 joblib
+threadpoolctl
 
 # For explainers
 networkx==3.0
