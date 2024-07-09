@@ -161,7 +161,7 @@ class GNNModelManager:
         Save the model in torch format
 
         :param path: path to save the model. By default,
-        the path is compiled based on the global class variables
+         the path is compiled based on the global class variables
         """
         raise NotImplementedError()
 
@@ -172,6 +172,7 @@ class GNNModelManager:
     def load_model_executor(self, path=None, **kwargs):
         """
         Load executor. Generates the download model path if no other path is specified.
+
         :param path: path to load the model. By default, the path is compiled based on the global
          class variables
         """
@@ -212,9 +213,9 @@ class GNNModelManager:
         and its parameters for saving
 
         :param gnn_architecture_path: path to save the architecture of the model,
-        by default it forms the path itself.
+         by default it forms the path itself.
         :param path: path to save the model. By default,
-        the path is compiled based on the global class variables
+         the path is compiled based on the global class variables
         """
         if path is None:
             dir_path, files_paths = Declare.models_path(self)
@@ -555,6 +556,7 @@ class FrameworkGNNModelManager(GNNModelManager):
     def load_model(self, path=None, **kwargs):
         """
         Load model from torch save format
+
         :param path: path to load the model. By default, the path is compiled based on the global
          class variables
         """
@@ -573,7 +575,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         Save the model in torch format
 
         :param path: path to save the model. By default,
-        the path is compiled based on the global class variables
+         the path is compiled based on the global class variables
         """
         torch.save(self.gnn.state_dict(), path)
 
@@ -660,7 +662,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         :param gen_dataset: wrapper over the dataset, stores the dataset and all meta-information about the dataset
         :param mask: 'train', 'val', 'test', 'all' -- part of the dataset on which the output will be obtained
         :param out: 'answers', 'predictions', 'logits' -- what output format will be calculated,
-        availability depends on which methods have been overridden in the parent class
+         availability depends on which methods have been overridden in the parent class
         :return:
         """
         try:
@@ -776,13 +778,13 @@ class FrameworkGNNModelManager(GNNModelManager):
     def compute_stats_data(self, gen_dataset, predictions=False, logits=False):
         """
         :param gen_dataset: wrapper over the dataset, stores the dataset
-        and all meta-information about the dataset
+         and all meta-information about the dataset
         :param predictions: boolean flag that indicates the need to enter model predictions
-        in the statistics for the front
+         in the statistics for the front
         :param logits: boolean flag that indicates the need to enter model logits
-        in the statistics for the front
+         in the statistics for the front
         :return: dict with model weights. Also function can add in dict model predictions
-        and logits
+         and logits
         """
         self.stats_data = {}
 
@@ -877,7 +879,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         Save the model in torch format
 
         :param path: path to save the model. By default,
-        the path is compiled based on the global class variables
+         the path is compiled based on the global class variables
         """
         torch.save({"model_state_dict": self.gnn.state_dict(),
                     "best_prots": self.gnn.best_prots,
@@ -886,6 +888,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
     def load_model(self, path=None, **kwargs):
         """
         Load model from torch save format
+
         :param path: path to load the model. By default, the path is compiled based on the global
          class variables
         """

@@ -1,0 +1,28 @@
+## These are reqs needed for documentation
+
+numpy==1.26.3
+multiprocess
+pydantic
+tqdm
+pyparsing
+
+# For front-end javascript web-interface
+flask==2.3.3
+Flask-SocketIO==5.3.2
+redis
+six
+scipy==1.12.0
+scikit-learn==1.4.0
+joblib
+threadpoolctl
+pytz
+python-dateutil
+statsmodels
+patsy
+packaging
+opt-einsum
+pandas==2.2.0
+
+# Build sphinx docs locally (optional)
+sphinx==7.1.2
+sphinx-rtd-theme==1.3.0rc1

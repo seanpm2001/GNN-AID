@@ -1,0 +1,21 @@
+## This is other reqs needed for the whole project
+
+# Base - models training
+torch_geometric==2.3.1
+torch_scatter==2.1.1
+torch_sparse==0.6.17
+torch-cluster==1.6.1
+torch-spline-conv==1.2.2
+
+# For explainers
+dive-into-graphs==1.1.0
+pgmpy  # PGMExplainer
+
+# For synthetic datasets
+matplotlib
+
+# Possible (check!)
+psutil
+# tf2onnx==1.14.0
+# onnx2torch==1.2.0
+# onnx==1.10.0

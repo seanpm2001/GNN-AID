@@ -399,175 +399,175 @@ class ModelStructureConfig(Config):
     Access by key and iterating behave like it is list.
 
     General principle for describing one layer of the network:
-    structure=[
-        {
-            'label': 'n' or 'g',
-            'layer': {
-                ...
-            },
-            'batchNorm': {
-                ...
-            },
-            'activation': {
-                ...
-            },
-            'dropout': {
-                ...
-            },
-            'connections': [
-                {
-                    ...
-                },
-                ...
-            ]
-        },
-        {
-            new block
-        },
-    ]
+    >>> structure=[
+    >>>     {
+    >>>         'label': 'n' or 'g',
+    >>>         'layer': {
+    >>>             ...
+    >>>         },
+    >>>         'batchNorm': {
+    >>>             ...
+    >>>         },
+    >>>         'activation': {
+    >>>             ...
+    >>>         },
+    >>>         'dropout': {
+    >>>             ...
+    >>>         },
+    >>>         'connections': [
+    >>>             {
+    >>>                 ...
+    >>>             },
+    >>>             ...
+    >>>         ]
+    >>>     },
+    >>>     {
+    >>>         new block
+    >>>     },
+    >>> ]
 
     For connections now support variant connection between layers
     with labels: n -> n, n -> g, g -> g
     Example connections:
-    'connections': [
-                {
-                    'into_layer': 3,
-                    'connection_kwargs': {
-                        'pool': {
-                            'pool_type': 'global_add_pool',
-                        },
-                        'aggregation_type': 'cat',
-                    },
-                },
-            ],
+    >>> 'connections': [
+    >>>             {
+    >>>                 'into_layer': 3,
+    >>>                 'connection_kwargs': {
+    >>>                     'pool': {
+    >>>                         'pool_type': 'global_add_pool',
+    >>>                     },
+    >>>                     'aggregation_type': 'cat',
+    >>>                 },
+    >>>             },
+    >>>         ],
     into_layer: layer (block) index, numeration start from 0
     For aggregation_type now support only cat
     pool_type has taken from torch_geometric.nn, pooling
 
     In the case of using GINConv, it is necessary to write the internal structure nn.Sequential().
     For this case, a universal block logic is provided in the following format:
-    'layer': {
-                'layer_name': 'GINConv',
-                'layer_kwargs': None,
-                'gin_seq': [
-                    {
-                        'layer': {
-                            'layer_name': 'Linear',
-                            ...
-                            },
-                        },
-                        'batchNorm': {
-                            ...
-                        },
-                        'activation': {
-                            ...
-                        },
-                    },
-                    {
-                        new block
-                    },
-                ],
-                ...
-            },
+    >>> 'layer': {
+    >>>             'layer_name': 'GINConv',
+    >>>             'layer_kwargs': None,
+    >>>             'gin_seq': [
+    >>>                 {
+    >>>                     'layer': {
+    >>>                         'layer_name': 'Linear',
+    >>>                         ...
+    >>>                         },
+    >>>                     },
+    >>>                     'batchNorm': {
+    >>>                         ...
+    >>>                     },
+    >>>                     'activation': {
+    >>>                         ...
+    >>>                     },
+    >>>                 },
+    >>>                 {
+    >>>                     new block
+    >>>                 },
+    >>>             ],
+    >>>             ...
+    >>>         },
     Examples:
     Example of conv layer:
-        {
-            'label': 'n',
-            'layer': {
-                'layer_name': 'GATConv',
-                'layer_kwargs': {
-                    'in_channels': dataset.num_node_features,
-                    'out_channels': 16,
-                    'heads': 3,
-                },
-            },
-            'batchNorm': {
-                'batchNorm_name': 'BatchNorm1d',
-                'batchNorm_kwargs': {
-                    'num_features': 48,
-                    'eps': 1e-05,
-                }
-            },
-            'activation': {
-                'activation_name': 'ReLU',
-                'activation_kwargs': None,
-            },
-            'dropout': {
-                'dropout_name': 'Dropout',
-                'dropout_kwargs': {
-                    'p': 0.5,
-                }
-            },
-        }
+    >>> {
+    >>>     'label': 'n',
+    >>>     'layer': {
+    >>>         'layer_name': 'GATConv',
+    >>>         'layer_kwargs': {
+    >>>             'in_channels': dataset.num_node_features,
+    >>>             'out_channels': 16,
+    >>>             'heads': 3,
+    >>>         },
+    >>>     },
+    >>>     'batchNorm': {
+    >>>         'batchNorm_name': 'BatchNorm1d',
+    >>>         'batchNorm_kwargs': {
+    >>>             'num_features': 48,
+    >>>             'eps': 1e-05,
+    >>>         }
+    >>>     },
+    >>>     'activation': {
+    >>>         'activation_name': 'ReLU',
+    >>>         'activation_kwargs': None,
+    >>>     },
+    >>>     'dropout': {
+    >>>         'dropout_name': 'Dropout',
+    >>>         'dropout_kwargs': {
+    >>>             'p': 0.5,
+    >>>         }
+    >>>     },
+    >>> }
     Example of gin layer:
-        {
-            'label': 'n',
-            'layer': {
-                'layer_name': 'GINConv',
-                'layer_kwargs': None,
-                'gin_seq': [
-                    {
-                        'layer': {
-                            'layer_name': 'Linear',
-                            'layer_kwargs': {
-                                'in_features': dataset.num_node_features,
-                                'out_features': 16,
-                            },
-                        },
-                        'batchNorm': {
-                            'batchNorm_name': 'BatchNorm1d',
-                            'batchNorm_kwargs': {
-                                'num_features': 16,
-                                'eps': 1e-05,
-                            }
-                        },
-                        'activation': {
-                            'activation_name': 'ReLU',
-                            'activation_kwargs': None,
-                        },
-                    },
-                    {
-                        'layer': {
-                            'layer_name': 'Linear',
-                            'layer_kwargs': {
-                                'in_features': 16,
-                                'out_features': 16,
-                            },
-                        },
-                        'activation': {
-                            'activation_name': 'ReLU',
-                            'activation_kwargs': None,
-                        },
-                    },
-                ],
-            },
-            'connections': [
-                {
-                    'into_layer': 3,
-                    'connection_kwargs': {
-                        'pool': {
-                            'pool_type': 'global_add_pool',
-                        },
-                        'aggregation_type': 'cat',
-                    },
-                },
-            ],
-        }
+    >>> {
+    >>>     'label': 'n',
+    >>>     'layer': {
+    >>>         'layer_name': 'GINConv',
+    >>>         'layer_kwargs': None,
+    >>>         'gin_seq': [
+    >>>             {
+    >>>                 'layer': {
+    >>>                     'layer_name': 'Linear',
+    >>>                     'layer_kwargs': {
+    >>>                         'in_features': dataset.num_node_features,
+    >>>                         'out_features': 16,
+    >>>                     },
+    >>>                 },
+    >>>                 'batchNorm': {
+    >>>                     'batchNorm_name': 'BatchNorm1d',
+    >>>                     'batchNorm_kwargs': {
+    >>>                         'num_features': 16,
+    >>>                         'eps': 1e-05,
+    >>>                     }
+    >>>                 },
+    >>>                 'activation': {
+    >>>                     'activation_name': 'ReLU',
+    >>>                     'activation_kwargs': None,
+    >>>                 },
+    >>>             },
+    >>>             {
+    >>>                 'layer': {
+    >>>                     'layer_name': 'Linear',
+    >>>                     'layer_kwargs': {
+    >>>                         'in_features': 16,
+    >>>                         'out_features': 16,
+    >>>                     },
+    >>>                 },
+    >>>                 'activation': {
+    >>>                     'activation_name': 'ReLU',
+    >>>                     'activation_kwargs': None,
+    >>>                 },
+    >>>             },
+    >>>         ],
+    >>>     },
+    >>>     'connections': [
+    >>>         {
+    >>>             'into_layer': 3,
+    >>>             'connection_kwargs': {
+    >>>                 'pool': {
+    >>>                     'pool_type': 'global_add_pool',
+    >>>                 },
+    >>>                 'aggregation_type': 'cat',
+    >>>             },
+    >>>         },
+    >>>     ],
+    >>> }
     Example of linear layer:
-        {
-            'label': 'n',
-            'layer': {
-                'layer_name': 'Linear',
-                'layer_kwargs': {
-                    'in_features': 48,
-                    'out_features': dataset.num_classes,
-                },
-            },
-            'activation': {
-                'activation_name': 'LogSoftmax',
-                'activation_kwargs': None,
-            },
-        }
+    >>> {
+    >>>     'label': 'n',
+    >>>     'layer': {
+    >>>         'layer_name': 'Linear',
+    >>>         'layer_kwargs': {
+    >>>             'in_features': 48,
+    >>>             'out_features': dataset.num_classes,
+    >>>         },
+    >>>     },
+    >>>     'activation': {
+    >>>         'activation_name': 'LogSoftmax',
+    >>>         'activation_kwargs': None,
+    >>>     },
+    >>> }
     """
 
     def __init__(self, layers=None):
