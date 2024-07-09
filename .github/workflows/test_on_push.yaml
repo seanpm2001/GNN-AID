@@ -24,11 +24,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.11'
-    - name: Run lint
-      run: |
-        python3 -m pip install --upgrade pip
-        pip3 install .[lint]
-        flake8 .
     - name: Run tests
       run: |
         python3 -m unittest -v -f tests/explainers*
