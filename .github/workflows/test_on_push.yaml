@@ -31,9 +31,12 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential python3-dev
-    - name: Install Python dependencies
+    - name: Install torch
       run: |
-        pip install -r requirements.txt
+        pip install torch==2.0.0
+    - name: Install other dependencies
+      run: |
+        pip install -r requirements.txt --no-deps
     - name: Run tests
       run: |
         python3 -m unittest -v -f tests/explainers*
