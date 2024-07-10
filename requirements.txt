@@ -15,6 +15,7 @@ joblib
 threadpoolctl
 pytz
 python-dateutil
+statsmodels
 opt-einsum
 pandas==2.2.0
 
