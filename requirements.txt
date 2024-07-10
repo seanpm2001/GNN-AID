@@ -16,6 +16,7 @@ threadpoolctl
 pytz
 python-dateutil
 statsmodels
+patsy
 packaging
 opt-einsum
 pandas==2.2.0
