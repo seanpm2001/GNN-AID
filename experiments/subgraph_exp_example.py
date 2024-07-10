@@ -19,9 +19,9 @@ def test_SubgraphX():
 
     full_name = None
 
-    full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
+    # full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     # full_name = ("single-graph", "custom", 'karate')
-    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ("single-graph", "Planetoid", 'Cora')
     # full_name = ("multiple-graphs", "TUDataset", 'PROTEINS')
 
     # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
