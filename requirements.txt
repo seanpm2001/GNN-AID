@@ -12,6 +12,7 @@ scipy==1.14.0
 scikit-learn==1.4.0
 joblib
 threadpoolctl
+pandas==2.2.0
 
 # For explainers
 networkx==3.0
