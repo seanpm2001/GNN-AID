@@ -13,7 +13,6 @@ scikit-learn==1.4.0
 joblib
 threadpoolctl
 pytz
-dateutil
 pandas==2.2.0
 
 # For explainers
