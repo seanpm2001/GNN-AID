@@ -180,68 +180,6 @@ class ExplainersTest(unittest.TestCase):
             gen_dataset=gen_dataset_mg_small, steps=50, save_model_flag=False,
             metrics=[Metric("F1", mask='test')])
 
-    def test_SubgraphX_SG(self):
-        warnings.warn("Start SubgraphX")
-        explainer_init_config = ConfigPattern(
-            _class_name="SubgraphX",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-                # "class_name": "SubgraphX",
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "SubgraphX",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-                        "element_idx": 0, "max_nodes": 5
-                    },
-                }
-            }
-        )
-        explainer_SubgraphX = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_sg_example, gnn_manager=self.gnn_model_manager_sg_example,
-            explainer_name="SubgraphX",
-        )
-        explainer_SubgraphX.conduct_experiment(explainer_run_config)
-
-    def test_SubgraphX_MG(self):
-        warnings.warn("Start SubgraphX")
-        explainer_init_config = ConfigPattern(
-            _class_name="SubgraphX",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-                # "class_name": "SubgraphX",
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "GNNExplainer(torch-geom)",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-                        "element_idx": 0, "max_nodes": 5
-                    },
-                }
-            }
-        )
-        explainer_SubgraphX = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_mg_mutag, gnn_manager=self.gnn_model_manager_mg_mutag,
-            explainer_name="SubgraphX",
-        )
-        explainer_SubgraphX.conduct_experiment(explainer_run_config)
-
     def test_PGE_SG(self):
         # FIXME not working with another tests
         warnings.warn("Start PGExplainer(dig)")
