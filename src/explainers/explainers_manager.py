@@ -40,9 +40,13 @@ class FrameworkExplainersManager:
             self,
             dataset, gnn_manager,
             init_config=None,
-            explainer_name: str=None,
-            modification_config: ExplainerModificationConfig=None,
+            explainer_name: str = None,
+            modification_config: ExplainerModificationConfig = None,
+            device:str = None
     ):
+        if device is None:
+            device = "cpu"
+        self.device = device
         if init_config is None:
             if explainer_name is None:
                 raise Exception("if init_config is None, explainer_name must be defined")
@@ -103,7 +107,7 @@ class FrameworkExplainersManager:
         klass = name_klass[self.explainer_name]
         self.explainer = klass(
             self.gen_dataset, model=self.gnn,
-            device=device('cuda' if is_available() else 'cpu'),
+            device=self.device,
             # device=device("cpu"),
             **init_kwargs)
 

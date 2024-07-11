@@ -188,7 +188,7 @@ class ConfigPattern(GeneralConfig):
         setattr(self, CONFIG_OBJ, self.make_config_by_pattern(save_kwargs))
 
     def __getattribute__(self, item):
-        if item == "__dict__":
+        if item == "__dict__" or item == "__class__":
             return object.__getattribute__(self, item)
 
         if item is CONFIG_OBJ:
@@ -246,7 +246,7 @@ class ConfigPattern(GeneralConfig):
 
     def merge(self, config):
         self_config_obj = getattr(self, CONFIG_OBJ)
-        if isinstance(config, ConfigPattern):
+        if config.__class__.__name__ == "ConfigPattern":
             config_obj = getattr(config, CONFIG_OBJ)
             setattr(self, CONFIG_OBJ, self_config_obj.merge(config_obj))
         else:

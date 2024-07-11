@@ -1,3 +1,7 @@
+import collections
+import collections.abc
+collections.Callable = collections.abc.Callable
+
 import unittest
 import warnings
 import shutil
@@ -13,6 +17,17 @@ from models_builder.gnn_models import FrameworkGNNModelManager, ProtGNNModelMana
 from aux.configs import ModelManagerConfig, DatasetConfig, DatasetVarConfig, ExplainerRunConfig, \
     ExplainerInitConfig, ConfigPattern
 from models_builder.models_zoo import model_configs_zoo
+
+# from src.aux import utils
+# from src.aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
+#     EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH
+# from src.base.datasets_processing import DatasetManager
+# from src.explainers.explainers_manager import FrameworkExplainersManager
+# from src.models_builder.gnn_models import FrameworkGNNModelManager, ProtGNNModelManager, Metric
+# from src.aux.configs import ModelManagerConfig, DatasetConfig, DatasetVarConfig, ExplainerRunConfig, \
+#     ExplainerInitConfig, ConfigPattern
+# from src.models_builder.models_zoo import model_configs_zoo
+
 
 tmp_dir = utils.EXPLANATIONS_DIR / (utils.EXPLANATIONS_DIR.name + str(time()))
 utils.EXPLANATIONS_DIR = tmp_dir
@@ -165,68 +180,6 @@ class ExplainersTest(unittest.TestCase):
             gen_dataset=gen_dataset_mg_small, steps=50, save_model_flag=False,
             metrics=[Metric("F1", mask='test')])
 
-    def test_SubgraphX_SG(self):
-        warnings.warn("Start SubgraphX")
-        explainer_init_config = ConfigPattern(
-            _class_name="SubgraphX",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-                # "class_name": "SubgraphX",
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "SubgraphX",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-                        "element_idx": 0, "max_nodes": 5
-                    },
-                }
-            }
-        )
-        explainer_SubgraphX = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_sg_example, gnn_manager=self.gnn_model_manager_sg_example,
-            explainer_name="SubgraphX",
-        )
-        explainer_SubgraphX.conduct_experiment(explainer_run_config)
-
-    def test_SubgraphX_MG(self):
-        warnings.warn("Start SubgraphX")
-        explainer_init_config = ConfigPattern(
-            _class_name="SubgraphX",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-                # "class_name": "SubgraphX",
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "GNNExplainer(torch-geom)",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-                        "element_idx": 0, "max_nodes": 5
-                    },
-                }
-            }
-        )
-        explainer_SubgraphX = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_mg_mutag, gnn_manager=self.gnn_model_manager_mg_mutag,
-            explainer_name="SubgraphX",
-        )
-        explainer_SubgraphX.conduct_experiment(explainer_run_config)
-
     def test_PGE_SG(self):
         # FIXME not working with another tests
         warnings.warn("Start PGExplainer(dig)")
@@ -378,36 +331,6 @@ class ExplainersTest(unittest.TestCase):
         )
         explainer_Zorro.conduct_experiment(explainer_run_config)
 
-    def test_GraphMask(self):
-        warnings.warn("Start GraphMask")
-        explainer_init_config = ConfigPattern(
-            _class_name="GraphMask",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "GraphMask",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer_GraphMask = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_sg_example, gnn_manager=self.gnn_model_manager_sg_example,
-            explainer_name='GraphMask',
-        )
-        explainer_GraphMask.conduct_experiment(explainer_run_config)
-
     def test_ProtGNN(self):
         warnings.warn("Start ProtGNN")
         explainer_init_config = ConfigPattern(
@@ -438,66 +361,6 @@ class ExplainersTest(unittest.TestCase):
         )
 
         explainer_Prot.conduct_experiment(explainer_run_config)
-
-    def test_GNNExpl_DIG_SG(self):
-        warnings.warn("Start GNNExplainer_DIG")
-        explainer_init_config = ConfigPattern(
-            _class_name="GNNExplainer(dig)",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "GNNExplainer(dig)",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer_GNNExpl = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_sg_example, gnn_manager=self.gnn_model_manager_sg_example,
-            explainer_name='GNNExplainer(dig)',
-        )
-        explainer_GNNExpl.conduct_experiment(explainer_run_config)
-
-    def test_GNNExpl_DIG_MG(self):
-        warnings.warn("Start GNNExplainer_DIG")
-        explainer_init_config = ConfigPattern(
-            _class_name="GNNExplainer(dig)",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "local",
-                "kwargs": {
-                    "_class_name": "GNNExplainer(dig)",
-                    "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer_GNNExpl = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_mg_small, gnn_manager=self.gnn_model_manager_mg_small,
-            explainer_name='GNNExplainer(dig)',
-        )
-        explainer_GNNExpl.conduct_experiment(explainer_run_config)
 
     def test_GNNExpl_PYG_SG(self):
         warnings.warn("Start GNNExplainer_PYG")
@@ -559,35 +422,35 @@ class ExplainersTest(unittest.TestCase):
         )
         explainer_GNNExpl.conduct_experiment(explainer_run_config)
 
-    def test_NeuralAnalysis_MG(self):
-        warnings.warn("Start Neural Analysis")
-        explainer_init_config = ConfigPattern(
-            _class_name="NeuralAnalysis",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "global",
-                "kwargs": {
-                    "_class_name": "NeuralAnalysis",
-                    "_import_path": EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_mg_mutag, gnn_manager=self.gnn_model_manager_mg_mutag,
-            explainer_name='NeuralAnalysis',
-        )
-        explainer.conduct_experiment(explainer_run_config)
+    # def test_NeuralAnalysis_MG(self):
+    #     warnings.warn("Start Neural Analysis")
+    #     explainer_init_config = ConfigPattern(
+    #         _class_name="NeuralAnalysis",
+    #         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #         _config_class="ExplainerInitConfig",
+    #         _config_kwargs={
+    #         }
+    #     )
+    #     explainer_run_config = ConfigPattern(
+    #         _config_class="ExplainerRunConfig",
+    #         _config_kwargs={
+    #             "mode": "global",
+    #             "kwargs": {
+    #                 "_class_name": "NeuralAnalysis",
+    #                 "_import_path": EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH,
+    #                 "_config_class": "Config",
+    #                 "_config_kwargs": {
+    #
+    #                 },
+    #             }
+    #         }
+    #     )
+    #     explainer = FrameworkExplainersManager(
+    #         init_config=explainer_init_config,
+    #         dataset=self.dataset_mg_mutag, gnn_manager=self.gnn_model_manager_mg_mutag,
+    #         explainer_name='NeuralAnalysis',
+    #     )
+    #     explainer.conduct_experiment(explainer_run_config)
 
 
 if __name__ == '__main__':

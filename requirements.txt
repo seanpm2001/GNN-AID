@@ -1,20 +1,25 @@
-# Base - models training
-# For torch and components see README
-# torch==2.0.0
-# torch_geometric==2.3.1
-# torch_scatter==2.1.1
-# torch_sparse==0.6.17
-# torch-cluster==1.6.1
-# torch-spline-conv==1.2.2
-
-numpy==1.19.5
+numpy==1.23.4
 multiprocess
 pydantic
+tqdm
+pyparsing
 
 # For front-end javascript web-interface
-flask==2.2.3
+flask==2.3.3
 Flask-SocketIO==5.3.2
 redis
+six
+scipy==1.14.0
+scikit-learn==1.4.0
+joblib
+threadpoolctl
+pytz
+python-dateutil
+statsmodels
+patsy
+packaging
+opt-einsum
+pandas==2.2.0
 
 # For explainers
 networkx==3.0
@@ -26,6 +31,18 @@ matplotlib
 
 # Possible (check!)
 dgl
+psutil
 # tf2onnx==1.14.0
 # onnx2torch==1.2.0
 # onnx==1.10.0
+
+# Base - models training
+# For torch and components see README
+torch==2.0.0
+torch_geometric==2.3.1
+torch_scatter==2.1.1
+torch_sparse==0.6.17
+torch-cluster==1.6.1
+torch-spline-conv==1.2.2
+
+

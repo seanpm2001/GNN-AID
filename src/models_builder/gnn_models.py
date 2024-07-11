@@ -1,4 +1,3 @@
-import hashlib
 import importlib.util
 import json
 import random
@@ -6,7 +5,7 @@ from math import ceil
 from types import FunctionType
 import numpy as np
 import torch
-import sklearn, sklearn.metrics
+import sklearn.metrics
 from torch.nn.utils import clip_grad_norm
 from torch import tensor
 import torch.nn.functional as F
@@ -21,7 +20,6 @@ from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
 from explainers.ProtGNN.MCTS import mcts_args
-from web_interface.back_front.utils import SocketConnect
 
 
 class Metric:

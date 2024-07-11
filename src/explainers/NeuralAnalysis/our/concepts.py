@@ -6,7 +6,10 @@ from collections import defaultdict
 from src.explainers.NeuralAnalysis.orig import concepts
 
 class ConceptSet(concepts.ConceptSet):
-    def __init__(self, graphs, task, omega=[10, 20, 20], pbar=None):
+    def __init__(self, graphs, task, omega=[10, 20, 20], pbar=None, device=None):
+        if device is None:
+            device = "cpu"
+        self.device = device
         if task in ['MUTAG', 'BBBP', 'MUTAGENICITY', 'PROTEINS', 'NCI', 'BA', 'IMDB', 'REDDIT', 'SST']:
             super().__init__(graphs, task, omega)
         else:
@@ -115,9 +118,8 @@ class ConceptSet(concepts.ConceptSet):
 
         n_nodes = neuron_activations.shape[1]
 
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        neuron_activations = neuron_activations.to(device)
-        inds = inds.to(device)
+        neuron_activations = neuron_activations.to(self.device)
+        inds = inds.to(self.device)
 
         #self.pbar.reset(neuron_activations.shape[0])
         for neuron_idx in range(neuron_activations.shape[0]):
@@ -145,17 +147,17 @@ class ConceptSet(concepts.ConceptSet):
             assert activations.shape[0] == n_concepts and activations.shape[1] == n_nodes
             assert targets.shape[0] == n_concepts and targets.shape[1] == n_nodes
 
-            err = torch.zeros(n_concepts).to(device)
-            targets = targets.to(device)
+            err = torch.zeros(n_concepts).to(self.device)
+            targets = targets.to(self.device)
 
             [alpha, beta, gamma] = self.omega
 
-            final_thresholds = torch.zeros(activations.shape[0], device=device)
+            final_thresholds = torch.zeros(activations.shape[0], device=self.device)
 
             for thresh in np.arange(alpha, beta) / gamma * max_act.item():
                 acts = activations > thresh
 
-                msk = torch.zeros(activations.shape, device=device)
+                msk = torch.zeros(activations.shape, device=self.device)
                 nonzids = acts.nonzero().T
                 if nonzids.shape[0] > 0:
                     msk[nonzids[0], nonzids[1]] = 1
