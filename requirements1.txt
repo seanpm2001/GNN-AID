@@ -4,4 +4,3 @@ networkx==3.0  # For explainers
 docutils==0.18.1  # from sphinx==7.1.2
 
 torch==2.0.0
-# setuptools==69.5.1  # due to fail in torch* installation https://stackoverflow.com/questions/78604018
