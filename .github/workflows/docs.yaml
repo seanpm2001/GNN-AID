@@ -8,7 +8,7 @@ on:
 
 jobs:
   documentation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2
@@ -20,16 +20,14 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt-get install -y libreoffice djvulibre-bin poppler-utils tesseract-ocr libtesseract-dev tesseract-ocr-rus tesseract-ocr-eng
         python -m pip install --upgrade --no-cache-dir pip setuptools
-        python -m pip install --exists-action=w --no-cache-dir -r requirements.txt
-        python -m pip install --upgrade --upgrade-strategy eager --no-cache-dir .[torch,docs]
+        python -m pip install --exists-action=w --no-cache-dir -r requirements1.txt
+        python -m pip install --exists-action=w --no-cache-dir -r requirements2.txt
+        python -m pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
+        python -m pip install --upgrade --upgrade-strategy eager --no-cache-dir .
 
     - name: Build documentation
       # Build the documentation, you can use this command locally
       run: |
-        python -m sphinx -T -E -W -b html -d docs/_build/doctrees -D language=en docs/source docs/_build
-        cd docs/source/_static/code_examples
-        python dedoc_usage_tutorial.py
-        python dedoc_add_new_doc_type_tutorial.py
-        python dedoc_add_new_structure_type_tutorial.py
+        cd docs/source
+        python -m sphinx -T -W --keep-going -b html -d _build/doctrees -D language=en . docs/html
