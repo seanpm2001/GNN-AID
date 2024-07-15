@@ -1,19 +1,19 @@
-from abc import abstractmethod, ABC
+from base.datasets_processing import GeneralDataset
 
 
-class Defender(ABC):
+class Defender:
     name = "Defender"
 
-    @staticmethod
-    def check_availability():
-        return False
+    def __init__(self, gen_dataset: GeneralDataset, model):
+        self.gen_dataset = gen_dataset
+        self.model = model
 
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def run(self):
+    def defense(self):
         pass
 
     def save(self, path):
         pass
+
+    @staticmethod
+    def check_availability(gen_dataset, model_manager):
+        return False

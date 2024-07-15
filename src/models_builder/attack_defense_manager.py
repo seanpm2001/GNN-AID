@@ -16,6 +16,36 @@ class AttackAndDefenseManager:
     def conduct_experiment(self):
         pass
 
+    def save(self):
+        pass
+
+    def load(self):
+        pass
+
+    def result_path(self):
+        pass
+
+    def set_poison_attacker(self):
+        pass
+
+    def set_evasion_attacker(self):
+        pass
+
+    def set_mi_attacker(self):
+        pass
+
+    def set_poison_defender(self):
+        pass
+
+    def set_evasion_defender(self):
+        pass
+
+    def set_mi_defender(self):
+        pass
+
+    def set_all(self):
+        pass
+
     @staticmethod
     def available_attacker():
         pass
