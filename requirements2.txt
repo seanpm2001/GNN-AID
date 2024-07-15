@@ -1,0 +1,25 @@
+## These are reqs needed for documentation
+
+numpy==1.26.3
+multiprocess
+pydantic
+tqdm
+pyparsing
+
+flask==2.3.3  # For front-end javascript web-interface
+Flask-SocketIO==5.3.2
+redis
+six
+scipy==1.12.0
+scikit-learn==1.4.0
+joblib
+threadpoolctl
+pytz
+python-dateutil
+statsmodels
+patsy
+packaging
+opt-einsum
+pandas==2.2.0
+
+torch_geometric==2.3.1
