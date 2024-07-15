@@ -1,6 +1,4 @@
 import json
-from torch import device
-from torch.cuda import is_available
 
 from aux.configs import ExplainerInitConfig, ExplainerModificationConfig, ExplainerRunConfig, \
     CONFIG_CLASS_NAME, CONFIG_OBJ, ConfigPattern
@@ -42,7 +40,7 @@ class FrameworkExplainersManager:
             init_config=None,
             explainer_name: str = None,
             modification_config: ExplainerModificationConfig = None,
-            device:str = None
+            device: str = None
     ):
         if device is None:
             device = "cpu"

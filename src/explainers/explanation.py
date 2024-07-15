@@ -4,6 +4,7 @@ import json
 class Explanation:
     """ General class to represent GNN explanation.
     """
+
     def __init__(self, local, type, data=None, meta=None):
         """
         :param local: True if local, False if global
@@ -52,6 +53,7 @@ class AttributionExplanation(Explanation):
     def add_nodes(self, node_data):
         self.dictionary['data']['nodes'] = node_data
 
+
 class ConceptExplanationGlobal(Explanation):
     def __init__(self, raw_neurons, n_neurons):
         Explanation.__init__(self, False, 'string')
@@ -60,4 +62,6 @@ class ConceptExplanationGlobal(Explanation):
             if n not in raw_neurons[0].keys():
                 pass
             else:
-                self.dictionary['data']['neurons'][n] = {'rule': raw_neurons[0][n][1][2], 'score': raw_neurons[0][n][1][0], 'importances': raw_neurons[1][n]}
+                self.dictionary['data']['neurons'][n] = {'rule': raw_neurons[0][n][1][2],
+                                                         'score': raw_neurons[0][n][1][0],
+                                                         'importances': raw_neurons[1][n]}
