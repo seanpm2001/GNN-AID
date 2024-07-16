@@ -140,12 +140,6 @@ def test_attack_defense():
         }
     )
 
-    # random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, poison_attack_config=poison_attack_config)
-    # random_attack.attack()
-    #
-    # bad_defense = BadRandomPoisonDefender(gen_dataset=dataset, model=gnn, poison_defense_config=poison_defense_config)
-    # bad_defense.defense()
-
     attack_defense_manager = AttackAndDefenseManager(gen_dataset=dataset, gnn_manager=gnn_model_manager)
     attack_defense_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
     attack_defense_manager.set_poison_defender(poison_defense_config=poison_defense_config)
