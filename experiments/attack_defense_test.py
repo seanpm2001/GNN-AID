@@ -6,6 +6,7 @@ from torch import device
 
 from attacks.attack_base import RandomPoisonAttack
 from defense.defense_base import BadRandomPoisonDefender
+from models_builder.attack_defense_manager import AttackAndDefenseManager
 from src.aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
     EXPLAINERS_INIT_PARAMETERS_PATH, POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
 from src.explainers.explainers_manager import FrameworkExplainersManager
@@ -139,11 +140,14 @@ def test_attack_defense():
         }
     )
 
-    random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, poison_attack_config=poison_attack_config)
-    random_attack.attack()
+    # random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, poison_attack_config=poison_attack_config)
+    # random_attack.attack()
+    #
+    # bad_defense = BadRandomPoisonDefender(gen_dataset=dataset, model=gnn, poison_defense_config=poison_defense_config)
+    # bad_defense.defense()
 
-    bad_defense = BadRandomPoisonDefender(gen_dataset=dataset, model=gnn, poison_defense_config=poison_defense_config)
-    bad_defense.defense()
+    attack_defense_manager = AttackAndDefenseManager(gen_dataset=dataset, gnn_manager=gnn_model_manager)
+    attack_defense_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()

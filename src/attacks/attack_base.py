@@ -45,6 +45,7 @@ class PoisonAttacker(Attacker):
 
 
 class RandomPoisonAttack(PoisonAttacker):
+    name = "RandomPoisonAttack"
     def __init__(self, gen_dataset: GeneralDataset, model, poison_attack_config):
         self.attack_diff = None
 
