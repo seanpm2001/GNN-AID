@@ -1,5 +1,6 @@
 import numpy as np
 
+from aux.configs import PoisonDefenseConfig, MIDefenseConfig, EvasionDefenseConfig
 from base.datasets_processing import GeneralDataset
 
 
@@ -22,19 +23,22 @@ class Defender:
 
 
 class EvasionDefender(Defender):
-    def __init__(self, gen_dataset: GeneralDataset, model, evasion_defense_config=None):
+    def __init__(self, gen_dataset: GeneralDataset, model,
+                 evasion_defense_config: EvasionDefenseConfig = None):
         super().__init__(gen_dataset, model)
         self.evasion_defense_config = evasion_defense_config
 
 
 class MIDefender(Defender):
-    def __init__(self, gen_dataset: GeneralDataset, model, mi_defense_config=None):
+    def __init__(self, gen_dataset: GeneralDataset, model,
+                 mi_defense_config: MIDefenseConfig = None):
         super().__init__(gen_dataset, model)
         self.mi_defense_config = mi_defense_config
 
 
 class PoisonDefender(Defender):
-    def __init__(self, gen_dataset: GeneralDataset, model, poison_defense_config=None):
+    def __init__(self, gen_dataset: GeneralDataset, model,
+                 poison_defense_config: PoisonDefenseConfig = None):
         super().__init__(gen_dataset, model)
         self.poison_defense_config = poison_defense_config
 
