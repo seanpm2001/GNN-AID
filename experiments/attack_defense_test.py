@@ -120,7 +120,7 @@ def test_attack_defense():
     gnn_model_manager.gnn.to(my_device)
     data = data.to(my_device)
 
-    random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, n_edges_percent=0.6)
+    random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, n_edges_percent=0.1)
     random_attack.attack()
 
     warnings.warn("Start training")
