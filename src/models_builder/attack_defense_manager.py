@@ -53,16 +53,16 @@ class AttackAndDefenseManager:
     def conduct_experiment(self):
         if self.poison_attacker is not None and self.poison_attack_flag:
             self.poison_attacker.attack()
-        # if self.poison_attacker is not None and self.poison_attack_flag:
-        #     self.poison_attacker.attack()
-        # if self.poison_attacker is not None and self.poison_attack_flag:
-        #     self.poison_attacker.attack()
-        # if self.poison_attacker is not None and self.poison_attack_flag:
-        #     self.poison_attacker.attack()
-        # if self.poison_attacker is not None and self.poison_attack_flag:
-        #     self.poison_attacker.attack()
-        # if self.poison_attacker is not None and self.poison_attack_flag:
-        #     self.poison_attacker.attack()
+        if self.poison_defender is not None and self.poison_defense_flag:
+            self.poison_defender.defense()
+        if self.mi_defender is not None and self.mi_defense_flag:
+            self.mi_defender.defense()
+        if self.evasion_defender is not None and self.evasion_defense_flag:
+            self.evasion_defender.defense()
+        if self.evasion_attacker is not None and self.evasion_attack_flag:
+            self.evasion_attacker.attack()
+        if self.mi_attacker is not None and self.poison_attack_flag:
+            self.mi_attacker.attack()
 
     def save(self):
         pass
