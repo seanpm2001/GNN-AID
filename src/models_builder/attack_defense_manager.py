@@ -1,6 +1,9 @@
 from attacks.attack_base import PoisonAttacker, EvasionAttacker, MIAttacker
-from aux.configs import ConfigPattern, PoisonAttackConfig, CONFIG_OBJ, EvasionAttackConfig, MIAttackConfig
-from aux.utils import POISON_ATTACK_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, MI_ATTACK_PARAMETERS_PATH
+from aux.configs import ConfigPattern, PoisonAttackConfig, CONFIG_OBJ, EvasionAttackConfig, MIAttackConfig, \
+    PoisonDefenseConfig, EvasionDefenseConfig, MIDefenseConfig
+from aux.utils import POISON_ATTACK_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, MI_ATTACK_PARAMETERS_PATH, \
+    POISON_DEFENSE_PARAMETERS_PATH, EVASION_DEFENSE_PARAMETERS_PATH, MI_DEFENSE_PARAMETERS_PATH
+from defense.defense_base import PoisonDefender, EvasionDefender, MIDefender
 
 for pack in [
 ]:
@@ -16,18 +19,31 @@ class AttackAndDefenseManager:
             gen_dataset,
             gnn_manager
     ):
-        
+        self.mi_defender = None
+        self.mi_defense_name = None
+        self.mi_defense_config = None
+        self.evasion_defender = None
+        self.evasion_defense_name = None
+        self.evasion_defense_config = None
+        self.poison_defense_name = None
+        self.poison_defense_config = None
+        self.poison_defender = None
         self.mi_attack_config = None
         self.mi_attacker = None
         self.mi_attack_name = None
-
         self.evasion_attack_config = None
         self.evasion_attacker = None
         self.evasion_attack_name = None
-
         self.poison_attack_name = None
         self.poison_attacker = None
         self.poison_attack_config = None
+
+        self.poison_attack_flag = False
+        self.evasion_attack_flag = False
+        self.mi_attack_flag = False
+        self.poison_defense_flag = False
+        self.evasion_defense_flag = False
+        self.mi_defense_flag = False
 
         self.gen_dataset = gen_dataset
         self.gnn = gnn_manager.gnn
@@ -35,7 +51,18 @@ class AttackAndDefenseManager:
         self.gnn_model_path = gnn_manager.model_path_info()
 
     def conduct_experiment(self):
-        pass
+        if self.poison_attacker is not None and self.poison_attack_flag:
+            self.poison_attacker.attack()
+        # if self.poison_attacker is not None and self.poison_attack_flag:
+        #     self.poison_attacker.attack()
+        # if self.poison_attacker is not None and self.poison_attack_flag:
+        #     self.poison_attacker.attack()
+        # if self.poison_attacker is not None and self.poison_attack_flag:
+        #     self.poison_attacker.attack()
+        # if self.poison_attacker is not None and self.poison_attack_flag:
+        #     self.poison_attacker.attack()
+        # if self.poison_attacker is not None and self.poison_attack_flag:
+        #     self.poison_attacker.attack()
 
     def save(self):
         pass
@@ -83,6 +110,7 @@ class AttackAndDefenseManager:
             # device=device("cpu"),
             **poison_attack_kwargs
         )
+        self.poison_attack_flag = True
 
     def set_evasion_attacker(self, evasion_attack_config=None, evasion_attack_name: str = None):
         if evasion_attack_config is None:
@@ -121,6 +149,7 @@ class AttackAndDefenseManager:
             # device=device("cpu"),
             **evasion_attack_kwargs
         )
+        self.evasion_attack_flag = True
 
     def set_mi_attacker(self, mi_attack_config=None, mi_attack_name: str = None):
         if mi_attack_config is None:
@@ -159,15 +188,124 @@ class AttackAndDefenseManager:
             # device=device("cpu"),
             **mi_attack_kwargs
         )
+        self.mi_attack_flag = True
 
-    def set_poison_defender(self):
-        pass
+    def set_poison_defender(self, poison_defense_config=None, poison_defense_name: str = None):
+        if poison_defense_config is None:
+            if poison_defense_name is None:
+                raise Exception("if poison_defense_config is None, poison_defense_name must be defined")
+            poison_defense_config = ConfigPattern(
+                _class_name=poison_defense_name,
+                _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+                _config_class="PoisonDefenseConfig",
+                _config_kwargs={}
+            )
+        elif isinstance(poison_defense_config, PoisonDefenseConfig):
+            if poison_defense_name is None:
+                raise Exception("if poison_defense_config is None, poison_defense_name must be defined")
+            poison_defense_config = ConfigPattern(
+                _class_name=poison_defense_name,
+                _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+                _config_class="PoisonDefenseConfig",
+                _config_kwargs=poison_defense_config.to_saveable_dict(),
+            )
+        self.poison_defense_config = poison_defense_config
+        if poison_defense_name is None:
+            poison_defense_name = self.poison_defense_config._class_name
+        elif poison_defense_name != self.poison_defense_config._class_name:
+            raise Exception(f"poison_defense_name and self.poison_defense_config._class_name should be eqequal, "
+                            f"but now poison_defense_name is {poison_defense_name}, "
+                            f"self.poison_defense_config._class_name is {self.poison_defense_config._class_name}")
+        self.poison_defense_name = poison_defense_name
+        poison_defense_kwargs = getattr(self.poison_defense_config, CONFIG_OBJ).to_dict()
 
-    def set_evasion_defender(self):
-        pass
+        name_klass = {e.name: e for e in PoisonDefender.__subclasses__()}
+        klass = name_klass[self.poison_defense_name]
+        self.poison_defender = klass(
+            self.gen_dataset, model=self.gnn,
+            # device=self.device,
+            # device=device("cpu"),
+            **poison_defense_kwargs
+        )
+        self.poison_defense_flag = True
 
-    def set_mi_defender(self):
-        pass
+    def set_evasion_defender(self, evasion_defense_config=None, evasion_defense_name: str = None):
+        if evasion_defense_config is None:
+            if evasion_defense_name is None:
+                raise Exception("if evasion_defense_config is None, evasion_defense_name must be defined")
+            evasion_defense_config = ConfigPattern(
+                _class_name=evasion_defense_name,
+                _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+                _config_class="EvasionDefenseConfig",
+                _config_kwargs={}
+            )
+        elif isinstance(evasion_defense_config, EvasionDefenseConfig):
+            if evasion_defense_name is None:
+                raise Exception("if evasion_defense_config is None, evasion_defense_name must be defined")
+            evasion_defense_config = ConfigPattern(
+                _class_name=evasion_defense_name,
+                _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+                _config_class="EvasionDefenseConfig",
+                _config_kwargs=evasion_defense_config.to_saveable_dict(),
+            )
+        self.evasion_defense_config = evasion_defense_config
+        if evasion_defense_name is None:
+            evasion_defense_name = self.evasion_defense_config._class_name
+        elif evasion_defense_name != self.evasion_defense_config._class_name:
+            raise Exception(f"evasion_defense_name and self.evasion_defense_config._class_name should be eqequal, "
+                            f"but now evasion_defense_name is {evasion_defense_name}, "
+                            f"self.evasion_defense_config._class_name is {self.evasion_defense_config._class_name}")
+        self.evasion_defense_name = evasion_defense_name
+        evasion_defense_kwargs = getattr(self.evasion_defense_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in EvasionDefender.__subclasses__()}
+        klass = name_klass[self.evasion_defense_name]
+        self.evasion_defender = klass(
+            self.gen_dataset, model=self.gnn,
+            # device=self.device,
+            # device=device("cpu"),
+            **evasion_defense_kwargs
+        )
+        self.evasion_defense_flag = True
+
+    def set_mi_defender(self, mi_defense_config=None, mi_defense_name: str = None):
+        if mi_defense_config is None:
+            if mi_defense_name is None:
+                raise Exception("if mi_defense_config is None, mi_defense_name must be defined")
+            mi_defense_config = ConfigPattern(
+                _class_name=mi_defense_name,
+                _import_path=MI_DEFENSE_PARAMETERS_PATH,
+                _config_class="MIDefenseConfig",
+                _config_kwargs={}
+            )
+        elif isinstance(mi_defense_config, MIDefenseConfig):
+            if mi_defense_name is None:
+                raise Exception("if mi_defense_config is None, mi_defense_name must be defined")
+            mi_defense_config = ConfigPattern(
+                _class_name=mi_defense_name,
+                _import_path=MI_DEFENSE_PARAMETERS_PATH,
+                _config_class="MIDefenseConfig",
+                _config_kwargs=mi_defense_config.to_saveable_dict(),
+            )
+        self.mi_defense_config = mi_defense_config
+        if mi_defense_name is None:
+            mi_defense_name = self.mi_defense_config._class_name
+        elif mi_defense_name != self.mi_defense_config._class_name:
+            raise Exception(f"mi_defense_name and self.mi_defense_config._class_name should be eqequal, "
+                            f"but now mi_defense_name is {mi_defense_name}, "
+                            f"self.mi_defense_config._class_name is {self.mi_defense_config._class_name}")
+        self.mi_defense_name = mi_defense_name
+        mi_defense_kwargs = getattr(self.mi_defense_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in MIDefender.__subclasses__()}
+        klass = name_klass[self.mi_defense_name]
+        self.mi_defender = klass(
+            self.gen_dataset, model=self.gnn,
+            # device=self.device,
+            # device=device("cpu"),
+            **mi_defense_kwargs
+        )
+        self.mi_defense_flag = True
 
     def set_all(self):
         pass
