@@ -5,8 +5,9 @@ import warnings
 from torch import device
 
 from attacks.attack_base import RandomPoisonAttack
+from defense.defense_base import BadRandomPoisonDefender
 from src.aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
-    EXPLAINERS_INIT_PARAMETERS_PATH, POISON_ATTACK_PARAMETERS_PATH
+    EXPLAINERS_INIT_PARAMETERS_PATH, POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
 from src.explainers.explainers_manager import FrameworkExplainersManager
 from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from src.aux.configs import ModelManagerConfig, ModelModificationConfig, ExplainerInitConfig, ExplainerRunConfig, \
@@ -129,8 +130,20 @@ def test_attack_defense():
         }
     )
 
+    poison_defense_config = ConfigPattern(
+        _class_name="BadRandomPoisonDefender",
+        _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+        _config_class="PoisonDefenseConfig",
+        _config_kwargs={
+            "n_edges_percent": 1,
+        }
+    )
+
     random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, poison_attack_config=poison_attack_config)
     random_attack.attack()
+
+    bad_defense = BadRandomPoisonDefender(gen_dataset=dataset, model=gnn, poison_defense_config=poison_defense_config)
+    bad_defense.defense()
 
     warnings.warn("Start training")
     dataset.train_test_split()
@@ -156,6 +169,7 @@ def test_attack_defense():
     metric_loc = gnn_model_manager.evaluate_model(
         gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
     print(metric_loc)
+
 
 
 if __name__ == '__main__':
