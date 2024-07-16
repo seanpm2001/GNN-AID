@@ -57,7 +57,9 @@ class ExplainerLoadBlock(Block):
                                                          explainer_path=self.explainer_path)
         modification_config = ExplainerModificationConfig(
             explainer_ver_ind=self.explainer_path["explainer_ver_ind"],
-            explainer_attack_type=self.explainer_path["explainer_attack_type"])
+            # FIXME Kirill front attack
+            explainer_attack_type=self.explainer_path["explainer_attack_type"]
+        )
 
         from explainers.explainers_manager import FrameworkExplainersManager
         self._object = FrameworkExplainersManager(
