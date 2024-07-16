@@ -204,7 +204,7 @@ class Declare:
 
     @staticmethod
     def explanation_file_path(models_path: str, explainer_name: str,
-                              explainer_ver_ind: int = None, explainer_attack_type='original',
+                              explainer_ver_ind: int = None,
                               explainer_run_kwargs=None, explainer_init_kwargs=None):
         """
         :param explainer_init_kwargs: dict with kwargs for explainer class
@@ -231,7 +231,6 @@ class Declare:
             "explainer_name": explainer_name,
             "explainer_init_kwargs": explainer_init_kwargs_hash,
             "explainer_run_kwargs": explainer_run_kwargs_hash,
-            "explainer_attack_type": explainer_attack_type,
             "explainer_ver_ind": str(explainer_ver_ind),
         }
 

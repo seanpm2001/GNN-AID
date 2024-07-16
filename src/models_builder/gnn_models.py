@@ -224,6 +224,7 @@ class GNNModelManager:
             gnn_name_file = files_paths[0]
             gnn_mm_kwargs_file = files_paths[1]
         else:
+            # BUG Kirill, elif gnn_architecture_path = None
             gnn_name_file = gnn_architecture_path / f"gnn={self.gnn.get_hash()}.json"
             gnn_mm_kwargs_file = gnn_architecture_path.parent / f"gnn_model_manager={self.get_hash()}.json"
         self.save_model(path)
@@ -261,7 +262,6 @@ class GNNModelManager:
 
         modification_config = ModelModificationConfig(
             epochs=int(model_path['epochs']) if model_path['epochs'] != 'None' else None,
-            model_attack_type=model_path['model_attack_type'],
             model_ver_ind=int(model_path['model_ver_ind']),
         )
 

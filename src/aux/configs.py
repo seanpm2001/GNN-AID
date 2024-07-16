@@ -635,14 +635,12 @@ class ModelModificationConfig(Config):
 
     def __init__(self,
                  model_ver_ind: [int, None] = None,
-                 model_attack_type: str = "original", epochs=None, **kwargs):
+                 epochs=None, **kwargs):
         """
         :param model_ver_ind: model index when saving. If None, then takes the nearest unoccupied
          index starting from 0 in ascending increments of 1
-        :param model_attack_type: the name of the attack that the model is subjected to.
-         Now, the attacks have not been implemented. Default is 'original', no attack.
         """
-        super().__init__(model_attack_type=model_attack_type, model_ver_ind=model_ver_ind,
+        super().__init__(model_ver_ind=model_ver_ind,
                          epochs=epochs, **kwargs)
         self.__dict__[DATA_CHANGE_FLAG] = False
 
@@ -778,9 +776,9 @@ class ExplainerModificationConfig(Config):
 
     def __init__(self,
                  explainer_ver_ind: [int, None] = None,
-                 explainer_attack_type: str = "original", **kwargs):
+                 **kwargs):
         super().__init__(
-            explainer_attack_type=explainer_attack_type, explainer_ver_ind=explainer_ver_ind,
+            explainer_ver_ind=explainer_ver_ind,
             **kwargs)
 
 

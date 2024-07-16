@@ -49,6 +49,7 @@ class AttackAndDefenseManager:
         self.gnn = gnn_manager.gnn
         self.model_manager = gnn_manager
         self.gnn_model_path = gnn_manager.model_path_info()
+        print()
 
     def conduct_experiment(self):
         if self.poison_attacker is not None and self.poison_attack_flag:
