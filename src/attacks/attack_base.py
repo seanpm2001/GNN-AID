@@ -22,6 +22,24 @@ class Attacker:
         return False
 
 
+class EvasionAttacker(Attacker):
+    def __init__(self, gen_dataset: GeneralDataset, model, evasion_attack_config=None):
+        super().__init__(gen_dataset, model)
+        self.evasion_attack_config = evasion_attack_config
+
+
+class MIAttacker(Attacker):
+    def __init__(self, gen_dataset: GeneralDataset, model, mi_attack_config=None):
+        super().__init__(gen_dataset, model)
+        self.mi_attack_config = mi_attack_config
+
+
+class PoisonAttacker(Attacker):
+    def __init__(self, gen_dataset: GeneralDataset, model, poison_attack_config=None):
+        super().__init__(gen_dataset, model)
+        self.poison_attack_config = poison_attack_config
+
+
 class RandomPoisonAttack(Attacker):
     def __init__(self, gen_dataset: GeneralDataset, model, n_edges_percent=0.1):
         super().__init__(gen_dataset=gen_dataset, model=model)

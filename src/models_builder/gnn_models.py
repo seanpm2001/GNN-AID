@@ -71,7 +71,7 @@ class GNNModelManager:
     training, one-step training, full training, evaluation, save and load principle
     """
     def __init__(self,
-                 manager_config = None,
+                 manager_config=None,
                  modification: ModelModificationConfig = None):
         """
         :param manager_config: socket to use for sending data to frontend

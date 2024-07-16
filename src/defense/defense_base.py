@@ -21,6 +21,24 @@ class Defender:
         return False
 
 
+class EvasionDefender(Defender):
+    def __init__(self, gen_dataset: GeneralDataset, model, evasion_defense_config=None):
+        super().__init__(gen_dataset, model)
+        self.evasion_defense_config = evasion_defense_config
+
+
+class MIDefender(Defender):
+    def __init__(self, gen_dataset: GeneralDataset, model, mi_defense_config=None):
+        super().__init__(gen_dataset, model)
+        self.mi_defense_config = mi_defense_config
+
+
+class PoisonDefender(Defender):
+    def __init__(self, gen_dataset: GeneralDataset, model, poison_defense_config=None):
+        super().__init__(gen_dataset, model)
+        self.poison_defense_config = poison_defense_config
+
+
 class BadRandomPoisonDefender(Defender):
     def __init__(self, gen_dataset: GeneralDataset, model, n_edges_percent=0.1):
         super().__init__(gen_dataset=gen_dataset, model=model)
