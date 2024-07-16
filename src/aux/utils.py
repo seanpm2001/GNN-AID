@@ -18,6 +18,9 @@ TORCH_GEOM_GRAPHS_PATH = METAINFO_DIR / "torch_geom_index.json"
 EXPLAINERS_INIT_PARAMETERS_PATH = METAINFO_DIR / "explainers_init_parameters.json"
 EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH = METAINFO_DIR / "explainers_local_run_parameters.json"
 EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH = METAINFO_DIR / "explainers_global_run_parameters.json"
+
+POISON_ATTACK_PARAMETERS_PATH = METAINFO_DIR / "poison_attack_parameters.json"
+
 MODULES_PARAMETERS_PATH = METAINFO_DIR / "modules_parameters.json"
 FUNCTIONS_PARAMETERS_PATH = METAINFO_DIR / "functions_parameters.json"
 FRAMEWORK_PARAMETERS_PATH = METAINFO_DIR / "framework_parameters.json"

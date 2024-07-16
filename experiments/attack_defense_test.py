@@ -6,7 +6,7 @@ from torch import device
 
 from attacks.attack_base import RandomPoisonAttack
 from src.aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
-    EXPLAINERS_INIT_PARAMETERS_PATH
+    EXPLAINERS_INIT_PARAMETERS_PATH, POISON_ATTACK_PARAMETERS_PATH
 from src.explainers.explainers_manager import FrameworkExplainersManager
 from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from src.aux.configs import ModelManagerConfig, ModelModificationConfig, ExplainerInitConfig, ExplainerRunConfig, \
@@ -120,7 +120,16 @@ def test_attack_defense():
     gnn_model_manager.gnn.to(my_device)
     data = data.to(my_device)
 
-    random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, n_edges_percent=0.1)
+    poison_attack_config = ConfigPattern(
+        _class_name="RandomPoisonAttack",
+        _import_path=POISON_ATTACK_PARAMETERS_PATH,
+        _config_class="PoisonAttackConfig",
+        _config_kwargs={
+            "n_edges_percent": 0.1,
+        }
+    )
+
+    random_attack = RandomPoisonAttack(gen_dataset=dataset, model=gnn, poison_attack_config=poison_attack_config)
     random_attack.attack()
 
     warnings.warn("Start training")
