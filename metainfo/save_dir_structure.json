@@ -27,10 +27,6 @@
       "add_key_name_flag": true,
       "files_info": null
     },
-    "dataset_attack_type": {
-      "add_key_name_flag": true,
-      "files_info": null
-    },
     "dataset_ver_ind": {
       "add_key_name_flag": true,
       "files_info": null
@@ -56,11 +52,61 @@
         }
       ]
     },
-    "epochs": {
+    "poison_attacker": {
       "add_key_name_flag": true,
-      "files_info": null
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
     },
-    "model_attack_type": {
+    "poison_defender": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "mi_defender": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "evasion_defender": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "evasion_attacker": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "mi_attacker": {
+      "add_key_name_flag": true,
+      "files_info": [
+        {
+          "format": ".json",
+          "file_name": "origin"
+        }
+      ]
+    },
+    "epochs": {
       "add_key_name_flag": true,
       "files_info": null
     },
@@ -92,10 +138,6 @@
           "file_name": "origin"
         }
       ]
-    },
-    "explainer_attack_type": {
-      "add_key_name_flag": true,
-      "files_info": null
     },
     "explainer_ver_ind": {
       "add_key_name_flag": true,

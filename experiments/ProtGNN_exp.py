@@ -34,7 +34,6 @@ def test_prot(i=None, conv=None, batch_size=24, seed=5,
     """
     dataset, data, results_dataset_path = Datasets.get_pytorch_geometric(
         full_name=("single-graph", "TUDataset", 'MUTAG'),
-        dataset_attack_type='original',
         dataset_ver_ind=0)
     """
 
@@ -50,7 +49,6 @@ def test_prot(i=None, conv=None, batch_size=24, seed=5,
     full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
-        dataset_attack_type='original',
         dataset_ver_ind=0
     )
 

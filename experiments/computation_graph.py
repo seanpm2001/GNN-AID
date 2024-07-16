@@ -677,7 +677,6 @@ if __name__ == '__main__':
         full_name=("single-graph", "custom", 'example'),
         features={'attr': {'a': 'as_is'}},
         labeling='binary',
-        dataset_attack_type='original',
         dataset_ver_ind=0)
 
     # # multi
@@ -685,7 +684,6 @@ if __name__ == '__main__':
     #     full_name=("multiple-graphs", "custom", 'example'),
     #     features={'attr': {'type': 'as_is'}},
     #     labeling='binary',
-    #     dataset_attack_type='original',
     #     dataset_ver_ind=0)
 
     sage1: torch.nn.Module = GNNStructure(

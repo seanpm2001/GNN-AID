@@ -17,7 +17,6 @@ def GradCAM_test():
 
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=("single-graph", "Planetoid", 'Cora'),
-        dataset_attack_type='original',
         dataset_ver_ind=0)
 
     # print(dataset)

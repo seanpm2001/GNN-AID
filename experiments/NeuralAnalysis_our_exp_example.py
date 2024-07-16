@@ -15,7 +15,6 @@ def test_neural_analysis(percent_train_class: float = 0.8, percent_test_class: f
     full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
-        dataset_attack_type='original',
         dataset_ver_ind=0
     )
 

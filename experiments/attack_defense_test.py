@@ -28,28 +28,14 @@ def test_attack_defense():
     full_name = ("single-graph", "Planetoid", 'Cora')
     # full_name = ("multiple-graphs", "TUDataset", 'PROTEINS')
 
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "Planetoid", 'Cora'),
-    #     dataset_attack_type='original')
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "pytorch-geometric-other", 'KarateClub'),
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0)
-
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "Planetoid", 'Cora'),
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0)
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
-        dataset_attack_type='original',
         dataset_ver_ind=0
     )
 
     # dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
     #     full_name=("single-graph", "custom", "example",),
     #     features={'attr': {'a': 'as_is', 'b': 'as_is'}},
-    #     dataset_attack_type='original',
     #     labeling='threeClasses',
     #     dataset_ver_ind=0
     # )
@@ -68,7 +54,6 @@ def test_attack_defense():
     #     }},
     #     # features={'str_f': tuple(), 'str_g': None, 'attr': {'sex': 'one_hot', }},
     #     labeling='sex1',
-    #     dataset_attack_type='original',
     #     dataset_ver_ind=0
     # )
 
