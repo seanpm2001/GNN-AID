@@ -136,7 +136,7 @@ def test_attack_defense():
         _import_path=POISON_DEFENSE_PARAMETERS_PATH,
         _config_class="PoisonDefenseConfig",
         _config_kwargs={
-            "n_edges_percent": 1,
+            "n_edges_percent": 0.1,
         }
     )
 

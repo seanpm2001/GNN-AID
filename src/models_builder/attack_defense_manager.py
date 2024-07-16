@@ -64,7 +64,7 @@ class AttackAndDefenseManager:
                             f"but now poison_attack_name is {poison_attack_name}, "
                             f"self.poison_attack_config._class_name is {self.poison_attack_config._class_name}")
         self.poison_attack_name = poison_attack_name
-        # poison_attack_kwargs = getattr(self.poison_attack_config, CONFIG_OBJ).to_dict()
+        poison_attack_kwargs = getattr(self.poison_attack_config, CONFIG_OBJ).to_dict()
 
         name_klass = {e.name: e for e in PoisonAttacker.__subclasses__()}
         klass = name_klass[self.poison_attack_name]
@@ -72,7 +72,9 @@ class AttackAndDefenseManager:
             self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
-            poison_attack_config=self.poison_attack_config)
+            # poison_attack_config=self.poison_attack_config
+            **poison_attack_kwargs
+        )
 
     def set_evasion_attacker(self):
         pass

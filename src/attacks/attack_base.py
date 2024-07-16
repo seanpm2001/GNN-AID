@@ -24,44 +24,28 @@ class Attacker:
 
 
 class EvasionAttacker(Attacker):
-    def __init__(self, gen_dataset: GeneralDataset, model,
-                 evasion_attack_config=None):
+    def __init__(self, gen_dataset: GeneralDataset, model, **kwargs):
         super().__init__(gen_dataset, model)
-        self.evasion_attack_config = evasion_attack_config
 
 
 class MIAttacker(Attacker):
-    def __init__(self, gen_dataset: GeneralDataset, model,
-                 mi_attack_config=None):
+    def __init__(self, gen_dataset: GeneralDataset, model, **kwargs):
         super().__init__(gen_dataset, model)
-        self.mi_attack_config = mi_attack_config
 
 
 class PoisonAttacker(Attacker):
-    def __init__(self, gen_dataset: GeneralDataset, model,
-                 poison_attack_config=None):
+    def __init__(self, gen_dataset: GeneralDataset, model, **kwargs):
         super().__init__(gen_dataset, model)
-        self.poison_attack_config = poison_attack_config
 
 
 class RandomPoisonAttack(PoisonAttacker):
     name = "RandomPoisonAttack"
-    def __init__(self, gen_dataset: GeneralDataset, model, poison_attack_config):
+
+    def __init__(self, gen_dataset: GeneralDataset, model, n_edges_percent=0.1):
         self.attack_diff = None
 
-        if poison_attack_config is None:
-            poison_attack_config = ConfigPattern(
-                _config_class="PoisonAttackConfig",
-                _config_kwargs={},
-            )
-        elif isinstance(poison_attack_config, PoisonAttackConfig):
-            poison_attack_config = ConfigPattern(
-                _config_class="PoisonAttackConfig",
-                _config_kwargs=poison_attack_config.to_dict(),
-            )
-
-        super().__init__(gen_dataset, model, poison_attack_config)
-        self.n_edges_percent = getattr(self.poison_attack_config, CONFIG_OBJ).n_edges_percent
+        super().__init__(gen_dataset, model)
+        self.n_edges_percent = n_edges_percent
 
     def attack(self):
         edge_index = self.gen_dataset.data.edge_index
