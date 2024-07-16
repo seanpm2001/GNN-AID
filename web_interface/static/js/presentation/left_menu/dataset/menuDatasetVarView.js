@@ -154,7 +154,7 @@ class MenuDatasetVarView extends MenuView {
         let datasetVarConfig = {
             features: features,
             labeling: this.labeling,
-            dataset_attack_type: this.$attackTypeSelect.val(),
+//            dataset_attack_type: this.$attackTypeSelect.val(),
             dataset_ver_ind: 0, // TODO check
         }
         await Controller.blockRequest(this.requestBlock, 'modify', datasetVarConfig)

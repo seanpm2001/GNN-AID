@@ -26,7 +26,6 @@ def test_Konst_model():
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
         features={'attr': {'a': 'as_is', 'b': 'as_is'}},
-        dataset_attack_type='original',
         labeling='threeClasses',
         dataset_ver_ind=0
     )

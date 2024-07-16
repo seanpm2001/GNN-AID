@@ -384,12 +384,11 @@ class DatasetVarConfig(Config):
     def __init__(self,
                  features: dict = None,
                  labeling: str = None,
-                 dataset_attack_type: str = None,
                  dataset_ver_ind: int = None):
         """ """
         super().__init__(
             features=features, labeling=labeling,
-            dataset_attack_type=dataset_attack_type, dataset_ver_ind=dataset_ver_ind)
+            dataset_ver_ind=dataset_ver_ind)
 
 
 class ModelStructureConfig(Config):
