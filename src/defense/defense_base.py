@@ -39,6 +39,8 @@ class PoisonDefender(Defender):
 
 
 class BadRandomPoisonDefender(PoisonDefender):
+    name = "BadRandomPoisonDefender"
+
     def __init__(self, gen_dataset: GeneralDataset, model, n_edges_percent=0.1):
         self.defense_diff = None
 
