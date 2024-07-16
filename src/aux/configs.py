@@ -658,6 +658,78 @@ class ModelModificationConfig(Config):
         return loc
 
 
+class EvasionAttackConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class EvasionDefenseConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class PoisonAttackConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class PoisonDefenseConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class MIAttackConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class MIDefenseConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
 class ExplainerInitConfig(Config):
     """
     """
