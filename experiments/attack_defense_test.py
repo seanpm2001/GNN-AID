@@ -128,7 +128,7 @@ def test_attack_defense():
     gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
     gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
 
-    gnn_model_manager.conduct_experiment(dataset)
+    # gnn_model_manager.conduct_experiment(dataset)
 
     warnings.warn("Start training")
     dataset.train_test_split()

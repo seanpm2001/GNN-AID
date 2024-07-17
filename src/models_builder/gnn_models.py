@@ -270,19 +270,19 @@ class GNNModelManager:
             f.write(self.get_name())
         return path.parent
 
-    def conduct_experiment(self, gen_dataset):
-        if self.poison_attacker is not None and self.poison_attack_flag:
-            self.poison_attacker.attack()
-        if self.poison_defender is not None and self.poison_defense_flag:
-            self.poison_defender.defense()
-        if self.mi_defender is not None and self.mi_defense_flag:
-            self.mi_defender.defense()
-        if self.evasion_defender is not None and self.evasion_defense_flag:
-            self.evasion_defender.defense()
-        if self.evasion_attacker is not None and self.evasion_attack_flag:
-            self.evasion_attacker.attack()
-        if self.mi_attacker is not None and self.poison_attack_flag:
-            self.mi_attacker.attack()
+    # def conduct_experiment(self, gen_dataset):
+    #     if self.poison_attacker is not None and self.poison_attack_flag:
+    #         self.poison_attacker.attack()
+    #     if self.poison_defender is not None and self.poison_defense_flag:
+    #         self.poison_defender.defense()
+    #     if self.mi_defender is not None and self.mi_defense_flag:
+    #         self.mi_defender.defense()
+    #     if self.evasion_defender is not None and self.evasion_defense_flag:
+    #         self.evasion_defender.defense()
+    #     if self.evasion_attacker is not None and self.evasion_attack_flag:
+    #         self.evasion_attacker.attack()
+    #     if self.mi_attacker is not None and self.poison_attack_flag:
+    #         self.mi_attacker.attack()
 
     def set_poison_attacker(self, poison_attack_config=None, poison_attack_name: str = None):
         if poison_attack_config is None:
@@ -316,7 +316,6 @@ class GNNModelManager:
         name_klass = {e.name: e for e in PoisonAttacker.__subclasses__()}
         klass = name_klass[self.poison_attack_name]
         self.poison_attacker = klass(
-            self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
             **poison_attack_kwargs
@@ -355,7 +354,6 @@ class GNNModelManager:
         name_klass = {e.name: e for e in EvasionAttacker.__subclasses__()}
         klass = name_klass[self.evasion_attack_name]
         self.evasion_attacker = klass(
-            self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
             **evasion_attack_kwargs
@@ -394,7 +392,6 @@ class GNNModelManager:
         name_klass = {e.name: e for e in MIAttacker.__subclasses__()}
         klass = name_klass[self.mi_attack_name]
         self.mi_attacker = klass(
-            self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
             **mi_attack_kwargs
@@ -433,7 +430,6 @@ class GNNModelManager:
         name_klass = {e.name: e for e in PoisonDefender.__subclasses__()}
         klass = name_klass[self.poison_defense_name]
         self.poison_defender = klass(
-            self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
             **poison_defense_kwargs
@@ -472,7 +468,6 @@ class GNNModelManager:
         name_klass = {e.name: e for e in EvasionDefender.__subclasses__()}
         klass = name_klass[self.evasion_defense_name]
         self.evasion_defender = klass(
-            self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
             **evasion_defense_kwargs
@@ -511,7 +506,6 @@ class GNNModelManager:
         name_klass = {e.name: e for e in MIDefender.__subclasses__()}
         klass = name_klass[self.mi_defense_name]
         self.mi_defender = klass(
-            self.gen_dataset, model=self.gnn,
             # device=self.device,
             # device=device("cpu"),
             **mi_defense_kwargs
@@ -970,10 +964,10 @@ class FrameworkGNNModelManager(GNNModelManager):
         :param socket: socket to use for sending data to frontend
         """
         if self.poison_attacker:
-            self.poison_attacker.attack()
+            gen_dataset = self.poison_attacker.attack(gen_dataset=gen_dataset)
 
         if self.poison_defender:
-            self.poison_defender.defend()
+            gen_dataset = self.poison_defender.defense(gen_dataset=gen_dataset)
         self.socket = socket
         pbar = ProgressBar(self.socket, "mt")
 
