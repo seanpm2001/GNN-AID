@@ -142,8 +142,42 @@ class Declare:
             class_obj.modification.data_change_flag()
         path = Path(str(class_obj.dataset_path).replace(str(GRAPHS_DIR), str(MODELS_DIR)))
         what_save = "models"
+
+        mi_defense_kwargs = class_obj.mi_defense_config.to_saveable_dict().copy()
+        mi_defense_kwargs = dict(sorted(mi_defense_kwargs.items()))
+        json_init_object = json.dumps(mi_defense_kwargs)
+        mi_defense_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+
+        evasion_defense_kwargs = class_obj.evasion_defense_config.to_saveable_dict().copy()
+        evasion_defense_kwargs = dict(sorted(evasion_defense_kwargs.items()))
+        json_init_object = json.dumps(evasion_defense_kwargs)
+        evasion_defense_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+
+        poison_defense_kwargs = class_obj.poison_defense_config.to_saveable_dict().copy()
+        poison_defense_kwargs = dict(sorted(poison_defense_kwargs.items()))
+        json_init_object = json.dumps(poison_defense_kwargs)
+        poison_defense_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+
+        mi_attack_kwargs = class_obj.mi_attack_config.to_saveable_dict().copy()
+        mi_attack_kwargs = dict(sorted(mi_attack_kwargs.items()))
+        json_init_object = json.dumps(mi_attack_kwargs)
+        mi_attack_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+
+        evasion_attack_kwargs = class_obj.evasion_attack_config.to_saveable_dict().copy()
+        evasion_attack_kwargs = dict(sorted(evasion_attack_kwargs.items()))
+        json_init_object = json.dumps(evasion_attack_kwargs)
+        evasion_attack_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+
+        poison_attack_kwargs = class_obj.poison_attack_config.to_saveable_dict().copy()
+        poison_attack_kwargs = dict(sorted(poison_attack_kwargs.items()))
+        json_init_object = json.dumps(poison_attack_kwargs)
+        poison_attack_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+
         obj_info = [
             class_obj.gnn.get_hash(), class_obj.get_hash(),
+            poison_attack_kwargs_hash, poison_defense_kwargs_hash,
+            mi_defense_kwargs_hash, evasion_defense_kwargs_hash,
+            evasion_attack_kwargs_hash, mi_attack_kwargs_hash,
             *class_obj.modification.to_saveable_dict(compact=True, need_full=False).values()
         ]
         # print(class_obj.modification.to_saveable_dict(compact=True, need_full=False))

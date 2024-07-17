@@ -158,6 +158,13 @@ class GNNModelManager:
         self.stop_signal = False
         self.stats_data = None  # Stores some stats to be sent to frontend
 
+        self.set_poison_defender()
+        self.set_poison_attacker()
+        self.set_mi_attacker()
+        self.set_mi_defender()
+        self.set_evasion_attacker()
+        self.set_evasion_defender()
+
     def train_model(self, **kwargs):
         pass
 
