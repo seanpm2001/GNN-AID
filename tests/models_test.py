@@ -76,7 +76,6 @@ class ModelsTest(unittest.TestCase):
         self.results_dataset_path_mg_small = self.gen_dataset_mg_small.results_dir
         self.default_config = ModelModificationConfig(
             model_ver_ind=0,
-            model_attack_type="original"
         )
 
         self.manager_config = ConfigPattern(

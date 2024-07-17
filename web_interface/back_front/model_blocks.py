@@ -207,7 +207,6 @@ class ModelManagerBlock(Block):
             modification=ModelModificationConfig(
                 model_ver_ind=0,
                 # FIXME Kirill front attack
-                model_attack_type="original",
                 epochs=0,
             )
         )

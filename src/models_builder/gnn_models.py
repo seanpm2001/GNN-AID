@@ -70,6 +70,7 @@ class GNNModelManager:
     """ class of basic functions over models:
     training, evaluation, save and load principle
     """
+
     def __init__(self,
                  manager_config=None,
                  modification: ModelModificationConfig = None):
@@ -80,9 +81,9 @@ class GNNModelManager:
         if manager_config is None:
             # raise RuntimeError("model manager config must be specified")
             manager_config = ConfigPattern(
-                        _config_class="ModelManagerConfig",
-                        _config_kwargs={},
-                    )
+                _config_class="ModelManagerConfig",
+                _config_kwargs={},
+            )
         elif isinstance(manager_config, ModelManagerConfig):
             manager_config = ConfigPattern(
                 _config_class="ModelManagerConfig",
@@ -98,9 +99,9 @@ class GNNModelManager:
         if modification is None:
             # raise RuntimeError("model manager config must be specified")
             modification = ConfigPattern(
-                        _config_class="ModelModificationConfig",
-                        _config_kwargs={},
-                    )
+                _config_class="ModelModificationConfig",
+                _config_kwargs={},
+            )
         elif isinstance(modification, ModelModificationConfig):
             modification = ConfigPattern(
                 _config_class="ModelModificationConfig",
@@ -126,13 +127,13 @@ class GNNModelManager:
         pass
 
     def train_1_step(self, gen_dataset):
-        """ Perform 1 step of model training. Can be called unlimited number of times.
+        """ Perform 1 step of model training.
         """
         # raise NotImplementedError()
         pass
 
-    def train_full(self, gen_dataset, steps=None, **kwargs):
-        """ Perform full cycle of model training. Can be called only once.
+    def train_complete(self, gen_dataset, steps=None, **kwargs):
+        """
         """
         # raise NotImplementedError()
         pass
@@ -250,7 +251,6 @@ class GNNModelManager:
             GNNModelManager_hash=str(model_path['gnn_model_manager']),
             epochs=int(model_path['epochs']) if model_path['epochs'] != 'None' else None,
             model_ver_ind=int(model_path['model_ver_ind']),
-            model_attack_type=model_path['model_attack_type'],
             gnn_name=model_path['gnn'],
         )
 
@@ -408,9 +408,9 @@ class FrameworkGNNModelManager(GNNModelManager):
             class_name = type(self).__name__
             if class_name in params:
                 self.manager_config = ConfigPattern(
-                        _config_class="ModelManagerConfig",
-                        _config_kwargs={k: v[2] for k, v in params[class_name].items()},
-                    ).merge(self.manager_config)
+                    _config_class="ModelManagerConfig",
+                    _config_kwargs={k: v[2] for k, v in params[class_name].items()},
+                ).merge(self.manager_config)
 
         # Add fields from additional config
         self.manager_config = self.manager_config.merge(self.additional_config)
@@ -446,6 +446,16 @@ class FrameworkGNNModelManager(GNNModelManager):
 
         if "loss_function" in getattr(self.manager_config, CONFIG_OBJ):
             self.loss_function = getattr(self.manager_config, CONFIG_OBJ).loss_function.create_obj()
+
+    def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
+
+        for _ in range(steps):
+            print("epoch", self.modification.epochs)
+            train_loss = self.train_1_step(gen_dataset)
+            if self.socket:
+                self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
+                                    metrics=metrics)
+            pbar.update(1)
 
     def train_1_step(self, gen_dataset):
         train_1_step = self.train_1_step_mul if gen_dataset.is_multi() else self.train_1_step_single
@@ -560,10 +570,10 @@ class FrameworkGNNModelManager(GNNModelManager):
          class variables
         """
         if not is_available():
-            self.gnn.load_state_dict(torch.load(path, map_location=torch.device('cpu'),))
+            self.gnn.load_state_dict(torch.load(path, map_location=torch.device('cpu'), ))
             # self.gnn = torch.load(path, map_location=torch.device('cpu'))
         else:
-            self.gnn.load_state_dict(torch.load(path,))
+            self.gnn.load_state_dict(torch.load(path, ))
             # self.gnn = torch.load(path)
         if self.optimizer is None:
             self.init()
@@ -577,6 +587,15 @@ class FrameworkGNNModelManager(GNNModelManager):
          the path is compiled based on the global class variables
         """
         torch.save(self.gnn.state_dict(), path)
+
+    def report_results(self, train_loss, gen_dataset, metrics):
+        metrics_values = self.evaluate_model(gen_dataset=gen_dataset, metrics=metrics)
+        self.compute_stats_data(gen_dataset, predictions=True, logits=True)
+        self.send_epoch_results(
+            metrics_values=metrics_values,
+            stats_data={k: gen_dataset.visible_part.filter(v)
+                        for k, v in self.stats_data.items()},
+            weights={"weights": self.gnn.get_weights()}, loss=train_loss)
 
     def train_model(self, gen_dataset, save_model_flag=True, mode=None, steps=None, metrics=None,
                     socket=None):
@@ -597,24 +616,19 @@ class FrameworkGNNModelManager(GNNModelManager):
         assert issubclass(type(self), GNNModelManager)
 
         assert mode in ['1_step', 'full', None]
-        if mode is None:
-            has_1_step = self.train_1_step != super(type(self), self).train_1_step
-            has_full = self.train_full != super(type(self), self).train_full
-            assert has_1_step or has_full
-            do_1_step = has_1_step
-        elif mode == '1_step':
-            do_1_step = True
-        else:
-            do_1_step = False
+        has_complete = self.train_complete != super(type(self), self).train_complete
+        assert has_complete
+        do_1_step = True
 
-        def report_results(train_loss):
-            metrics_values = self.evaluate_model(gen_dataset=gen_dataset, metrics=metrics)
-            self.compute_stats_data(gen_dataset, predictions=True, logits=True)
-            self.send_epoch_results(
-                metrics_values=metrics_values,
-                stats_data={k: gen_dataset.visible_part.filter(v)
-                            for k, v in self.stats_data.items()},
-                weights={"weights": self.gnn.get_weights()}, loss=train_loss)
+        # if mode is None:
+        #     has_1_step = self.train_1_step != super(type(self), self).train_1_step
+        #     has_full = self.train_full != super(type(self), self).train_full
+        #     assert has_1_step or has_full
+        #     do_1_step = has_1_step
+        # elif mode == '1_step':
+        #     do_1_step = True
+        # else:
+        #     do_1_step = False
 
         try:
             if do_1_step:
@@ -622,28 +636,13 @@ class FrameworkGNNModelManager(GNNModelManager):
                 pbar.total = self.modification.epochs + steps
                 pbar.n = self.modification.epochs
                 pbar.update(0)
-                for _ in range(steps):
-                    print("epoch", self.modification.epochs)
-                    train_loss = self.train_1_step(gen_dataset)
-                    if self.socket:
-                        report_results(train_loss)
-                    pbar.update(1)
+                self.train_complete(gen_dataset=gen_dataset, steps=steps,
+                                    pbar=pbar, metrics=metrics)
                 pbar.close()
                 self.send_data("mt", {"status": "OK"})
 
             else:
-                print("Starting full cycle training")
-                pbar.reset(total=steps)
-                train_loss = self.train_full(gen_dataset, steps=steps, metrics=metrics)
-                print("Training finished")
-                if self.socket:
-                    try:
-                        report_results(train_loss)
-                    except Exception: pass
-                # TODO Misha can we pass pbar into self.train_full ?
-                pbar.update(steps)
-                pbar.close()
-                self.send_data("mt", {"status": "FINISHED"})
+                raise Exception
 
             if save_model_flag:
                 return self.save_model_executor()
@@ -653,6 +652,44 @@ class FrameworkGNNModelManager(GNNModelManager):
             raise e
         finally:
             self.socket = None
+
+        # try:
+        #     if do_1_step:
+        #         assert steps > 0
+        #         pbar.total = self.modification.epochs + steps
+        #         pbar.n = self.modification.epochs
+        #         pbar.update(0)
+        #         for _ in range(steps):
+        #             print("epoch", self.modification.epochs)
+        #             train_loss = self.train_1_step(gen_dataset)
+        #             if self.socket:
+        #                 report_results(train_loss)
+        #             pbar.update(1)
+        #         pbar.close()
+        #         self.send_data("mt", {"status": "OK"})
+        #
+        #     else:
+        #         print("Starting full cycle training")
+        #         pbar.reset(total=steps)
+        #         train_loss = self.train_complete(gen_dataset, steps=steps, metrics=metrics)
+        #         print("Training finished")
+        #         if self.socket:
+        #             try:
+        #                 report_results(train_loss)
+        #             except Exception: pass
+        #         # TODO Misha can we pass pbar into self.train_full ?
+        #         pbar.update(steps)
+        #         pbar.close()
+        #         self.send_data("mt", {"status": "FINISHED"})
+        #
+        #     if save_model_flag:
+        #         return self.save_model_executor()
+        #
+        # except Exception as e:
+        #     self.send_data("mt", {"status": "FAILED"})
+        #     raise e
+        # finally:
+        #     self.socket = None
 
     def run_model(self, gen_dataset, mask='test', out='answers'):
         """
@@ -814,7 +851,8 @@ class FrameworkGNNModelManager(GNNModelManager):
         socket.send(block=block, msg=msg, tag=tag, obligate=obligate)
         return True
 
-    def send_epoch_results(self, metrics_values=None, stats_data=None, weights=None, loss=None, obligate=False, socket=None):
+    def send_epoch_results(self, metrics_values=None, stats_data=None, weights=None, loss=None, obligate=False,
+                           socket=None):
         """
         Send updates to the frontend after a training epoch: epoch, metrics, logits, loss.
 
@@ -894,7 +932,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         if not is_available():
             checkpoint = torch.load(path, map_location=torch.device('cpu'), )
         else:
-            checkpoint =torch.load(path)
+            checkpoint = torch.load(path)
         self.gnn.load_state_dict(checkpoint["model_state_dict"])
         self.gnn.best_prots = checkpoint["best_prots"]
         if self.optimizer is None:
