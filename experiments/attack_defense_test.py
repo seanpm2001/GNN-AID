@@ -4,15 +4,9 @@ import warnings
 
 from torch import device
 
-from attacks.attack_base import RandomPoisonAttack
-from defense.defense_base import BadRandomPoisonDefender
-from models_builder.attack_defense_manager import AttackAndDefenseManager
-from src.aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
-    EXPLAINERS_INIT_PARAMETERS_PATH, POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
-from src.explainers.explainers_manager import FrameworkExplainersManager
+from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
 from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
-from src.aux.configs import ModelManagerConfig, ModelModificationConfig, ExplainerInitConfig, ExplainerRunConfig, \
-    ConfigPattern, ExplainerModificationConfig
+from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
 
@@ -92,7 +86,7 @@ def test_attack_defense():
 
     # train_test_split = [0.8, 0.2]
     # train_test_split = [0.6, 0.4]
-    steps_epochs = 50
+    steps_epochs = 200
     gnn_model_manager = FrameworkGNNModelManager(
         gnn=gnn,
         dataset_path=results_dataset_path,
@@ -134,8 +128,6 @@ def test_attack_defense():
 
     gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
     gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-
-    # gnn_model_manager.conduct_experiment(dataset)
 
     warnings.warn("Start training")
     dataset.train_test_split()
