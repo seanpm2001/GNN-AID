@@ -11,6 +11,7 @@ from torch import tensor
 import torch.nn.functional as F
 from torch.cuda import is_available
 from torch_geometric.data import DataLoader
+from torch_geometric.loader import NeighborLoader, LinkNeighborLoader
 
 from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME, ConfigPattern, \
     CONFIG_OBJ
@@ -402,6 +403,9 @@ class FrameworkGNNModelManager(GNNModelManager):
         # TODO Kirill, add train_test_split in default parameters gnnMM
         super().__init__(**kwargs)
 
+        # TODO Kirill
+        self.defender = None
+
         # Fulfill absent fields from default configs
         with open(FRAMEWORK_PARAMETERS_PATH, 'r') as f:
             params = json.load(f)
@@ -450,113 +454,180 @@ class FrameworkGNNModelManager(GNNModelManager):
     def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
 
         for _ in range(steps):
+            self._before_epoch(gen_dataset)
             print("epoch", self.modification.epochs)
             train_loss = self.train_1_step(gen_dataset)
+            self._after_epoch(gen_dataset)
             if self.socket:
                 self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
                                     metrics=metrics)
             pbar.update(1)
 
     def train_1_step(self, gen_dataset):
-        train_1_step = self.train_1_step_mul if gen_dataset.is_multi() else self.train_1_step_single
-        return train_1_step(gen_dataset)
-
-    def train_1_step_single(self, gen_dataset):
-        """ Version of train for a single graph
-        """
-        # TODO Kirill think can we create DataLoader instead of gen_dataset ?
-        #  pass DataLoader to train_1_step_single and train_1_step_mul
-
-        data = gen_dataset.dataset._data
-        train_ver_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
-        train_mask_size = len(train_ver_ind)
-        random.shuffle(train_ver_ind)
-
-        number_of_batches = ceil(train_mask_size / self.batch)
-        # data_x_elem_len = data.x.size()[1]
-
-        # For torch model: Sets the module in training mode
-        self.gnn.train()
+        task_type = gen_dataset.domain()
+        if self.defender:
+            self.defender.pre_epoch(self, gen_dataset)
+        if task_type == "single-graph":
+            # FIXME Kirill, add data_x_copy mask
+            loader = NeighborLoader(gen_dataset.dataset._data,
+                                    num_neighbors=[-1], input_nodes=gen_dataset.train_mask,
+                                    batch_size=self.batch, shuffle=True)
+        elif task_type == "multiple-graphs":
+            train_dataset = gen_dataset.dataset.index_select(gen_dataset.train_mask)
+            loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=True)
+        # TODO Kirill, remove False when release edge recommendation task
+        elif task_type == "edge" and False:
+            loader = LinkNeighborLoader(gen_dataset.dataset._data,
+                                        num_neighbors=[-1], input_nodes=gen_dataset.train_mask,
+                                        batch_size=self.batch, shuffle=True)
+        else:
+            raise ValueError("Unsupported task type")
         loss = 0
-
-        # features_mask_tensor = torch.full(size=data.x.size(), fill_value=True)
-
-        for batch_ind in range(number_of_batches):
-            data_x_copy = torch.clone(data.x)
-            train_mask_copy = [False] * data.x.size()[0]
-
-            # features_mask_tensor_copy = torch.clone(features_mask_tensor)
-
-            train_batch = train_ver_ind[batch_ind * self.batch: (batch_ind + 1) * self.batch]
-            for elem_ind in train_batch:
-                for feature in self.mask_features:
-                    # features_mask_tensor_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-                    #                                     gen_dataset.info.node_attr_slices[feature][1]] = False
-                    data_x_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-                                          gen_dataset.info.node_attr_slices[feature][1]] = 0
-                # if self.gnn_mm.train_mask_flag:
-                #     data_x_copy[elem_ind] = torch.zeros(data_x_elem_len)
-                # y_true = torch.masked.masked_tensor(data.y, mask_tensor)
-                train_mask_copy[elem_ind] = True
-
-            # mask_x_tensor = torch.masked.masked_tensor(data.x, features_mask_tensor_copy)
-
-            self.optimizer.zero_grad()
-            logits = self.gnn(data_x_copy, data.edge_index)
-            batch_loss = self.loss_function(logits[train_mask_copy], gen_dataset.labels[train_mask_copy])
-            if self.clip is not None:
-                clip_grad_norm(self.gnn.parameters(), self.clip)
-
-            loss += batch_loss * len(train_batch)
-            # print("batch_loss %.8f" % batch_loss)
-
-            # Backward
-            self.optimizer.zero_grad()
-            batch_loss.backward()
-            self.optimizer.step()
-
-        loss /= train_mask_size
+        for batch in loader:
+            self._before_batch(batch)
+            loss += self.train_on_batch(batch, task_type)
+            self._after_batch(batch)
+        if self.defender:
+            self.defender.post_epoch(self, gen_dataset)
         print("loss %.8f" % loss)
         self.modification.epochs += 1
         self.gnn.eval()
         return loss.cpu().detach().numpy().tolist()
 
-    def train_1_step_mul(self, gen_dataset):
-        """ Version of train for a multiple graph
-        """
-        # train_mask = data.train_mask
-        # train_ver_ind = [n for n, x in enumerate(train_mask) if x]
-        # train_mask_size = len(train_ver_ind)
-
-        # number_of_batches = ceil(train_mask_size / self.batch)
-        # data_x_elem_len = data.x.size()[1]
-
-        # FIXME Kirill this is done at each step - can we optimize?
-        #  e.g. before_train()
-        dataset = gen_dataset.dataset
-        train_dataset = dataset.index_select(gen_dataset.train_mask)
-        train_loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=False)
-
-        # For torch model: Sets the module in training mode
-        self.gnn.train()
-        total_loss = 0
-
-        # Train on batches
-        for data in train_loader:
+    def train_on_batch(self, batch, task_type):
+        loss = None
+        if task_type == "single-graph":
             self.optimizer.zero_grad()
-            logits = self.gnn(data.x, data.edge_index, data.batch)
-            batch_loss = self.loss_function(logits, data.y)
-            total_loss += batch_loss / len(train_loader)
-            batch_loss.backward()
+            logits = self.gnn(batch.x, batch.edge_index)
+            loss = self.loss_function(logits, batch.y)
+            if self.clip is not None:
+                clip_grad_norm(self.gnn.parameters(), self.clip)
+            self.optimizer.zero_grad()
+            loss.backward()
             self.optimizer.step()
+            # print("batch_loss %.8f" % loss)
 
-        # loss /= train_mask_size
-        print("loss %.8f" % total_loss)
-        self.modification.epochs += 1
+        elif task_type == "multiple-graphs":
+            self.optimizer.zero_grad()
+            logits = self.gnn(batch.x, batch.edge_index, batch.batch)
+            loss = self.loss_function(logits, batch.y)
+            loss.backward()
+            self.optimizer.step()
+        # TODO Kirill, remove False when release edge recommendation task
+        elif task_type == "edge" and False:
+            self.optimizer.zero_grad()
+            edge_index = batch.edge_index
+            pos_edge_index = edge_index[:, batch.y == 1]
+            neg_edge_index = edge_index[:, batch.y == 0]
 
-        self.gnn.eval()
+            pos_out = self.gnn(batch.x, pos_edge_index)
+            neg_out = self.gnn(batch.x, neg_edge_index)
 
-        return total_loss.cpu().detach().numpy().tolist()
+            pos_loss = self.loss_function(pos_out, torch.ones_like(pos_out))
+            neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
+
+            loss = pos_loss + neg_loss
+            loss.backward()
+        else:
+            raise ValueError("Unsupported task type")
+        return loss
+
+    # def train_1_step_single(self, gen_dataset):
+    #     """ Version of train for a single graph
+    #     """
+    #     # TODO Kirill think can we create DataLoader instead of gen_dataset ?
+    #     #  pass DataLoader to train_1_step_single and train_1_step_mul
+    #
+    #     data = gen_dataset.dataset._data
+    #     train_ver_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
+    #     train_mask_size = len(train_ver_ind)
+    #     random.shuffle(train_ver_ind)
+    #
+    #     number_of_batches = ceil(train_mask_size / self.batch)
+    #     # data_x_elem_len = data.x.size()[1]
+    #
+    #     # For torch model: Sets the module in training mode
+    #     self.gnn.train()
+    #     loss = 0
+    #
+    #     # features_mask_tensor = torch.full(size=data.x.size(), fill_value=True)
+    #
+    #     for batch_ind in range(number_of_batches):
+    #         data_x_copy = torch.clone(data.x)
+    #         train_mask_copy = [False] * data.x.size()[0]
+    #
+    #         # features_mask_tensor_copy = torch.clone(features_mask_tensor)
+    #
+    #         train_batch = train_ver_ind[batch_ind * self.batch: (batch_ind + 1) * self.batch]
+    #         for elem_ind in train_batch:
+    #             for feature in self.mask_features:
+    #                 # features_mask_tensor_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
+    #                 #                                     gen_dataset.info.node_attr_slices[feature][1]] = False
+    #                 data_x_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
+    #                                       gen_dataset.info.node_attr_slices[feature][1]] = 0
+    #             # if self.gnn_mm.train_mask_flag:
+    #             #     data_x_copy[elem_ind] = torch.zeros(data_x_elem_len)
+    #             # y_true = torch.masked.masked_tensor(data.y, mask_tensor)
+    #             train_mask_copy[elem_ind] = True
+    #
+    #         # mask_x_tensor = torch.masked.masked_tensor(data.x, features_mask_tensor_copy)
+    #
+    #         self.optimizer.zero_grad()
+    #         logits = self.gnn(data_x_copy, data.edge_index)
+    #         batch_loss = self.loss_function(logits[train_mask_copy], gen_dataset.labels[train_mask_copy])
+    #         if self.clip is not None:
+    #             clip_grad_norm(self.gnn.parameters(), self.clip)
+    #
+    #         loss += batch_loss * len(train_batch)
+    #         # print("batch_loss %.8f" % batch_loss)
+    #
+    #         # Backward
+    #         self.optimizer.zero_grad()
+    #         batch_loss.backward()
+    #         self.optimizer.step()
+    #
+    #     loss /= train_mask_size
+    #     print("loss %.8f" % loss)
+    #     self.modification.epochs += 1
+    #     self.gnn.eval()
+    #     return loss.cpu().detach().numpy().tolist()
+
+    # def train_1_step_mul(self, gen_dataset):
+    #     """ Version of train for a multiple graph
+    #     """
+    #     # train_mask = data.train_mask
+    #     # train_ver_ind = [n for n, x in enumerate(train_mask) if x]
+    #     # train_mask_size = len(train_ver_ind)
+    #
+    #     # number_of_batches = ceil(train_mask_size / self.batch)
+    #     # data_x_elem_len = data.x.size()[1]
+    #
+    #     # FIXME Kirill this is done at each step - can we optimize?
+    #     #  e.g. before_train()
+    #     dataset = gen_dataset.dataset
+    #     train_dataset = dataset.index_select(gen_dataset.train_mask)
+    #     train_loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=False)
+    #
+    #     # For torch model: Sets the module in training mode
+    #     self.gnn.train()
+    #     total_loss = 0
+    #
+    #     # Train on batches
+    #     for data in train_loader:
+    #         self.optimizer.zero_grad()
+    #         logits = self.gnn(data.x, data.edge_index, data.batch)
+    #         batch_loss = self.loss_function(logits, data.y)
+    #         total_loss += batch_loss / len(train_loader)
+    #         batch_loss.backward()
+    #         self.optimizer.step()
+    #
+    #     # loss /= train_mask_size
+    #     print("loss %.8f" % total_loss)
+    #     self.modification.epochs += 1
+    #
+    #     self.gnn.eval()
+    #
+    #     return total_loss.cpu().detach().numpy().tolist()
 
     def get_name(self, **kwargs):
         json_str = super().get_name()
@@ -879,6 +950,18 @@ class FrameworkGNNModelManager(GNNModelManager):
         path = path / 'train_test_split'
         gen_dataset.train_mask, gen_dataset.val_mask, gen_dataset.test_mask, _ = torch.load(path)[:]
         return gen_dataset
+
+    def _before_epoch(self, gen_dataset):
+        pass
+
+    def _after_epoch(self, gen_dataset):
+        pass
+
+    def _before_batch(self, batch):
+        pass
+
+    def _after_batch(self, batch):
+        pass
 
 
 class ProtGNNModelManager(FrameworkGNNModelManager):
