@@ -452,7 +452,6 @@ class FrameworkGNNModelManager(GNNModelManager):
             self.loss_function = getattr(self.manager_config, CONFIG_OBJ).loss_function.create_obj()
 
     def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
-
         for _ in range(steps):
             self._before_epoch(gen_dataset)
             print("epoch", self.modification.epochs)
@@ -1058,7 +1057,6 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
 
         return metrics_values
 
-    # def train_model(self, gen_dataset, save_model_flag=True, mode=None, steps=None, metrics=None):
     def train_full(self, gen_dataset, steps=None, metrics=None):
         """
         Train ProtGNN model for Graph classification
@@ -1140,8 +1138,8 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
                     p.requires_grad = True
 
             for batch in train_loader:
-                logits = self.gnn(batch.x, batch.edge_index, batch.batch)
                 min_distances = self.gnn.min_distances
+                logits = self.gnn(batch.x, batch.edge_index, batch.batch)
                 loss = self.loss_function(logits, batch.y)
                 # cluster loss
                 prot_layer.prototype_class_identity = prot_layer.prototype_class_identity

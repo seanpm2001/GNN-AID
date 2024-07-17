@@ -19,9 +19,9 @@ def test_SubgraphX():
 
     full_name = None
 
-    full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
+    # full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     # full_name = ("single-graph", "custom", 'karate')
-    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ("single-graph", "Planetoid", 'Cora')
     # full_name = ("multiple-graphs", "TUDataset", 'PROTEINS')
 
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
@@ -55,10 +55,10 @@ def test_SubgraphX():
 
     # print(data.train_mask)
 
-    # gnn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+    gnn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
     # gnn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn_lin')
     # gnn = model_configs_zoo(dataset=dataset, model_name='test_gnn')
-    gnn = model_configs_zoo(dataset=dataset, model_name='gin_gin_gin_lin_lin')
+    # gnn = model_configs_zoo(dataset=dataset, model_name='gin_gin_gin_lin_lin')
     # gnn = model_configs_zoo(dataset=dataset, model_name='gin_gin_gin_lin_lin_prot')
 
     manager_config = ConfigPattern(
