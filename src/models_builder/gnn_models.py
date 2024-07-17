@@ -184,7 +184,6 @@ class GNNModelManager:
                 GNNModelManager_hash=gnn_mm_name_hash,
                 model_ver_ind=kwargs.get('model_ver_ind') if 'model_ver_ind' in kwargs else
                 self.modification.model_ver_ind,
-                model_attack_type=self.modification.model_attack_type,
                 epochs=self.modification.epochs,
                 gnn_name=self.gnn.get_hash()
             )

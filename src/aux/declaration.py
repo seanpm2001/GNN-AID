@@ -172,7 +172,6 @@ class Declare:
             GNNModelManager_hash: str,
             model_ver_ind: int,
             gnn_name: str,
-            model_attack_type='original',
             epochs=None,
     ):
         """
@@ -182,7 +181,6 @@ class Declare:
         :param GNNModelManager_hash: gnn model manager hash
         :param model_ver_ind: index of explain version
         :param gnn_name: gnn hash
-        :param model_attack_type: type of attack on explainer. Now support: original
         :param epochs: number of epochs during which the model was trained
         :return: the path where the model is saved use information from ModelConfig
         """
@@ -194,7 +192,6 @@ class Declare:
             "gnn": gnn_name,
             "gnn_model_manager": GNNModelManager_hash,
             "epochs": str(epochs),
-            "model_attack_type": model_attack_type,
             "model_ver_ind": str(model_ver_ind),
         }
 

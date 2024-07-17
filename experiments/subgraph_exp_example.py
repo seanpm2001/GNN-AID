@@ -134,38 +134,38 @@ def test_SubgraphX():
     # Explanation size
     max_nodes = 5
 
-    warnings.warn("Start SubgraphX")
-    explainer_init_config = ConfigPattern(
-        _class_name="SubgraphX",
-        _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-        _config_class="ExplainerInitConfig",
-        _config_kwargs={
-            # "class_name": "SubgraphX",
-        }
-    )
-    explainer_run_config = ConfigPattern(
-        _config_class="ExplainerRunConfig",
-        _config_kwargs={
-            "mode": "local",
-            "kwargs": {
-                "_class_name": "GNNExplainer(torch-geom)",
-                "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                "_config_class": "Config",
-                "_config_kwargs": {
-                    "element_idx": 0, "max_nodes": 5
-                },
-            }
-        }
-    )
-    explainer_SubgraphX = FrameworkExplainersManager(
-        init_config=explainer_init_config,
-        dataset=dataset, gnn_manager=gnn_model_manager,
-        explainer_name="SubgraphX",
-    )
-    explainer_SubgraphX.conduct_experiment(explainer_run_config)
-
-
-    return metric_loc
+    # warnings.warn("Start SubgraphX")
+    # explainer_init_config = ConfigPattern(
+    #     _class_name="SubgraphX",
+    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #     _config_class="ExplainerInitConfig",
+    #     _config_kwargs={
+    #         # "class_name": "SubgraphX",
+    #     }
+    # )
+    # explainer_run_config = ConfigPattern(
+    #     _config_class="ExplainerRunConfig",
+    #     _config_kwargs={
+    #         "mode": "local",
+    #         "kwargs": {
+    #             "_class_name": "GNNExplainer(torch-geom)",
+    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+    #             "_config_class": "Config",
+    #             "_config_kwargs": {
+    #                 "element_idx": 0, "max_nodes": 5
+    #             },
+    #         }
+    #     }
+    # )
+    # explainer_SubgraphX = FrameworkExplainersManager(
+    #     init_config=explainer_init_config,
+    #     dataset=dataset, gnn_manager=gnn_model_manager,
+    #     explainer_name="SubgraphX",
+    # )
+    # explainer_SubgraphX.conduct_experiment(explainer_run_config)
+    #
+    #
+    # return metric_loc
 
 
 if __name__ == '__main__':
