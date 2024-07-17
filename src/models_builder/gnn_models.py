@@ -68,7 +68,7 @@ class Metric:
 
 class GNNModelManager:
     """ class of basic functions over models:
-    training, one-step training, full training, evaluation, save and load principle
+    training, evaluation, save and load principle
     """
     def __init__(self,
                  manager_config=None,

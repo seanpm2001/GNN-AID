@@ -336,6 +336,9 @@ class GeneralDataset:
     def __len__(self):
         return self.info.count
 
+    def domain(self):
+        return self.dataset_config.domain
+
     def is_multi(self):
         """ Return whether this dataset is multiple-graphs or single-graph. """
         return self.info.count > 1
