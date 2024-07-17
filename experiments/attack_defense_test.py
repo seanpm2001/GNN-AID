@@ -125,11 +125,10 @@ def test_attack_defense():
         }
     )
 
-    attack_defense_manager = AttackAndDefenseManager(gen_dataset=dataset, gnn_manager=gnn_model_manager)
-    attack_defense_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
-    attack_defense_manager.set_poison_defender(poison_defense_config=poison_defense_config)
+    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
 
-    attack_defense_manager.conduct_experiment()
+    gnn_model_manager.conduct_experiment(dataset)
 
     warnings.warn("Start training")
     dataset.train_test_split()
