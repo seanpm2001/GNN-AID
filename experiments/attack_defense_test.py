@@ -92,7 +92,7 @@ def test_attack_defense():
 
     # train_test_split = [0.8, 0.2]
     # train_test_split = [0.6, 0.4]
-    steps_epochs = 200
+    steps_epochs = 50
     gnn_model_manager = FrameworkGNNModelManager(
         gnn=gnn,
         dataset_path=results_dataset_path,
@@ -100,8 +100,8 @@ def test_attack_defense():
         modification=ModelModificationConfig(model_ver_ind=0, epochs=steps_epochs)
     )
 
-    save_model_flag = False
-    # save_model_flag = True
+    # save_model_flag = False
+    save_model_flag = True
 
     # data.x = data.x.float()
     gnn_model_manager.gnn.to(my_device)
@@ -116,12 +116,19 @@ def test_attack_defense():
         }
     )
 
+    # poison_defense_config = ConfigPattern(
+    #     _class_name="BadRandomPoisonDefender",
+    #     _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+    #     _config_class="PoisonDefenseConfig",
+    #     _config_kwargs={
+    #         "n_edges_percent": 0.1,
+    #     }
+    # )
     poison_defense_config = ConfigPattern(
-        _class_name="BadRandomPoisonDefender",
+        _class_name="EmptyPoisonDefender",
         _import_path=POISON_DEFENSE_PARAMETERS_PATH,
         _config_class="PoisonDefenseConfig",
         _config_kwargs={
-            "n_edges_percent": 0.1,
         }
     )
 

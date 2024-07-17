@@ -11,9 +11,6 @@ class Defender:
     def __init__(self):
         pass
 
-    def defense(self, **kwargs):
-        pass
-
     def defense_diff(self):
         pass
 
@@ -26,15 +23,57 @@ class EvasionDefender(Defender):
     def __init__(self, **kwargs):
         super().__init__()
 
+    def pre_epoch(self, **kwargs):
+        pass
+
+    def post_epoch(self, **kwargs):
+        pass
+
 
 class MIDefender(Defender):
     def __init__(self, **kwargs):
         super().__init__()
 
+    def pre_epoch(self, **kwargs):
+        pass
+
+    def post_epoch(self, **kwargs):
+        pass
+
 
 class PoisonDefender(Defender):
     def __init__(self, **kwargs):
         super().__init__()
+
+    def defense(self, **kwargs):
+        pass
+
+
+class EmptyPoisonDefender(PoisonDefender):
+    name = "EmptyPoisonDefender"
+
+    def defense(self, gen_dataset):
+        return gen_dataset
+
+
+class EmptyMIDefender(MIDefender):
+    name = "EmptyMIDefender"
+
+    def pre_epoch(self, **kwargs):
+        pass
+
+    def post_epoch(self, **kwargs):
+        pass
+
+
+class EmptyEvasionDefender(EvasionDefender):
+    name = "EmptyEvasionDefender"
+
+    def pre_epoch(self, **kwargs):
+        pass
+
+    def post_epoch(self, **kwargs):
+        pass
 
 
 class BadRandomPoisonDefender(PoisonDefender):

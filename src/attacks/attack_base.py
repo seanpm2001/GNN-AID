@@ -37,6 +37,27 @@ class PoisonAttacker(Attacker):
         super().__init__()
 
 
+class EmptyPoisonAttacker(PoisonAttacker):
+    name = "EmptyPoisonAttacker"
+
+    def attack(self, **kwargs):
+        pass
+
+
+class EmptyMIAttacker(MIAttacker):
+    name = "EmptyMIAttacker"
+
+    def attack(self, **kwargs):
+        pass
+
+
+class EmptyEvasionAttacker(EvasionAttacker):
+    name = "EmptyEvasionAttacker"
+
+    def attack(self, **kwargs):
+        pass
+
+
 class RandomPoisonAttack(PoisonAttacker):
     name = "RandomPoisonAttack"
 
