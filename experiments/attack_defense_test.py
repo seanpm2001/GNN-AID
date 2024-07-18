@@ -155,7 +155,6 @@ def test_attack_defense():
     print(metric_loc)
 
 
-
 if __name__ == '__main__':
     test_attack_defense()
 

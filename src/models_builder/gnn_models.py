@@ -16,7 +16,7 @@ from torch_geometric.loader import NeighborLoader, LinkNeighborLoader
 from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME
 from aux.data_info import UserCodeInfo
 from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, hash_data_sha256, \
-    TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH
+    TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, json_for_config
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
 from explainers.ProtGNN.MCTS import mcts_args
@@ -249,7 +249,7 @@ class GNNModelManager:
         gnn_MM_name_hash = hash_data_sha256(json_object.encode('utf-8'))
         return gnn_MM_name_hash
 
-    def save_model_executor(self, path=None, gnn_architecture_path=None):
+    def save_model_executor(self, path=None, files_paths=None):
         """
         Save executor, generates paths and prepares all information about the model
         and its parameters for saving
@@ -263,18 +263,32 @@ class GNNModelManager:
             dir_path, files_paths = Declare.models_path(self)
             dir_path.mkdir(exist_ok=True, parents=True)
             path = dir_path / 'model'
-            gnn_name_file = files_paths[0]
-            gnn_mm_kwargs_file = files_paths[1]
-        else:
-            # BUG Kirill, elif gnn_architecture_path = None
-            gnn_name_file = gnn_architecture_path / f"gnn={self.gnn.get_hash()}.json"
-            gnn_mm_kwargs_file = gnn_architecture_path.parent / f"gnn_model_manager={self.get_hash()}.json"
+        gnn_name_file = files_paths[0]
+        gnn_mm_kwargs_file = files_paths[1]
+        poison_attack_kwargs_file = files_paths[2]
+        poison_defense_kwargs_file = files_paths[3]
+        mi_defense_kwargs_file = files_paths[4]
+        evasion_defense_kwargs_file = files_paths[5]
+        evasion_attack_kwargs_file = files_paths[6]
+        mi_attack_kwargs_file = files_paths[7]
         self.save_model(path)
 
         with open(gnn_name_file, "w") as f:
             f.write(self.gnn.get_name(obj_name_flag=True))
         with open(gnn_mm_kwargs_file, "w") as f:
             f.write(self.get_name())
+        with open(poison_attack_kwargs_file, "w") as f:
+            f.write(json_for_config(self.poison_attack_config))
+        with open(poison_defense_kwargs_file, "w") as f:
+            f.write(json_for_config(self.poison_defense_config))
+        with open(mi_defense_kwargs_file, "w") as f:
+            f.write(json_for_config(self.mi_defense_config))
+        with open(evasion_defense_kwargs_file, "w") as f:
+            f.write(json_for_config(self.evasion_defense_config))
+        with open(evasion_attack_kwargs_file, "w") as f:
+            f.write(json_for_config(self.evasion_attack_config))
+        with open(mi_attack_kwargs_file, "w") as f:
+            f.write(json_for_config(self.mi_attack_config))
         return path.parent
 
     # def conduct_experiment(self, gen_dataset):

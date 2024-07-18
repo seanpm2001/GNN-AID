@@ -1,7 +1,7 @@
 import json
 
 from aux.utils import MODELS_DIR, GRAPHS_DIR, EXPLANATIONS_DIR, hash_data_sha256, \
-    SAVE_DIR_STRUCTURE_PATH
+    SAVE_DIR_STRUCTURE_PATH, hash_for_config
 import os
 from pathlib import Path
 
@@ -143,35 +143,12 @@ class Declare:
         path = Path(str(class_obj.dataset_path).replace(str(GRAPHS_DIR), str(MODELS_DIR)))
         what_save = "models"
 
-        mi_defense_kwargs = class_obj.mi_defense_config.to_saveable_dict().copy()
-        mi_defense_kwargs = dict(sorted(mi_defense_kwargs.items()))
-        json_init_object = json.dumps(mi_defense_kwargs)
-        mi_defense_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
-
-        evasion_defense_kwargs = class_obj.evasion_defense_config.to_saveable_dict().copy()
-        evasion_defense_kwargs = dict(sorted(evasion_defense_kwargs.items()))
-        json_init_object = json.dumps(evasion_defense_kwargs)
-        evasion_defense_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
-
-        poison_defense_kwargs = class_obj.poison_defense_config.to_saveable_dict().copy()
-        poison_defense_kwargs = dict(sorted(poison_defense_kwargs.items()))
-        json_init_object = json.dumps(poison_defense_kwargs)
-        poison_defense_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
-
-        mi_attack_kwargs = class_obj.mi_attack_config.to_saveable_dict().copy()
-        mi_attack_kwargs = dict(sorted(mi_attack_kwargs.items()))
-        json_init_object = json.dumps(mi_attack_kwargs)
-        mi_attack_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
-
-        evasion_attack_kwargs = class_obj.evasion_attack_config.to_saveable_dict().copy()
-        evasion_attack_kwargs = dict(sorted(evasion_attack_kwargs.items()))
-        json_init_object = json.dumps(evasion_attack_kwargs)
-        evasion_attack_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
-
-        poison_attack_kwargs = class_obj.poison_attack_config.to_saveable_dict().copy()
-        poison_attack_kwargs = dict(sorted(poison_attack_kwargs.items()))
-        json_init_object = json.dumps(poison_attack_kwargs)
-        poison_attack_kwargs_hash = hash_data_sha256(json_init_object.encode('utf-8'))
+        mi_defense_kwargs_hash = hash_for_config(class_obj.mi_defense_config)
+        evasion_defense_kwargs_hash = hash_for_config(class_obj.evasion_defense_config)
+        poison_defense_kwargs_hash = hash_for_config(class_obj.poison_defense_config)
+        mi_attack_kwargs_hash = hash_for_config(class_obj.mi_attack_config)
+        evasion_attack_kwargs_hash = hash_for_config(class_obj.evasion_attack_config)
+        poison_attack_kwargs_hash = hash_for_config(class_obj.poison_attack_config)
 
         obj_info = [
             class_obj.gnn.get_hash(), class_obj.get_hash(),
