@@ -835,7 +835,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         self.gnn.eval()
         return loss.cpu().detach().numpy().tolist()
 
-    def train_on_batch(self, batch, task_type):
+    def train_on_batch(self, batch, task_type=None):
         loss = None
         if task_type == "single-graph":
             self.optimizer.zero_grad()
