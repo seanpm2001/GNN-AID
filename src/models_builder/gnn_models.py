@@ -795,10 +795,15 @@ class FrameworkGNNModelManager(GNNModelManager):
             print("epoch", self.modification.epochs)
             train_loss = self.train_1_step(gen_dataset)
             self._after_epoch(gen_dataset)
+            self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
+                                metrics=metrics)
             if self.socket:
                 self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
                                     metrics=metrics)
             pbar.update(1)
+
+    def early_stopping(self, train_loss, gen_dataset, metrics):
+        pass
 
     def train_1_step(self, gen_dataset):
         task_type = gen_dataset.domain()
