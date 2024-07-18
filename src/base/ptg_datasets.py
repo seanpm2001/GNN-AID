@@ -19,8 +19,7 @@ class PTGDataset(GeneralDataset):
     dataset_var_config = DatasetVarConfig(
         features={'attr': {attr_name: 'other'}},
         labeling="origin",
-        dataset_attack_type="original",
-        dataset_ver_ind=0  # TODO misha should be removed when we make dataset attacks
+        dataset_ver_ind=0
     )
 
     def __init__(self, dataset_config: DatasetConfig, **kwargs):

@@ -17,41 +17,9 @@ def geom_GNNExplainer_test():
     my_device = device('cuda' if is_available() else 'cpu')
     my_device = device('cpu')
 
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "Planetoid", 'Cora'),
-    #     dataset_attack_type='original')
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "pytorch-geometric-other", 'KarateClub'),
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0)
-
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=("single-graph", "Planetoid", 'Cora'),
-        dataset_attack_type='original',
         dataset_ver_ind=0)
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("multiple-graphs", "TUDataset", 'PROTEINS'),
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0
-    # )
-
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     # full_name=("single-graph", "vk_samples", "vk2-ff40-N100000-A.1612175945",),
-    #     full_name=("single-graph", "vk_samples", "vk2-ff20-N10000-A.1611943634",),
-    #     # full_name=("single-graph", "vk_samples", "vk2-ff20-N1000-U.1612273925",),
-    #     # features=('sex',),
-    #     features={'str_f': tuple(), 'str_g': None, 'attr': {
-    #         # "('personal', 'political')": 'one_hot',
-    #         # "('occupation', 'type')": 'one_hot', # Don't work now
-    #         # "('relation',)": 'one_hot',
-    #         # "('age',)": 'one_hot',
-    #         "('sex',)": 'one_hot',
-    #     }},
-    #     # features={'str_f': tuple(), 'str_g': None, 'attr': {'sex': 'one_hot', }},
-    #     labeling='sex1',
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0
-    # )
 
     gcn2 = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
 

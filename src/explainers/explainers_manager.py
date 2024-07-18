@@ -139,7 +139,6 @@ class FrameworkExplainersManager:
             models_path=self.gnn_model_path,
             explainer_name=self.explainer_name,
             explainer_ver_ind=self.modification_config.explainer_ver_ind,
-            explainer_attack_type=self.modification_config.explainer_attack_type,
             explainer_init_kwargs=self.init_config.to_saveable_dict(),
             explainer_run_kwargs=run_config.to_saveable_dict(),
         )

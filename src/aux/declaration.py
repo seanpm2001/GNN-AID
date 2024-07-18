@@ -1,7 +1,7 @@
 import json
 
 from aux.utils import MODELS_DIR, GRAPHS_DIR, EXPLANATIONS_DIR, hash_data_sha256, \
-    SAVE_DIR_STRUCTURE_PATH
+    SAVE_DIR_STRUCTURE_PATH, hash_for_config
 import os
 from pathlib import Path
 
@@ -142,8 +142,19 @@ class Declare:
             class_obj.modification.data_change_flag()
         path = Path(str(class_obj.dataset_path).replace(str(GRAPHS_DIR), str(MODELS_DIR)))
         what_save = "models"
+
+        mi_defense_kwargs_hash = hash_for_config(class_obj.mi_defense_config)
+        evasion_defense_kwargs_hash = hash_for_config(class_obj.evasion_defense_config)
+        poison_defense_kwargs_hash = hash_for_config(class_obj.poison_defense_config)
+        mi_attack_kwargs_hash = hash_for_config(class_obj.mi_attack_config)
+        evasion_attack_kwargs_hash = hash_for_config(class_obj.evasion_attack_config)
+        poison_attack_kwargs_hash = hash_for_config(class_obj.poison_attack_config)
+
         obj_info = [
             class_obj.gnn.get_hash(), class_obj.get_hash(),
+            poison_attack_kwargs_hash, poison_defense_kwargs_hash,
+            mi_defense_kwargs_hash, evasion_defense_kwargs_hash,
+            evasion_attack_kwargs_hash, mi_attack_kwargs_hash,
             *class_obj.modification.to_saveable_dict(compact=True, need_full=False).values()
         ]
         # print(class_obj.modification.to_saveable_dict(compact=True, need_full=False))
@@ -172,7 +183,6 @@ class Declare:
             GNNModelManager_hash: str,
             model_ver_ind: int,
             gnn_name: str,
-            model_attack_type='original',
             epochs=None,
     ):
         """
@@ -182,7 +192,6 @@ class Declare:
         :param GNNModelManager_hash: gnn model manager hash
         :param model_ver_ind: index of explain version
         :param gnn_name: gnn hash
-        :param model_attack_type: type of attack on explainer. Now support: original
         :param epochs: number of epochs during which the model was trained
         :return: the path where the model is saved use information from ModelConfig
         """
@@ -194,7 +203,6 @@ class Declare:
             "gnn": gnn_name,
             "gnn_model_manager": GNNModelManager_hash,
             "epochs": str(epochs),
-            "model_attack_type": model_attack_type,
             "model_ver_ind": str(model_ver_ind),
         }
 
@@ -204,7 +212,7 @@ class Declare:
 
     @staticmethod
     def explanation_file_path(models_path: str, explainer_name: str,
-                              explainer_ver_ind: int = None, explainer_attack_type='original',
+                              explainer_ver_ind: int = None,
                               explainer_run_kwargs=None, explainer_init_kwargs=None):
         """
         :param explainer_init_kwargs: dict with kwargs for explainer class
@@ -231,7 +239,6 @@ class Declare:
             "explainer_name": explainer_name,
             "explainer_init_kwargs": explainer_init_kwargs_hash,
             "explainer_run_kwargs": explainer_run_kwargs_hash,
-            "explainer_attack_type": explainer_attack_type,
             "explainer_ver_ind": str(explainer_ver_ind),
         }
 

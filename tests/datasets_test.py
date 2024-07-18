@@ -222,7 +222,6 @@ class DatasetsTest(unittest.TestCase):
         dvc1 = DatasetVarConfig(
             features={'attr': {'a': 'as_is', 'b': 'one_hot', 'c': 'as_is'}},
             labeling='binary',
-            dataset_attack_type='original',
             dataset_ver_ind=0)
         gen_dataset.build(dvc1)
         self.assertTrue(gen_dataset.num_classes, 2)
@@ -236,7 +235,6 @@ class DatasetsTest(unittest.TestCase):
         dvc2 = DatasetVarConfig(
             features={'str_g': 'one_hot', 'attr': {'a': 'as_is'}},
             labeling='threeClasses',
-            dataset_attack_type='original',
             dataset_ver_ind=0)
         gen_dataset.build(dvc2)
         self.assertTrue(gen_dataset.num_classes, 3)
@@ -315,7 +313,6 @@ class DatasetsTest(unittest.TestCase):
         dvc1 = DatasetVarConfig(
             features={'attr': {'type': 'as_is'}},
             labeling='binary',
-            dataset_attack_type='original',
             dataset_ver_ind=0)
         gen_dataset.build(dvc1)
         self.assertTrue(gen_dataset.num_classes, 2)

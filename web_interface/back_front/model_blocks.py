@@ -206,7 +206,7 @@ class ModelManagerBlock(Block):
             dataset_path=self.gen_dataset.results_dir,
             modification=ModelModificationConfig(
                 model_ver_ind=0,
-                model_attack_type="original",
+                # FIXME Kirill front attack
                 epochs=0,
             )
         )

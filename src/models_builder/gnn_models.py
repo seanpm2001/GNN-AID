@@ -11,15 +11,21 @@ from torch import tensor
 import torch.nn.functional as F
 from torch.cuda import is_available
 from torch_geometric.data import DataLoader
+from torch_geometric.loader import NeighborLoader, LinkNeighborLoader
 
-from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME, ConfigPattern, \
-    CONFIG_OBJ
+from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME
 from aux.data_info import UserCodeInfo
 from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, hash_data_sha256, \
-    TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH
+    TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, json_for_config
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
 from explainers.ProtGNN.MCTS import mcts_args
+from attacks.attack_base import PoisonAttacker, EvasionAttacker, MIAttacker
+from aux.configs import ConfigPattern, PoisonAttackConfig, CONFIG_OBJ, EvasionAttackConfig, MIAttackConfig, \
+    PoisonDefenseConfig, EvasionDefenseConfig, MIDefenseConfig
+from aux.utils import POISON_ATTACK_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, MI_ATTACK_PARAMETERS_PATH, \
+    POISON_DEFENSE_PARAMETERS_PATH, EVASION_DEFENSE_PARAMETERS_PATH, MI_DEFENSE_PARAMETERS_PATH
+from defense.defense_base import PoisonDefender, EvasionDefender, MIDefender
 
 
 class Metric:
@@ -68,8 +74,9 @@ class Metric:
 
 class GNNModelManager:
     """ class of basic functions over models:
-    training, one-step training, full training, evaluation, save and load principle
+    training, evaluation, save and load principle
     """
+
     def __init__(self,
                  manager_config=None,
                  modification: ModelModificationConfig = None):
@@ -80,9 +87,9 @@ class GNNModelManager:
         if manager_config is None:
             # raise RuntimeError("model manager config must be specified")
             manager_config = ConfigPattern(
-                        _config_class="ModelManagerConfig",
-                        _config_kwargs={},
-                    )
+                _config_class="ModelManagerConfig",
+                _config_kwargs={},
+            )
         elif isinstance(manager_config, ModelManagerConfig):
             manager_config = ConfigPattern(
                 _config_class="ModelManagerConfig",
@@ -98,9 +105,9 @@ class GNNModelManager:
         if modification is None:
             # raise RuntimeError("model manager config must be specified")
             modification = ConfigPattern(
-                        _config_class="ModelModificationConfig",
-                        _config_kwargs={},
-                    )
+                _config_class="ModelModificationConfig",
+                _config_kwargs={},
+            )
         elif isinstance(modification, ModelModificationConfig):
             modification = ConfigPattern(
                 _config_class="ModelModificationConfig",
@@ -116,25 +123,64 @@ class GNNModelManager:
         # QUE Kirill do we need to store it? maybe pass when need to
         self.dataset_path = None
 
+        # FIXME Kirill, remove self.gen_dataset
+        self.gen_dataset = None
+
+        self.mi_defender = None
+        self.mi_defense_name = None
+        self.mi_defense_config = None
+        self.evasion_defender = None
+        self.evasion_defense_name = None
+        self.evasion_defense_config = None
+        self.poison_defense_name = None
+        self.poison_defense_config = None
+        self.poison_defender = None
+        self.mi_attack_config = None
+        self.mi_attacker = None
+        self.mi_attack_name = None
+        self.evasion_attack_config = None
+        self.evasion_attacker = None
+        self.evasion_attack_name = None
+        self.poison_attack_name = None
+        self.poison_attacker = None
+        self.poison_attack_config = None
+
+        self.poison_attack_flag = False
+        self.evasion_attack_flag = False
+        self.mi_attack_flag = False
+        self.poison_defense_flag = False
+        self.evasion_defense_flag = False
+        self.mi_defense_flag = False
+
         self.gnn = None
         # We do not want store socket because it is not picklable for a subprocess
         self.socket = None
         self.stop_signal = False
         self.stats_data = None  # Stores some stats to be sent to frontend
 
+        self.set_poison_defender()
+        self.set_poison_attacker()
+        self.set_mi_attacker()
+        self.set_mi_defender()
+        self.set_evasion_attacker()
+        self.set_evasion_defender()
+
     def train_model(self, **kwargs):
         pass
 
     def train_1_step(self, gen_dataset):
-        """ Perform 1 step of model training. Can be called unlimited number of times.
+        """ Perform 1 step of model training.
         """
         # raise NotImplementedError()
         pass
 
-    def train_full(self, gen_dataset, steps=None, **kwargs):
-        """ Perform full cycle of model training. Can be called only once.
+    def train_complete(self, gen_dataset, steps=None, **kwargs):
+        """
         """
         # raise NotImplementedError()
+        pass
+
+    def train_on_batch(self, batch, **kwargs):
         pass
 
     def evaluate_model(self, **kwargs):
@@ -184,7 +230,6 @@ class GNNModelManager:
                 GNNModelManager_hash=gnn_mm_name_hash,
                 model_ver_ind=kwargs.get('model_ver_ind') if 'model_ver_ind' in kwargs else
                 self.modification.model_ver_ind,
-                model_attack_type=self.modification.model_attack_type,
                 epochs=self.modification.epochs,
                 gnn_name=self.gnn.get_hash()
             )
@@ -207,7 +252,7 @@ class GNNModelManager:
         gnn_MM_name_hash = hash_data_sha256(json_object.encode('utf-8'))
         return gnn_MM_name_hash
 
-    def save_model_executor(self, path=None, gnn_architecture_path=None):
+    def save_model_executor(self, path=None, files_paths=None):
         """
         Save executor, generates paths and prepares all information about the model
         and its parameters for saving
@@ -221,18 +266,305 @@ class GNNModelManager:
             dir_path, files_paths = Declare.models_path(self)
             dir_path.mkdir(exist_ok=True, parents=True)
             path = dir_path / 'model'
-            gnn_name_file = files_paths[0]
-            gnn_mm_kwargs_file = files_paths[1]
-        else:
-            gnn_name_file = gnn_architecture_path / f"gnn={self.gnn.get_hash()}.json"
-            gnn_mm_kwargs_file = gnn_architecture_path.parent / f"gnn_model_manager={self.get_hash()}.json"
+        gnn_name_file = files_paths[0]
+        gnn_mm_kwargs_file = files_paths[1]
+        poison_attack_kwargs_file = files_paths[2]
+        poison_defense_kwargs_file = files_paths[3]
+        mi_defense_kwargs_file = files_paths[4]
+        evasion_defense_kwargs_file = files_paths[5]
+        evasion_attack_kwargs_file = files_paths[6]
+        mi_attack_kwargs_file = files_paths[7]
         self.save_model(path)
 
         with open(gnn_name_file, "w") as f:
             f.write(self.gnn.get_name(obj_name_flag=True))
         with open(gnn_mm_kwargs_file, "w") as f:
             f.write(self.get_name())
+        with open(poison_attack_kwargs_file, "w") as f:
+            f.write(json_for_config(self.poison_attack_config))
+        with open(poison_defense_kwargs_file, "w") as f:
+            f.write(json_for_config(self.poison_defense_config))
+        with open(mi_defense_kwargs_file, "w") as f:
+            f.write(json_for_config(self.mi_defense_config))
+        with open(evasion_defense_kwargs_file, "w") as f:
+            f.write(json_for_config(self.evasion_defense_config))
+        with open(evasion_attack_kwargs_file, "w") as f:
+            f.write(json_for_config(self.evasion_attack_config))
+        with open(mi_attack_kwargs_file, "w") as f:
+            f.write(json_for_config(self.mi_attack_config))
         return path.parent
+
+    def set_poison_attacker(self, poison_attack_config=None, poison_attack_name: str = None):
+        if poison_attack_config is None:
+            if poison_attack_name is None:
+                poison_attack_config = ConfigPattern(
+                    _class_name="EmptyPoisonAttacker",
+                    _import_path=POISON_ATTACK_PARAMETERS_PATH,
+                    _config_class="PoisonAttackConfig",
+                    _config_kwargs={}
+                )
+            else:
+                poison_attack_config = ConfigPattern(
+                    _class_name=poison_attack_name,
+                    _import_path=POISON_ATTACK_PARAMETERS_PATH,
+                    _config_class="PoisonAttackConfig",
+                    _config_kwargs={}
+                )
+        elif isinstance(poison_attack_config, PoisonAttackConfig):
+            if poison_attack_name is None:
+                raise Exception("if poison_attack_config is None, poison_attack_name must be defined")
+            poison_attack_config = ConfigPattern(
+                _class_name=poison_attack_name,
+                _import_path=POISON_ATTACK_PARAMETERS_PATH,
+                _config_class="PoisonAttackConfig",
+                _config_kwargs=poison_attack_config.to_saveable_dict(),
+            )
+        self.poison_attack_config = poison_attack_config
+        if poison_attack_name is None:
+            poison_attack_name = self.poison_attack_config._class_name
+        elif poison_attack_name != self.poison_attack_config._class_name:
+            raise Exception(f"poison_attack_name and self.poison_attack_config._class_name should be eqequal, "
+                            f"but now poison_attack_name is {poison_attack_name}, "
+                            f"self.poison_attack_config._class_name is {self.poison_attack_config._class_name}")
+        self.poison_attack_name = poison_attack_name
+        poison_attack_kwargs = getattr(self.poison_attack_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in PoisonAttacker.__subclasses__()}
+        klass = name_klass[self.poison_attack_name]
+        self.poison_attacker = klass(
+            # device=self.device,
+            # device=device("cpu"),
+            **poison_attack_kwargs
+        )
+        self.poison_attack_flag = True
+
+    def set_evasion_attacker(self, evasion_attack_config=None, evasion_attack_name: str = None):
+        if evasion_attack_config is None:
+            if evasion_attack_name is None:
+                evasion_attack_config = ConfigPattern(
+                    _class_name="EmptyEvasionAttacker",
+                    _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+                    _config_class="EvasionAttackConfig",
+                    _config_kwargs={}
+                )
+            else:
+                evasion_attack_config = ConfigPattern(
+                    _class_name=evasion_attack_name,
+                    _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+                    _config_class="EvasionAttackConfig",
+                    _config_kwargs={}
+                )
+        elif isinstance(evasion_attack_config, EvasionAttackConfig):
+            if evasion_attack_name is None:
+                raise Exception("if evasion_attack_config is None, evasion_attack_name must be defined")
+            evasion_attack_config = ConfigPattern(
+                _class_name=evasion_attack_name,
+                _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+                _config_class="EvasionAttackConfig",
+                _config_kwargs=evasion_attack_config.to_saveable_dict(),
+            )
+        self.evasion_attack_config = evasion_attack_config
+        if evasion_attack_name is None:
+            evasion_attack_name = self.evasion_attack_config._class_name
+        elif evasion_attack_name != self.evasion_attack_config._class_name:
+            raise Exception(f"evasion_attack_name and self.evasion_attack_config._class_name should be eqequal, "
+                            f"but now evasion_attack_name is {evasion_attack_name}, "
+                            f"self.evasion_attack_config._class_name is {self.evasion_attack_config._class_name}")
+        self.evasion_attack_name = evasion_attack_name
+        evasion_attack_kwargs = getattr(self.evasion_attack_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in EvasionAttacker.__subclasses__()}
+        klass = name_klass[self.evasion_attack_name]
+        self.evasion_attacker = klass(
+            # device=self.device,
+            # device=device("cpu"),
+            **evasion_attack_kwargs
+        )
+        self.evasion_attack_flag = True
+
+    def set_mi_attacker(self, mi_attack_config=None, mi_attack_name: str = None):
+        if mi_attack_config is None:
+            if mi_attack_name is None:
+                mi_attack_config = ConfigPattern(
+                    _class_name="EmptyMIAttacker",
+                    _import_path=MI_ATTACK_PARAMETERS_PATH,
+                    _config_class="MIAttackConfig",
+                    _config_kwargs={}
+                )
+            else:
+                mi_attack_config = ConfigPattern(
+                    _class_name=mi_attack_name,
+                    _import_path=MI_ATTACK_PARAMETERS_PATH,
+                    _config_class="MIAttackConfig",
+                    _config_kwargs={}
+                )
+        elif isinstance(mi_attack_config, MIAttackConfig):
+            if mi_attack_name is None:
+                raise Exception("if mi_attack_config is None, mi_attack_name must be defined")
+            mi_attack_config = ConfigPattern(
+                _class_name=mi_attack_name,
+                _import_path=MI_ATTACK_PARAMETERS_PATH,
+                _config_class="MIAttackConfig",
+                _config_kwargs=mi_attack_config.to_saveable_dict(),
+            )
+        self.mi_attack_config = mi_attack_config
+        if mi_attack_name is None:
+            mi_attack_name = self.mi_attack_config._class_name
+        elif mi_attack_name != self.mi_attack_config._class_name:
+            raise Exception(f"mi_attack_name and self.mi_attack_config._class_name should be eqequal, "
+                            f"but now mi_attack_name is {mi_attack_name}, "
+                            f"self.mi_attack_config._class_name is {self.mi_attack_config._class_name}")
+        self.mi_attack_name = mi_attack_name
+        mi_attack_kwargs = getattr(self.mi_attack_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in MIAttacker.__subclasses__()}
+        klass = name_klass[self.mi_attack_name]
+        self.mi_attacker = klass(
+            # device=self.device,
+            # device=device("cpu"),
+            **mi_attack_kwargs
+        )
+        self.mi_attack_flag = True
+
+    def set_poison_defender(self, poison_defense_config=None, poison_defense_name: str = None):
+        if poison_defense_config is None:
+            if poison_defense_name is None:
+                poison_defense_config = ConfigPattern(
+                    _class_name="EmptyPoisonDefender",
+                    _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+                    _config_class="PoisonDefenseConfig",
+                    _config_kwargs={}
+                )
+            else:
+                poison_defense_config = ConfigPattern(
+                    _class_name=poison_defense_name,
+                    _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+                    _config_class="PoisonDefenseConfig",
+                    _config_kwargs={}
+                )
+        elif isinstance(poison_defense_config, PoisonDefenseConfig):
+            if poison_defense_name is None:
+                raise Exception("if poison_defense_config is None, poison_defense_name must be defined")
+            poison_defense_config = ConfigPattern(
+                _class_name=poison_defense_name,
+                _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+                _config_class="PoisonDefenseConfig",
+                _config_kwargs=poison_defense_config.to_saveable_dict(),
+            )
+        self.poison_defense_config = poison_defense_config
+        if poison_defense_name is None:
+            poison_defense_name = self.poison_defense_config._class_name
+        elif poison_defense_name != self.poison_defense_config._class_name:
+            raise Exception(f"poison_defense_name and self.poison_defense_config._class_name should be eqequal, "
+                            f"but now poison_defense_name is {poison_defense_name}, "
+                            f"self.poison_defense_config._class_name is {self.poison_defense_config._class_name}")
+        self.poison_defense_name = poison_defense_name
+        poison_defense_kwargs = getattr(self.poison_defense_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in PoisonDefender.__subclasses__()}
+        klass = name_klass[self.poison_defense_name]
+        self.poison_defender = klass(
+            # device=self.device,
+            # device=device("cpu"),
+            **poison_defense_kwargs
+        )
+        self.poison_defense_flag = True
+
+    def set_evasion_defender(self, evasion_defense_config=None, evasion_defense_name: str = None):
+        if evasion_defense_config is None:
+            if evasion_defense_name is None:
+                evasion_defense_config = ConfigPattern(
+                    _class_name="EmptyEvasionDefender",
+                    _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+                    _config_class="EvasionDefenseConfig",
+                    _config_kwargs={}
+                )
+            else:
+                evasion_defense_config = ConfigPattern(
+                    _class_name=evasion_defense_name,
+                    _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+                    _config_class="EvasionDefenseConfig",
+                    _config_kwargs={}
+                )
+        elif isinstance(evasion_defense_config, EvasionDefenseConfig):
+            if evasion_defense_name is None:
+                raise Exception("if evasion_defense_config is None, evasion_defense_name must be defined")
+            evasion_defense_config = ConfigPattern(
+                _class_name=evasion_defense_name,
+                _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+                _config_class="EvasionDefenseConfig",
+                _config_kwargs=evasion_defense_config.to_saveable_dict(),
+            )
+        self.evasion_defense_config = evasion_defense_config
+        if evasion_defense_name is None:
+            evasion_defense_name = self.evasion_defense_config._class_name
+        elif evasion_defense_name != self.evasion_defense_config._class_name:
+            raise Exception(f"evasion_defense_name and self.evasion_defense_config._class_name should be eqequal, "
+                            f"but now evasion_defense_name is {evasion_defense_name}, "
+                            f"self.evasion_defense_config._class_name is {self.evasion_defense_config._class_name}")
+        self.evasion_defense_name = evasion_defense_name
+        evasion_defense_kwargs = getattr(self.evasion_defense_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in EvasionDefender.__subclasses__()}
+        klass = name_klass[self.evasion_defense_name]
+        self.evasion_defender = klass(
+            # device=self.device,
+            # device=device("cpu"),
+            **evasion_defense_kwargs
+        )
+        self.evasion_defense_flag = True
+
+    def set_mi_defender(self, mi_defense_config=None, mi_defense_name: str = None):
+        if mi_defense_config is None:
+            if mi_defense_name is None:
+                mi_defense_config = ConfigPattern(
+                    _class_name="EmptyMIDefender",
+                    _import_path=MI_DEFENSE_PARAMETERS_PATH,
+                    _config_class="MIDefenseConfig",
+                    _config_kwargs={}
+                )
+            else:
+                mi_defense_config = ConfigPattern(
+                    _class_name=mi_defense_name,
+                    _import_path=MI_DEFENSE_PARAMETERS_PATH,
+                    _config_class="MIDefenseConfig",
+                    _config_kwargs={}
+                )
+        elif isinstance(mi_defense_config, MIDefenseConfig):
+            if mi_defense_name is None:
+                raise Exception("if mi_defense_config is None, mi_defense_name must be defined")
+            mi_defense_config = ConfigPattern(
+                _class_name=mi_defense_name,
+                _import_path=MI_DEFENSE_PARAMETERS_PATH,
+                _config_class="MIDefenseConfig",
+                _config_kwargs=mi_defense_config.to_saveable_dict(),
+            )
+        self.mi_defense_config = mi_defense_config
+        if mi_defense_name is None:
+            mi_defense_name = self.mi_defense_config._class_name
+        elif mi_defense_name != self.mi_defense_config._class_name:
+            raise Exception(f"mi_defense_name and self.mi_defense_config._class_name should be eqequal, "
+                            f"but now mi_defense_name is {mi_defense_name}, "
+                            f"self.mi_defense_config._class_name is {self.mi_defense_config._class_name}")
+        self.mi_defense_name = mi_defense_name
+        mi_defense_kwargs = getattr(self.mi_defense_config, CONFIG_OBJ).to_dict()
+
+        name_klass = {e.name: e for e in MIDefender.__subclasses__()}
+        klass = name_klass[self.mi_defense_name]
+        self.mi_defender = klass(
+            # device=self.device,
+            # device=device("cpu"),
+            **mi_defense_kwargs
+        )
+        self.mi_defense_flag = True
+
+    @staticmethod
+    def available_attacker():
+        pass
+
+    @staticmethod
+    def available_defender():
+        pass
 
     @staticmethod
     def from_model_path(model_path, dataset_path, **kwargs):
@@ -250,7 +582,6 @@ class GNNModelManager:
             GNNModelManager_hash=str(model_path['gnn_model_manager']),
             epochs=int(model_path['epochs']) if model_path['epochs'] != 'None' else None,
             model_ver_ind=int(model_path['model_ver_ind']),
-            model_attack_type=model_path['model_attack_type'],
             gnn_name=model_path['gnn'],
         )
 
@@ -261,7 +592,6 @@ class GNNModelManager:
 
         modification_config = ModelModificationConfig(
             epochs=int(model_path['epochs']) if model_path['epochs'] != 'None' else None,
-            model_attack_type=model_path['model_attack_type'],
             model_ver_ind=int(model_path['model_ver_ind']),
         )
 
@@ -349,6 +679,18 @@ class GNNModelManager:
                                                            obj_name)
         return gnn
 
+    def _before_epoch(self, gen_dataset):
+        pass
+
+    def _after_epoch(self, gen_dataset):
+        pass
+
+    def _before_batch(self, batch):
+        pass
+
+    def _after_batch(self, batch):
+        pass
+
 
 class FrameworkGNNModelManager(GNNModelManager):
     """
@@ -402,16 +744,15 @@ class FrameworkGNNModelManager(GNNModelManager):
 
         # TODO Kirill, add train_test_split in default parameters gnnMM
         super().__init__(**kwargs)
-
         # Fulfill absent fields from default configs
         with open(FRAMEWORK_PARAMETERS_PATH, 'r') as f:
             params = json.load(f)
             class_name = type(self).__name__
             if class_name in params:
                 self.manager_config = ConfigPattern(
-                        _config_class="ModelManagerConfig",
-                        _config_kwargs={k: v[2] for k, v in params[class_name].items()},
-                    ).merge(self.manager_config)
+                    _config_class="ModelManagerConfig",
+                    _config_kwargs={k: v[2] for k, v in params[class_name].items()},
+                ).merge(self.manager_config)
 
         # Add fields from additional config
         self.manager_config = self.manager_config.merge(self.additional_config)
@@ -448,106 +789,89 @@ class FrameworkGNNModelManager(GNNModelManager):
         if "loss_function" in getattr(self.manager_config, CONFIG_OBJ):
             self.loss_function = getattr(self.manager_config, CONFIG_OBJ).loss_function.create_obj()
 
+    def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
+        for _ in range(steps):
+            self._before_epoch(gen_dataset)
+            print("epoch", self.modification.epochs)
+            train_loss = self.train_1_step(gen_dataset)
+            self._after_epoch(gen_dataset)
+            if self.socket:
+                self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
+                                    metrics=metrics)
+            pbar.update(1)
+
     def train_1_step(self, gen_dataset):
-        train_1_step = self.train_1_step_mul if gen_dataset.is_multi() else self.train_1_step_single
-        return train_1_step(gen_dataset)
-
-    def train_1_step_single(self, gen_dataset):
-        """ Version of train for a single graph
-        """
-        # TODO Kirill think can we create DataLoader instead of gen_dataset ?
-        #  pass DataLoader to train_1_step_single and train_1_step_mul
-
-        data = gen_dataset.dataset._data
-        train_ver_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
-        train_mask_size = len(train_ver_ind)
-        random.shuffle(train_ver_ind)
-
-        number_of_batches = ceil(train_mask_size / self.batch)
-        # data_x_elem_len = data.x.size()[1]
-
-        # For torch model: Sets the module in training mode
-        self.gnn.train()
+        task_type = gen_dataset.domain()
+        if self.mi_defender:
+            self.mi_defender.pre_epoch()
+        if self.evasion_defender:
+            self.evasion_defender.pre_epoch()
+        if task_type == "single-graph":
+            # FIXME Kirill, add data_x_copy mask
+            loader = NeighborLoader(gen_dataset.dataset._data,
+                                    num_neighbors=[-1], input_nodes=gen_dataset.train_mask,
+                                    batch_size=self.batch, shuffle=True)
+        elif task_type == "multiple-graphs":
+            train_dataset = gen_dataset.dataset.index_select(gen_dataset.train_mask)
+            loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=True)
+        # TODO Kirill, remove False when release edge recommendation task
+        elif task_type == "edge" and False:
+            loader = LinkNeighborLoader(gen_dataset.dataset._data,
+                                        num_neighbors=[-1], input_nodes=gen_dataset.train_mask,
+                                        batch_size=self.batch, shuffle=True)
+        else:
+            raise ValueError("Unsupported task type")
         loss = 0
-
-        # features_mask_tensor = torch.full(size=data.x.size(), fill_value=True)
-
-        for batch_ind in range(number_of_batches):
-            data_x_copy = torch.clone(data.x)
-            train_mask_copy = [False] * data.x.size()[0]
-
-            # features_mask_tensor_copy = torch.clone(features_mask_tensor)
-
-            train_batch = train_ver_ind[batch_ind * self.batch: (batch_ind + 1) * self.batch]
-            for elem_ind in train_batch:
-                for feature in self.mask_features:
-                    # features_mask_tensor_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-                    #                                     gen_dataset.info.node_attr_slices[feature][1]] = False
-                    data_x_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-                                          gen_dataset.info.node_attr_slices[feature][1]] = 0
-                # if self.gnn_mm.train_mask_flag:
-                #     data_x_copy[elem_ind] = torch.zeros(data_x_elem_len)
-                # y_true = torch.masked.masked_tensor(data.y, mask_tensor)
-                train_mask_copy[elem_ind] = True
-
-            # mask_x_tensor = torch.masked.masked_tensor(data.x, features_mask_tensor_copy)
-
-            self.optimizer.zero_grad()
-            logits = self.gnn(data_x_copy, data.edge_index)
-            batch_loss = self.loss_function(logits[train_mask_copy], gen_dataset.labels[train_mask_copy])
-            if self.clip is not None:
-                clip_grad_norm(self.gnn.parameters(), self.clip)
-
-            loss += batch_loss * len(train_batch)
-            # print("batch_loss %.8f" % batch_loss)
-
-            # Backward
-            self.optimizer.zero_grad()
-            batch_loss.backward()
-            self.optimizer.step()
-
-        loss /= train_mask_size
+        for batch in loader:
+            self._before_batch(batch)
+            loss += self.train_on_batch(batch, task_type)
+            self._after_batch(batch)
+        if self.mi_defender:
+            self.mi_defender.post_epoch()
+        if self.evasion_defender:
+            self.evasion_defender.post_epoch()
         print("loss %.8f" % loss)
         self.modification.epochs += 1
         self.gnn.eval()
         return loss.cpu().detach().numpy().tolist()
 
-    def train_1_step_mul(self, gen_dataset):
-        """ Version of train for a multiple graph
-        """
-        # train_mask = data.train_mask
-        # train_ver_ind = [n for n, x in enumerate(train_mask) if x]
-        # train_mask_size = len(train_ver_ind)
-
-        # number_of_batches = ceil(train_mask_size / self.batch)
-        # data_x_elem_len = data.x.size()[1]
-
-        # FIXME Kirill this is done at each step - can we optimize?
-        #  e.g. before_train()
-        dataset = gen_dataset.dataset
-        train_dataset = dataset.index_select(gen_dataset.train_mask)
-        train_loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=False)
-
-        # For torch model: Sets the module in training mode
-        self.gnn.train()
-        total_loss = 0
-
-        # Train on batches
-        for data in train_loader:
+    def train_on_batch(self, batch, task_type=None):
+        loss = None
+        if task_type == "single-graph":
             self.optimizer.zero_grad()
-            logits = self.gnn(data.x, data.edge_index, data.batch)
-            batch_loss = self.loss_function(logits, data.y)
-            total_loss += batch_loss / len(train_loader)
-            batch_loss.backward()
+            logits = self.gnn(batch.x, batch.edge_index)
+            loss = self.loss_function(logits, batch.y)
+            if self.clip is not None:
+                clip_grad_norm(self.gnn.parameters(), self.clip)
+            self.optimizer.zero_grad()
+            loss.backward()
             self.optimizer.step()
+            # print("batch_loss %.8f" % loss)
 
-        # loss /= train_mask_size
-        print("loss %.8f" % total_loss)
-        self.modification.epochs += 1
+        elif task_type == "multiple-graphs":
+            self.optimizer.zero_grad()
+            logits = self.gnn(batch.x, batch.edge_index, batch.batch)
+            loss = self.loss_function(logits, batch.y)
+            loss.backward()
+            self.optimizer.step()
+        # TODO Kirill, remove False when release edge recommendation task
+        elif task_type == "edge" and False:
+            self.optimizer.zero_grad()
+            edge_index = batch.edge_index
+            pos_edge_index = edge_index[:, batch.y == 1]
+            neg_edge_index = edge_index[:, batch.y == 0]
 
-        self.gnn.eval()
+            pos_out = self.gnn(batch.x, pos_edge_index)
+            neg_out = self.gnn(batch.x, neg_edge_index)
 
-        return total_loss.cpu().detach().numpy().tolist()
+            pos_loss = self.loss_function(pos_out, torch.ones_like(pos_out))
+            neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
+
+            loss = pos_loss + neg_loss
+            loss.backward()
+        else:
+            raise ValueError("Unsupported task type")
+        return loss
 
     def get_name(self, **kwargs):
         json_str = super().get_name()
@@ -561,10 +885,10 @@ class FrameworkGNNModelManager(GNNModelManager):
          class variables
         """
         if not is_available():
-            self.gnn.load_state_dict(torch.load(path, map_location=torch.device('cpu'),))
+            self.gnn.load_state_dict(torch.load(path, map_location=torch.device('cpu'), ))
             # self.gnn = torch.load(path, map_location=torch.device('cpu'))
         else:
-            self.gnn.load_state_dict(torch.load(path,))
+            self.gnn.load_state_dict(torch.load(path, ))
             # self.gnn = torch.load(path)
         if self.optimizer is None:
             self.init()
@@ -579,6 +903,15 @@ class FrameworkGNNModelManager(GNNModelManager):
         """
         torch.save(self.gnn.state_dict(), path)
 
+    def report_results(self, train_loss, gen_dataset, metrics):
+        metrics_values = self.evaluate_model(gen_dataset=gen_dataset, metrics=metrics)
+        self.compute_stats_data(gen_dataset, predictions=True, logits=True)
+        self.send_epoch_results(
+            metrics_values=metrics_values,
+            stats_data={k: gen_dataset.visible_part.filter(v)
+                        for k, v in self.stats_data.items()},
+            weights={"weights": self.gnn.get_weights()}, loss=train_loss)
+
     def train_model(self, gen_dataset, save_model_flag=True, mode=None, steps=None, metrics=None,
                     socket=None):
         """
@@ -591,6 +924,15 @@ class FrameworkGNNModelManager(GNNModelManager):
         :param metrics: list of metrics to measure at each step or at the end of training
         :param socket: socket to use for sending data to frontend
         """
+        if self.poison_attacker:
+            loc = self.poison_attacker.attack(gen_dataset=gen_dataset)
+            if loc is not None:
+                gen_dataset = loc
+
+        if self.poison_defender:
+            loc = self.poison_defender.defense(gen_dataset=gen_dataset)
+            if loc is not None:
+                gen_dataset = loc
         self.socket = socket
         pbar = ProgressBar(self.socket, "mt")
 
@@ -598,24 +940,9 @@ class FrameworkGNNModelManager(GNNModelManager):
         assert issubclass(type(self), GNNModelManager)
 
         assert mode in ['1_step', 'full', None]
-        if mode is None:
-            has_1_step = self.train_1_step != super(type(self), self).train_1_step
-            has_full = self.train_full != super(type(self), self).train_full
-            assert has_1_step or has_full
-            do_1_step = has_1_step
-        elif mode == '1_step':
-            do_1_step = True
-        else:
-            do_1_step = False
-
-        def report_results(train_loss):
-            metrics_values = self.evaluate_model(gen_dataset=gen_dataset, metrics=metrics)
-            self.compute_stats_data(gen_dataset, predictions=True, logits=True)
-            self.send_epoch_results(
-                metrics_values=metrics_values,
-                stats_data={k: gen_dataset.visible_part.filter(v)
-                            for k, v in self.stats_data.items()},
-                weights={"weights": self.gnn.get_weights()}, loss=train_loss)
+        has_complete = self.train_complete != super(type(self), self).train_complete
+        assert has_complete
+        do_1_step = True
 
         try:
             if do_1_step:
@@ -623,28 +950,13 @@ class FrameworkGNNModelManager(GNNModelManager):
                 pbar.total = self.modification.epochs + steps
                 pbar.n = self.modification.epochs
                 pbar.update(0)
-                for _ in range(steps):
-                    print("epoch", self.modification.epochs)
-                    train_loss = self.train_1_step(gen_dataset)
-                    if self.socket:
-                        report_results(train_loss)
-                    pbar.update(1)
+                self.train_complete(gen_dataset=gen_dataset, steps=steps,
+                                    pbar=pbar, metrics=metrics)
                 pbar.close()
                 self.send_data("mt", {"status": "OK"})
 
             else:
-                print("Starting full cycle training")
-                pbar.reset(total=steps)
-                train_loss = self.train_full(gen_dataset, steps=steps, metrics=metrics)
-                print("Training finished")
-                if self.socket:
-                    try:
-                        report_results(train_loss)
-                    except Exception: pass
-                # TODO Misha can we pass pbar into self.train_full ?
-                pbar.update(steps)
-                pbar.close()
-                self.send_data("mt", {"status": "FINISHED"})
+                raise Exception
 
             if save_model_flag:
                 return self.save_model_executor()
@@ -746,6 +1058,10 @@ class FrameworkGNNModelManager(GNNModelManager):
         :param metrics: list of metrics to compute. metric based on class Metric
         :return: dict {metric -> value}
         """
+        if self.evasion_attacker:
+            self.evasion_attacker.attack()
+        if self.mi_attacker:
+            self.mi_attacker.attack()
         mask_metrics = {}
         for metric in metrics:
             mask = metric.mask
@@ -815,7 +1131,8 @@ class FrameworkGNNModelManager(GNNModelManager):
         socket.send(block=block, msg=msg, tag=tag, obligate=obligate)
         return True
 
-    def send_epoch_results(self, metrics_values=None, stats_data=None, weights=None, loss=None, obligate=False, socket=None):
+    def send_epoch_results(self, metrics_values=None, stats_data=None, weights=None, loss=None, obligate=False,
+                           socket=None):
         """
         Send updates to the frontend after a training epoch: epoch, metrics, logits, loss.
 
@@ -844,6 +1161,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         return gen_dataset
 
 
+# FIXME George
 class ProtGNNModelManager(FrameworkGNNModelManager):
     """
     Prot layer needs a special training procedure.
@@ -895,7 +1213,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         if not is_available():
             checkpoint = torch.load(path, map_location=torch.device('cpu'), )
         else:
-            checkpoint =torch.load(path)
+            checkpoint = torch.load(path)
         self.gnn.load_state_dict(checkpoint["model_state_dict"])
         self.gnn.best_prots = checkpoint["best_prots"]
         if self.optimizer is None:
@@ -938,7 +1256,6 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
 
         return metrics_values
 
-    # def train_model(self, gen_dataset, save_model_flag=True, mode=None, steps=None, metrics=None):
     def train_full(self, gen_dataset, steps=None, metrics=None):
         """
         Train ProtGNN model for Graph classification
@@ -1020,8 +1337,8 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
                     p.requires_grad = True
 
             for batch in train_loader:
-                logits = self.gnn(batch.x, batch.edge_index, batch.batch)
                 min_distances = self.gnn.min_distances
+                logits = self.gnn(batch.x, batch.edge_index, batch.batch)
                 loss = self.loss_function(logits, batch.y)
                 # cluster loss
                 prot_layer.prototype_class_identity = prot_layer.prototype_class_identity

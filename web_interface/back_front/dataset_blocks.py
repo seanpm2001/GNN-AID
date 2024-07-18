@@ -68,7 +68,7 @@ class DatasetVarBlock(Block):
         return self.gen_dataset.info.to_dict()
 
     def _finalize(self):
-        if not (len(self._config.keys()) == 4):  # TODO better check
+        if not (len(self._config.keys()) == 3):  # TODO better check
             return False
 
         self.dataset_var_config = DatasetVarConfig(**self._config)

@@ -4,15 +4,9 @@ import warnings
 
 from torch import device
 
-from attacks.attack_base import RandomPoisonAttack
-from defense.defense_base import BadRandomPoisonDefender
-from models_builder.attack_defense_manager import AttackAndDefenseManager
-from src.aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
-    EXPLAINERS_INIT_PARAMETERS_PATH, POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
-from src.explainers.explainers_manager import FrameworkExplainersManager
+from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
 from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
-from src.aux.configs import ModelManagerConfig, ModelModificationConfig, ExplainerInitConfig, ExplainerRunConfig, \
-    ConfigPattern, ExplainerModificationConfig
+from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
 
@@ -28,28 +22,14 @@ def test_attack_defense():
     full_name = ("single-graph", "Planetoid", 'Cora')
     # full_name = ("multiple-graphs", "TUDataset", 'PROTEINS')
 
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "Planetoid", 'Cora'),
-    #     dataset_attack_type='original')
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "pytorch-geometric-other", 'KarateClub'),
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0)
-
-    # dataset, data, results_dataset_path = DatasetManager.get_pytorch_geometric(
-    #     full_name=("single-graph", "Planetoid", 'Cora'),
-    #     dataset_attack_type='original',
-    #     dataset_ver_ind=0)
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
-        dataset_attack_type='original',
         dataset_ver_ind=0
     )
 
     # dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
     #     full_name=("single-graph", "custom", "example",),
     #     features={'attr': {'a': 'as_is', 'b': 'as_is'}},
-    #     dataset_attack_type='original',
     #     labeling='threeClasses',
     #     dataset_ver_ind=0
     # )
@@ -68,7 +48,6 @@ def test_attack_defense():
     #     }},
     #     # features={'str_f': tuple(), 'str_g': None, 'attr': {'sex': 'one_hot', }},
     #     labeling='sex1',
-    #     dataset_attack_type='original',
     #     dataset_ver_ind=0
     # )
 
@@ -115,8 +94,8 @@ def test_attack_defense():
         modification=ModelModificationConfig(model_ver_ind=0, epochs=steps_epochs)
     )
 
-    save_model_flag = False
-    # save_model_flag = True
+    # save_model_flag = False
+    save_model_flag = True
 
     # data.x = data.x.float()
     gnn_model_manager.gnn.to(my_device)
@@ -131,20 +110,24 @@ def test_attack_defense():
         }
     )
 
+    # poison_defense_config = ConfigPattern(
+    #     _class_name="BadRandomPoisonDefender",
+    #     _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+    #     _config_class="PoisonDefenseConfig",
+    #     _config_kwargs={
+    #         "n_edges_percent": 0.1,
+    #     }
+    # )
     poison_defense_config = ConfigPattern(
-        _class_name="BadRandomPoisonDefender",
+        _class_name="EmptyPoisonDefender",
         _import_path=POISON_DEFENSE_PARAMETERS_PATH,
         _config_class="PoisonDefenseConfig",
         _config_kwargs={
-            "n_edges_percent": 0.1,
         }
     )
 
-    attack_defense_manager = AttackAndDefenseManager(gen_dataset=dataset, gnn_manager=gnn_model_manager)
-    attack_defense_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
-    attack_defense_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-
-    attack_defense_manager.conduct_experiment()
+    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()
@@ -170,7 +153,6 @@ def test_attack_defense():
     metric_loc = gnn_model_manager.evaluate_model(
         gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
     print(metric_loc)
-
 
 
 if __name__ == '__main__':

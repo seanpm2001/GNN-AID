@@ -14,17 +14,14 @@ def backend_demo():
     # Init datasets VK and Cora
     # dataset_cora, _, results_dataset_path_cora = DatasetManager.get_by_full_name(
     #     full_name=("single-graph", "Planetoid", 'Cora'),
-    #     dataset_attack_type='original',
     #     dataset_ver_ind=0)
     # dataset_comp, _, results_dataset_path_comp = DatasetManager.get_by_full_name(
     #     full_name=("single-graph", "Amazon", "Computers",),
-    #     dataset_attack_type='original',
     #     dataset_ver_ind=0
     # )
     # dataset_mg_example, _, results_dataset_path_mg_example = DatasetManager.get_by_full_name(
     #     full_name=("multiple-graphs", "custom", "example",),
     #     features={'attr': {'type': 'as_is'}},
-    #     dataset_attack_type='original',
     #     labeling='binary',
     #     dataset_ver_ind=0
     # )
@@ -53,7 +50,6 @@ def backend_demo():
             graph="example"),
         DatasetVarConfig(features={'attr': {'type': 'as_is'}},
                          labeling='binary',
-                         dataset_attack_type='original',
                          dataset_ver_ind=0)
     )
     gen_dataset_mg_example.train_test_split(percent_train_class=0.6, percent_test_class=0.4)
