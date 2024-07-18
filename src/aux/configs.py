@@ -7,7 +7,7 @@ import inspect
 
 from aux.utils import setting_class_default_parameters, EXPLAINERS_INIT_PARAMETERS_PATH, \
     EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH, \
-    OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, FRAMEWORK_PARAMETERS_PATH, import_by_name
+    OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, FRAMEWORK_PARAMETERS_PATH, import_by_name, hash_data_sha256
 
 CONFIG_SAVE_KWARGS_KEY = '__save_kwargs_to_be_used_for_saving'
 # CONFIG_PARAMS_PATH_KEY = '__default_parameters_file_path'
@@ -92,6 +92,15 @@ class GeneralConfig:
                 raise TypeError("Config cannot be changed outside of init()!")
         finally:
             del frame
+
+    def json_for_config(self):
+        config_kwargs = self.to_saveable_dict().copy()
+        config_kwargs = dict(sorted(config_kwargs.items()))
+        json_object = json.dumps(config_kwargs, indent=2)
+        return json_object
+
+    def hash_for_config(self):
+        return hash_data_sha256(self.json_for_config().encode('utf-8'))
 
     def to_saveable_dict(self, compact=False, **kwargs):
         def sorted_dict(d):

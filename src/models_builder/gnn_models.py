@@ -16,7 +16,7 @@ from torch_geometric.loader import NeighborLoader, LinkNeighborLoader
 from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME
 from aux.data_info import UserCodeInfo
 from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, hash_data_sha256, \
-    TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, json_for_config
+    TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
 from explainers.ProtGNN.MCTS import mcts_args
@@ -281,17 +281,17 @@ class GNNModelManager:
         with open(gnn_mm_kwargs_file, "w") as f:
             f.write(self.get_name())
         with open(poison_attack_kwargs_file, "w") as f:
-            f.write(json_for_config(self.poison_attack_config))
+            f.write(self.poison_attack_config.json_for_config())
         with open(poison_defense_kwargs_file, "w") as f:
-            f.write(json_for_config(self.poison_defense_config))
+            f.write(self.poison_defense_config.json_for_config())
         with open(mi_defense_kwargs_file, "w") as f:
-            f.write(json_for_config(self.mi_defense_config))
+            f.write(self.mi_defense_config.json_for_config())
         with open(evasion_defense_kwargs_file, "w") as f:
-            f.write(json_for_config(self.evasion_defense_config))
+            f.write(self.evasion_defense_config.json_for_config())
         with open(evasion_attack_kwargs_file, "w") as f:
-            f.write(json_for_config(self.evasion_attack_config))
+            f.write(self.evasion_attack_config.json_for_config())
         with open(mi_attack_kwargs_file, "w") as f:
-            f.write(json_for_config(self.mi_attack_config))
+            f.write(self.mi_attack_config.json_for_config())
         return path.parent
 
     def set_poison_attacker(self, poison_attack_config=None, poison_attack_name: str = None):

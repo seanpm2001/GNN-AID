@@ -142,13 +142,3 @@ def setting_class_default_parameters(class_name: str, class_kwargs: dict, defaul
 
     return class_kwargs_for_save, class_kwargs_for_init
 
-
-def json_for_config(config):
-    config_kwargs = config.to_saveable_dict().copy()
-    config_kwargs = dict(sorted(config_kwargs.items()))
-    json_object = json.dumps(config_kwargs, indent=2)
-    return json_object
-
-
-def hash_for_config(config):
-    return hash_data_sha256(json_for_config(config).encode('utf-8'))
