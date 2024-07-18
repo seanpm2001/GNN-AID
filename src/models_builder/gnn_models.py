@@ -180,6 +180,9 @@ class GNNModelManager:
         # raise NotImplementedError()
         pass
 
+    def train_on_batch(self, batch, **kwargs):
+        pass
+
     def evaluate_model(self, **kwargs):
         pass
 
@@ -290,20 +293,6 @@ class GNNModelManager:
         with open(mi_attack_kwargs_file, "w") as f:
             f.write(json_for_config(self.mi_attack_config))
         return path.parent
-
-    # def conduct_experiment(self, gen_dataset):
-    #     if self.poison_attacker is not None and self.poison_attack_flag:
-    #         self.poison_attacker.attack()
-    #     if self.poison_defender is not None and self.poison_defense_flag:
-    #         self.poison_defender.defense()
-    #     if self.mi_defender is not None and self.mi_defense_flag:
-    #         self.mi_defender.defense()
-    #     if self.evasion_defender is not None and self.evasion_defense_flag:
-    #         self.evasion_defender.defense()
-    #     if self.evasion_attacker is not None and self.evasion_attack_flag:
-    #         self.evasion_attacker.attack()
-    #     if self.mi_attacker is not None and self.poison_attack_flag:
-    #         self.mi_attacker.attack()
 
     def set_poison_attacker(self, poison_attack_config=None, poison_attack_name: str = None):
         if poison_attack_config is None:
@@ -690,6 +679,18 @@ class GNNModelManager:
                                                            obj_name)
         return gnn
 
+    def _before_epoch(self, gen_dataset):
+        pass
+
+    def _after_epoch(self, gen_dataset):
+        pass
+
+    def _before_batch(self, batch):
+        pass
+
+    def _after_batch(self, batch):
+        pass
+
 
 class FrameworkGNNModelManager(GNNModelManager):
     """
@@ -872,103 +873,6 @@ class FrameworkGNNModelManager(GNNModelManager):
             raise ValueError("Unsupported task type")
         return loss
 
-    # def train_1_step_single(self, gen_dataset):
-    #     """ Version of train for a single graph
-    #     """
-    #     # TODO Kirill think can we create DataLoader instead of gen_dataset ?
-    #     #  pass DataLoader to train_1_step_single and train_1_step_mul
-    #
-    #     data = gen_dataset.dataset._data
-    #     train_ver_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
-    #     train_mask_size = len(train_ver_ind)
-    #     random.shuffle(train_ver_ind)
-    #
-    #     number_of_batches = ceil(train_mask_size / self.batch)
-    #     # data_x_elem_len = data.x.size()[1]
-    #
-    #     # For torch model: Sets the module in training mode
-    #     self.gnn.train()
-    #     loss = 0
-    #
-    #     # features_mask_tensor = torch.full(size=data.x.size(), fill_value=True)
-    #
-    #     for batch_ind in range(number_of_batches):
-    #         data_x_copy = torch.clone(data.x)
-    #         train_mask_copy = [False] * data.x.size()[0]
-    #
-    #         # features_mask_tensor_copy = torch.clone(features_mask_tensor)
-    #
-    #         train_batch = train_ver_ind[batch_ind * self.batch: (batch_ind + 1) * self.batch]
-    #         for elem_ind in train_batch:
-    #             for feature in self.mask_features:
-    #                 # features_mask_tensor_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-    #                 #                                     gen_dataset.info.node_attr_slices[feature][1]] = False
-    #                 data_x_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-    #                                       gen_dataset.info.node_attr_slices[feature][1]] = 0
-    #             # if self.gnn_mm.train_mask_flag:
-    #             #     data_x_copy[elem_ind] = torch.zeros(data_x_elem_len)
-    #             # y_true = torch.masked.masked_tensor(data.y, mask_tensor)
-    #             train_mask_copy[elem_ind] = True
-    #
-    #         # mask_x_tensor = torch.masked.masked_tensor(data.x, features_mask_tensor_copy)
-    #
-    #         self.optimizer.zero_grad()
-    #         logits = self.gnn(data_x_copy, data.edge_index)
-    #         batch_loss = self.loss_function(logits[train_mask_copy], gen_dataset.labels[train_mask_copy])
-    #         if self.clip is not None:
-    #             clip_grad_norm(self.gnn.parameters(), self.clip)
-    #
-    #         loss += batch_loss * len(train_batch)
-    #         # print("batch_loss %.8f" % batch_loss)
-    #
-    #         # Backward
-    #         self.optimizer.zero_grad()
-    #         batch_loss.backward()
-    #         self.optimizer.step()
-    #
-    #     loss /= train_mask_size
-    #     print("loss %.8f" % loss)
-    #     self.modification.epochs += 1
-    #     self.gnn.eval()
-    #     return loss.cpu().detach().numpy().tolist()
-
-    # def train_1_step_mul(self, gen_dataset):
-    #     """ Version of train for a multiple graph
-    #     """
-    #     # train_mask = data.train_mask
-    #     # train_ver_ind = [n for n, x in enumerate(train_mask) if x]
-    #     # train_mask_size = len(train_ver_ind)
-    #
-    #     # number_of_batches = ceil(train_mask_size / self.batch)
-    #     # data_x_elem_len = data.x.size()[1]
-    #
-    #     # FIXME Kirill this is done at each step - can we optimize?
-    #     #  e.g. before_train()
-    #     dataset = gen_dataset.dataset
-    #     train_dataset = dataset.index_select(gen_dataset.train_mask)
-    #     train_loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=False)
-    #
-    #     # For torch model: Sets the module in training mode
-    #     self.gnn.train()
-    #     total_loss = 0
-    #
-    #     # Train on batches
-    #     for data in train_loader:
-    #         self.optimizer.zero_grad()
-    #         logits = self.gnn(data.x, data.edge_index, data.batch)
-    #         batch_loss = self.loss_function(logits, data.y)
-    #         total_loss += batch_loss / len(train_loader)
-    #         batch_loss.backward()
-    #         self.optimizer.step()
-    #
-    #     # loss /= train_mask_size
-    #     print("loss %.8f" % total_loss)
-    #     self.modification.epochs += 1
-    #
-    #     self.gnn.eval()
-    #
-    #     return total_loss.cpu().detach().numpy().tolist()
-
     def get_name(self, **kwargs):
         json_str = super().get_name()
         return json_str
@@ -1040,16 +944,6 @@ class FrameworkGNNModelManager(GNNModelManager):
         assert has_complete
         do_1_step = True
 
-        # if mode is None:
-        #     has_1_step = self.train_1_step != super(type(self), self).train_1_step
-        #     has_full = self.train_full != super(type(self), self).train_full
-        #     assert has_1_step or has_full
-        #     do_1_step = has_1_step
-        # elif mode == '1_step':
-        #     do_1_step = True
-        # else:
-        #     do_1_step = False
-
         try:
             if do_1_step:
                 assert steps > 0
@@ -1072,44 +966,6 @@ class FrameworkGNNModelManager(GNNModelManager):
             raise e
         finally:
             self.socket = None
-
-        # try:
-        #     if do_1_step:
-        #         assert steps > 0
-        #         pbar.total = self.modification.epochs + steps
-        #         pbar.n = self.modification.epochs
-        #         pbar.update(0)
-        #         for _ in range(steps):
-        #             print("epoch", self.modification.epochs)
-        #             train_loss = self.train_1_step(gen_dataset)
-        #             if self.socket:
-        #                 report_results(train_loss)
-        #             pbar.update(1)
-        #         pbar.close()
-        #         self.send_data("mt", {"status": "OK"})
-        #
-        #     else:
-        #         print("Starting full cycle training")
-        #         pbar.reset(total=steps)
-        #         train_loss = self.train_complete(gen_dataset, steps=steps, metrics=metrics)
-        #         print("Training finished")
-        #         if self.socket:
-        #             try:
-        #                 report_results(train_loss)
-        #             except Exception: pass
-        #         # TODO Misha can we pass pbar into self.train_full ?
-        #         pbar.update(steps)
-        #         pbar.close()
-        #         self.send_data("mt", {"status": "FINISHED"})
-        #
-        #     if save_model_flag:
-        #         return self.save_model_executor()
-        #
-        # except Exception as e:
-        #     self.send_data("mt", {"status": "FAILED"})
-        #     raise e
-        # finally:
-        #     self.socket = None
 
     def run_model(self, gen_dataset, mask='test', out='answers'):
         """
@@ -1304,19 +1160,8 @@ class FrameworkGNNModelManager(GNNModelManager):
         gen_dataset.train_mask, gen_dataset.val_mask, gen_dataset.test_mask, _ = torch.load(path)[:]
         return gen_dataset
 
-    def _before_epoch(self, gen_dataset):
-        pass
 
-    def _after_epoch(self, gen_dataset):
-        pass
-
-    def _before_batch(self, batch):
-        pass
-
-    def _after_batch(self, batch):
-        pass
-
-
+# FIXME George
 class ProtGNNModelManager(FrameworkGNNModelManager):
     """
     Prot layer needs a special training procedure.
