@@ -4,16 +4,14 @@ import warnings
 
 from torch import device
 
-from src.aux.utils import OPTIMIZERS_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, EXPLAINERS_INIT_PARAMETERS_PATH
-from src.explainers.explainers_manager import FrameworkExplainersManager
+from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
 from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
-from src.aux.configs import ModelManagerConfig, ModelModificationConfig, ExplainerInitConfig, ExplainerRunConfig, \
-    ConfigPattern, ExplainerModificationConfig
+from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
 
 
-def test_SubgraphX():
+def test_attack_defense():
     # my_device = device('cuda' if is_available() else 'cpu')
     my_device = device('cpu')
 
@@ -64,7 +62,6 @@ def test_SubgraphX():
     manager_config = ConfigPattern(
         _config_class="ModelManagerConfig",
         _config_kwargs={
-            "batch": 100,
             "mask_features": [],
             "optimizer": {
                 # "_config_class": "Config",
@@ -104,6 +101,34 @@ def test_SubgraphX():
     gnn_model_manager.gnn.to(my_device)
     data = data.to(my_device)
 
+    poison_attack_config = ConfigPattern(
+        _class_name="RandomPoisonAttack",
+        _import_path=POISON_ATTACK_PARAMETERS_PATH,
+        _config_class="PoisonAttackConfig",
+        _config_kwargs={
+            "n_edges_percent": 0.1,
+        }
+    )
+
+    # poison_defense_config = ConfigPattern(
+    #     _class_name="BadRandomPoisonDefender",
+    #     _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+    #     _config_class="PoisonDefenseConfig",
+    #     _config_kwargs={
+    #         "n_edges_percent": 0.1,
+    #     }
+    # )
+    poison_defense_config = ConfigPattern(
+        _class_name="EmptyPoisonDefender",
+        _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+        _config_class="PoisonDefenseConfig",
+        _config_kwargs={
+        }
+    )
+
+    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
+
     warnings.warn("Start training")
     dataset.train_test_split()
 
@@ -129,78 +154,8 @@ def test_SubgraphX():
         gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
     print(metric_loc)
 
-    # Explain node 10
-    node = 0
-
-    # Explanation size
-    max_nodes = 5
-
-    # warnings.warn("Start SubgraphX")
-    # explainer_init_config = ConfigPattern(
-    #     _class_name="SubgraphX",
-    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-    #     _config_class="ExplainerInitConfig",
-    #     _config_kwargs={
-    #         # "class_name": "SubgraphX",
-    #     }
-    # )
-    # explainer_run_config = ConfigPattern(
-    #     _config_class="ExplainerRunConfig",
-    #     _config_kwargs={
-    #         "mode": "local",
-    #         "kwargs": {
-    #             "_class_name": "GNNExplainer(torch-geom)",
-    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-    #             "_config_class": "Config",
-    #             "_config_kwargs": {
-    #                 "element_idx": 0, "max_nodes": 5
-    #             },
-    #         }
-    #     }
-    # )
-    # explainer_SubgraphX = FrameworkExplainersManager(
-    #     init_config=explainer_init_config,
-    #     dataset=dataset, gnn_manager=gnn_model_manager,
-    #     explainer_name="SubgraphX",
-    # )
-    # explainer_SubgraphX.conduct_experiment(explainer_run_config)
-    #
-    #
-    # return metric_loc
-
 
 if __name__ == '__main__':
-    test_SubgraphX()
+    test_attack_defense()
 
-    # metric_val = []
-    #
-    # for _ in range(10):
-    #     metric_val.append(test_SubgraphX())
-    #
-    # print(metric_val)
-    #
-    # print(max(metric_val))
-    # print(min(metric_val))
-    # print(sum(metric_val) / len(metric_val))
 
-    # import numpy as np
-    # params = {
-    #     "SubgraphX": [
-    #         # name, label, type, def, possible, tip
-    #         ["num_hops", "Hops", "int", None, {"min": 1, "special": [np.inf]}, "The number of hops to extract neighborhood of target node"],
-    #         ["explain_graph", "Explain", "bool", True, None, "Whether to explain graph classification model"],
-    #         ["rollout", "Rollout", "int", 20, {"min": 1}, "Number of iteration to get the prediction"],
-    #         ["min_atoms", "Min atoms", "int", 5, {"min": 1}, "Number of atoms of the leaf node in search tree"],
-    #         ["c_puct", "C-puct", "float", 10, {"min": 0}, "The hyperparameter which encourages the exploration"],
-    #         ["expand_atoms", "Expand atoms", "int", 14, {"min": 1}, "The number of atoms to expand when extend the child nodes in the search tree"],
-    #         ["high2low", "High to low", "bool", False, None, "Whether to expand children nodes from high degree to low degree when extend the child nodes in the search tree"],
-    #         ["local_radius", "Local radius", "int", 4, {"min": 1}, "Number of local radius to calculate"],
-    #         ["sample_num", "Samples", "int", 100, {"min": 1}, "Sampling time of monte carlo sampling approximation for mc_shapley"],
-    #         ["reward_method", "Reward", "string", "mc_l_shapley", ["gnn_score","l_shapley","mc_shapley","mc_l_shapley","nc_mc_l_shapley"], "The command string to select the subgraph_building_method"],
-    #         ["subgraph_building_method", "Subgraph building", "string", "zero_filling", ["zero_filling","split"], "The command string for different subgraph building method,  such as `zero_filling`, `split` (default: `zero_filling`)"],
-    #         ["max_nodes", "Max nodes", "int", 5, {"min": 1}, None],
-    #         # ["vis"			FALSE			],
-    #     ]
-    # }
-    # import json
-    # print(json.dumps(params))

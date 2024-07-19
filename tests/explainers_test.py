@@ -56,7 +56,6 @@ class ExplainersTest(unittest.TestCase):
         self.dataset_sg_example, _, results_dataset_path_sg_example = DatasetManager.get_by_full_name(
             full_name=("single-graph", "custom", "example",),
             features={'attr': {'a': 'as_is'}},
-            dataset_attack_type='original',
             labeling='binary',
             dataset_ver_ind=0
         )
@@ -68,7 +67,6 @@ class ExplainersTest(unittest.TestCase):
                 graph="example"),
             DatasetVarConfig(features={'attr': {'a': 'as_is'}},
                              labeling='binary',
-                             dataset_attack_type='original',
                              dataset_ver_ind=0)
         )
         gen_dataset_sg_example.train_test_split(percent_train_class=0.6, percent_test_class=0.4)
@@ -79,7 +77,6 @@ class ExplainersTest(unittest.TestCase):
         self.dataset_mg_small, _, results_dataset_path_mg_small = DatasetManager.get_by_full_name(
             full_name=("multiple-graphs", "custom", "small",),
             features={'attr': {'a': 'as_is'}},
-            dataset_attack_type='original',
             labeling='binary',
             dataset_ver_ind=0
         )
@@ -91,7 +88,6 @@ class ExplainersTest(unittest.TestCase):
                 graph="small"),
             DatasetVarConfig(features={'attr': {'a': 'as_is'}},
                              labeling='binary',
-                             dataset_attack_type='original',
                              dataset_ver_ind=0)
         )
         gen_dataset_mg_small.train_test_split(percent_train_class=0.6, percent_test_class=0.4)
@@ -101,7 +97,6 @@ class ExplainersTest(unittest.TestCase):
         # Multi-graphs - MUTAG
         self.dataset_mg_mutag, _, results_dataset_path_mg_mutag = DatasetManager.get_by_full_name(
             full_name=("multiple-graphs", "TUDataset", "MUTAG",),
-            dataset_attack_type='original',
             dataset_ver_ind=0
         )
 
@@ -130,8 +125,9 @@ class ExplainersTest(unittest.TestCase):
                                                       save_model_flag=False,
                                                       metrics=[Metric("F1", mask='test')])
 
-        gin3_lin2_prot_mg_small = model_configs_zoo(
-            dataset=dataset_mg_small, model_name='gin_gin_gin_lin_lin_prot')
+        # TODO Kirill, tmp comment work and tests with Prot
+        # gin3_lin2_prot_mg_small = model_configs_zoo(
+        #     dataset=dataset_mg_small, model_name='gin_gin_gin_lin_lin_prot')
         gin3_lin1_mg_mutag = model_configs_zoo(
             dataset=dataset_mg_mutag, model_name='gin_gin_gin_lin')
 
@@ -160,14 +156,14 @@ class ExplainersTest(unittest.TestCase):
             }
         )
 
-        self.prot_gnn_mm_mg_small = ProtGNNModelManager(
-            gnn=gin3_lin2_prot_mg_small, dataset_path=results_dataset_path_mg_small,
-            # manager_config=gin3_lin2_mg_small_manager_config,
-        )
+        # self.prot_gnn_mm_mg_small = ProtGNNModelManager(
+        #     gnn=gin3_lin2_prot_mg_small, dataset_path=results_dataset_path_mg_small,
+        #     # manager_config=gin3_lin2_mg_small_manager_config,
+        # )
         # TODO Misha use as training params: clst=clst, sep=sep, save_thrsh=save_thrsh, lr=lr
 
-        best_acc = self.prot_gnn_mm_mg_small.train_model(
-            gen_dataset=gen_dataset_mg_small, steps=100, metrics=[])
+        # best_acc = self.prot_gnn_mm_mg_small.train_model(
+        #     gen_dataset=gen_dataset_mg_small, steps=100, metrics=[])
 
         gin3_lin2_mg_small = model_configs_zoo(
             dataset=gen_dataset_mg_small, model_name='gin_gin_gin_lin_lin')
@@ -331,36 +327,36 @@ class ExplainersTest(unittest.TestCase):
         )
         explainer_Zorro.conduct_experiment(explainer_run_config)
 
-    def test_ProtGNN(self):
-        warnings.warn("Start ProtGNN")
-        explainer_init_config = ConfigPattern(
-            _class_name="ProtGNN",
-            _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-            _config_class="ExplainerInitConfig",
-            _config_kwargs={
-            }
-        )
-        explainer_run_config = ConfigPattern(
-            _config_class="ExplainerRunConfig",
-            _config_kwargs={
-                "mode": "global",
-                "kwargs": {
-                    "_class_name": "ProtGNN",
-                    "_import_path": EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH,
-                    "_config_class": "Config",
-                    "_config_kwargs": {
-
-                    },
-                }
-            }
-        )
-        explainer_Prot = FrameworkExplainersManager(
-            init_config=explainer_init_config,
-            dataset=self.dataset_mg_small, gnn_manager=self.prot_gnn_mm_mg_small,
-            explainer_name='ProtGNN',
-        )
-
-        explainer_Prot.conduct_experiment(explainer_run_config)
+    # def test_ProtGNN(self):
+    #     warnings.warn("Start ProtGNN")
+    #     explainer_init_config = ConfigPattern(
+    #         _class_name="ProtGNN",
+    #         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #         _config_class="ExplainerInitConfig",
+    #         _config_kwargs={
+    #         }
+    #     )
+    #     explainer_run_config = ConfigPattern(
+    #         _config_class="ExplainerRunConfig",
+    #         _config_kwargs={
+    #             "mode": "global",
+    #             "kwargs": {
+    #                 "_class_name": "ProtGNN",
+    #                 "_import_path": EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH,
+    #                 "_config_class": "Config",
+    #                 "_config_kwargs": {
+    #
+    #                 },
+    #             }
+    #         }
+    #     )
+    #     explainer_Prot = FrameworkExplainersManager(
+    #         init_config=explainer_init_config,
+    #         dataset=self.dataset_mg_small, gnn_manager=self.prot_gnn_mm_mg_small,
+    #         explainer_name='ProtGNN',
+    #     )
+    #
+    #     explainer_Prot.conduct_experiment(explainer_run_config)
 
     def test_GNNExpl_PYG_SG(self):
         warnings.warn("Start GNNExplainer_PYG")

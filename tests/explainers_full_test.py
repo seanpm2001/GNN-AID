@@ -56,7 +56,6 @@ class ExplainersTest(unittest.TestCase):
         self.dataset_sg_example, _, results_dataset_path_sg_example = DatasetManager.get_by_full_name(
             full_name=("single-graph", "custom", "example",),
             features={'attr': {'a': 'as_is'}},
-            dataset_attack_type='original',
             labeling='binary',
             dataset_ver_ind=0
         )
@@ -68,7 +67,6 @@ class ExplainersTest(unittest.TestCase):
                 graph="example"),
             DatasetVarConfig(features={'attr': {'a': 'as_is'}},
                              labeling='binary',
-                             dataset_attack_type='original',
                              dataset_ver_ind=0)
         )
         gen_dataset_sg_example.train_test_split(percent_train_class=0.6, percent_test_class=0.4)
@@ -79,7 +77,6 @@ class ExplainersTest(unittest.TestCase):
         self.dataset_mg_small, _, results_dataset_path_mg_small = DatasetManager.get_by_full_name(
             full_name=("multiple-graphs", "custom", "small",),
             features={'attr': {'a': 'as_is'}},
-            dataset_attack_type='original',
             labeling='binary',
             dataset_ver_ind=0
         )
@@ -91,7 +88,6 @@ class ExplainersTest(unittest.TestCase):
                 graph="small"),
             DatasetVarConfig(features={'attr': {'a': 'as_is'}},
                              labeling='binary',
-                             dataset_attack_type='original',
                              dataset_ver_ind=0)
         )
         gen_dataset_mg_small.train_test_split(percent_train_class=0.6, percent_test_class=0.4)
@@ -101,7 +97,6 @@ class ExplainersTest(unittest.TestCase):
         # Multi-graphs - MUTAG
         self.dataset_mg_mutag, _, results_dataset_path_mg_mutag = DatasetManager.get_by_full_name(
             full_name=("multiple-graphs", "TUDataset", "MUTAG",),
-            dataset_attack_type='original',
             dataset_ver_ind=0
         )
 

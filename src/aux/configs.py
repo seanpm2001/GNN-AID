@@ -7,7 +7,7 @@ import inspect
 
 from aux.utils import setting_class_default_parameters, EXPLAINERS_INIT_PARAMETERS_PATH, \
     EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH, \
-    OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, FRAMEWORK_PARAMETERS_PATH, import_by_name
+    OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH, FRAMEWORK_PARAMETERS_PATH, import_by_name, hash_data_sha256
 
 CONFIG_SAVE_KWARGS_KEY = '__save_kwargs_to_be_used_for_saving'
 # CONFIG_PARAMS_PATH_KEY = '__default_parameters_file_path'
@@ -92,6 +92,15 @@ class GeneralConfig:
                 raise TypeError("Config cannot be changed outside of init()!")
         finally:
             del frame
+
+    def json_for_config(self):
+        config_kwargs = self.to_saveable_dict().copy()
+        config_kwargs = dict(sorted(config_kwargs.items()))
+        json_object = json.dumps(config_kwargs, indent=2)
+        return json_object
+
+    def hash_for_config(self):
+        return hash_data_sha256(self.json_for_config().encode('utf-8'))
 
     def to_saveable_dict(self, compact=False, **kwargs):
         def sorted_dict(d):
@@ -384,12 +393,11 @@ class DatasetVarConfig(Config):
     def __init__(self,
                  features: dict = None,
                  labeling: str = None,
-                 dataset_attack_type: str = None,
                  dataset_ver_ind: int = None):
         """ """
         super().__init__(
             features=features, labeling=labeling,
-            dataset_attack_type=dataset_attack_type, dataset_ver_ind=dataset_ver_ind)
+            dataset_ver_ind=dataset_ver_ind)
 
 
 class ModelStructureConfig(Config):
@@ -636,14 +644,12 @@ class ModelModificationConfig(Config):
 
     def __init__(self,
                  model_ver_ind: [int, None] = None,
-                 model_attack_type: str = "original", epochs=None, **kwargs):
+                 epochs=None, **kwargs):
         """
         :param model_ver_ind: model index when saving. If None, then takes the nearest unoccupied
          index starting from 0 in ascending increments of 1
-        :param model_attack_type: the name of the attack that the model is subjected to.
-         Now, the attacks have not been implemented. Default is 'original', no attack.
         """
-        super().__init__(model_attack_type=model_attack_type, model_ver_ind=model_ver_ind,
+        super().__init__(model_ver_ind=model_ver_ind,
                          epochs=epochs, **kwargs)
         self.__dict__[DATA_CHANGE_FLAG] = False
 
@@ -656,6 +662,78 @@ class ModelModificationConfig(Config):
         loc = self.__dict__[DATA_CHANGE_FLAG]
         self.__dict__[DATA_CHANGE_FLAG] = False
         return loc
+
+
+class EvasionAttackConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class EvasionDefenseConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class PoisonAttackConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class PoisonDefenseConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class MIAttackConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
+
+
+class MIDefenseConfig(Config):
+    _mutable = True
+
+    def __init__(
+            self,
+            **kwargs
+    ):
+        super().__init__(
+            **kwargs,
+        )
 
 
 class ExplainerInitConfig(Config):
@@ -707,9 +785,9 @@ class ExplainerModificationConfig(Config):
 
     def __init__(self,
                  explainer_ver_ind: [int, None] = None,
-                 explainer_attack_type: str = "original", **kwargs):
+                 **kwargs):
         super().__init__(
-            explainer_attack_type=explainer_attack_type, explainer_ver_ind=explainer_ver_ind,
+            explainer_ver_ind=explainer_ver_ind,
             **kwargs)
 
 

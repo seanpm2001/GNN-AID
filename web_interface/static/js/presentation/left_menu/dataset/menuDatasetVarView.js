@@ -9,7 +9,7 @@ class MenuDatasetVarView extends MenuView {
         this.$nodeClusteringInput = null
         this.$nodeDegreeInput = null
         this.$oneHotNodeInput = null
-        this.$attackTypeSelect = null
+//        this.$attackTypeSelect = null
     }
 
     init(datasetInfo) {
@@ -105,16 +105,16 @@ class MenuDatasetVarView extends MenuView {
         this.labeling = Object.keys(labelingClasses)[0]
         $('#' + this.idPrefix + "-labelings-" + nameToId(this.labeling)).prop("checked", true)
 
-        // 3. Add options for attack type
-        $cc.append($("<div></div>").attr("class", "menu-separator"))
-        $cb = $("<div></div>").attr("class", "control-block")
-        $cc.append($cb)
-        $cb.append($("<label></label>").text("Attack"))
-        this.$attackTypeSelect = $("<select></select>").attr("id", this.idPrefix + "-attack")
-        $cb.append(this.$attackTypeSelect)
-        // TODO need possible attack types here
-        let attack = "original"
-        this.$attackTypeSelect.append($("<option></option>").text(attack))
+//        // 3. Add options for attack type
+//        $cc.append($("<div></div>").attr("class", "menu-separator"))
+//        $cb = $("<div></div>").attr("class", "control-block")
+//        $cc.append($cb)
+//        $cb.append($("<label></label>").text("Attack"))
+//        this.$attackTypeSelect = $("<select></select>").attr("id", this.idPrefix + "-attack")
+//        $cb.append(this.$attackTypeSelect)
+//        // TODO need possible attack types here
+//        let attack = "original"
+//        this.$attackTypeSelect.append($("<option></option>").text(attack))
 
         this.appendAcceptBreakButtons()
         // this.$acceptDiv.hide()
@@ -154,7 +154,7 @@ class MenuDatasetVarView extends MenuView {
         let datasetVarConfig = {
             features: features,
             labeling: this.labeling,
-            dataset_attack_type: this.$attackTypeSelect.val(),
+//            dataset_attack_type: this.$attackTypeSelect.val(),
             dataset_ver_ind: 0, // TODO check
         }
         await Controller.blockRequest(this.requestBlock, 'modify', datasetVarConfig)

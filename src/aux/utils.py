@@ -18,6 +18,14 @@ TORCH_GEOM_GRAPHS_PATH = METAINFO_DIR / "torch_geom_index.json"
 EXPLAINERS_INIT_PARAMETERS_PATH = METAINFO_DIR / "explainers_init_parameters.json"
 EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH = METAINFO_DIR / "explainers_local_run_parameters.json"
 EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH = METAINFO_DIR / "explainers_global_run_parameters.json"
+
+POISON_ATTACK_PARAMETERS_PATH = METAINFO_DIR / "poison_attack_parameters.json"
+POISON_DEFENSE_PARAMETERS_PATH = METAINFO_DIR / "poison_defense_parameters.json"
+EVASION_ATTACK_PARAMETERS_PATH = METAINFO_DIR / "evasion_attack_parameters.json"
+EVASION_DEFENSE_PARAMETERS_PATH = METAINFO_DIR / "evasion_defense_parameters.json"
+MI_ATTACK_PARAMETERS_PATH = METAINFO_DIR / "mi_attack_parameters.json"
+MI_DEFENSE_PARAMETERS_PATH = METAINFO_DIR / "mi_defense_parameters.json"
+
 MODULES_PARAMETERS_PATH = METAINFO_DIR / "modules_parameters.json"
 FUNCTIONS_PARAMETERS_PATH = METAINFO_DIR / "functions_parameters.json"
 FRAMEWORK_PARAMETERS_PATH = METAINFO_DIR / "framework_parameters.json"
@@ -133,3 +141,4 @@ def setting_class_default_parameters(class_name: str, class_kwargs: dict, defaul
     class_kwargs_for_init = class_kwargs.copy()
 
     return class_kwargs_for_save, class_kwargs_for_init
+
