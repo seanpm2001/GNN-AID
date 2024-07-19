@@ -315,7 +315,7 @@ class GNNModelManager:
         if poison_attack_name is None:
             poison_attack_name = self.poison_attack_config._class_name
         elif poison_attack_name != self.poison_attack_config._class_name:
-            raise Exception(f"poison_attack_name and self.poison_attack_config._class_name should be eqequal, "
+            raise Exception(f"poison_attack_name and self.poison_attack_config._class_name should be equal, "
                             f"but now poison_attack_name is {poison_attack_name}, "
                             f"self.poison_attack_config._class_name is {self.poison_attack_config._class_name}")
         self.poison_attack_name = poison_attack_name
@@ -351,7 +351,7 @@ class GNNModelManager:
         if evasion_attack_name is None:
             evasion_attack_name = self.evasion_attack_config._class_name
         elif evasion_attack_name != self.evasion_attack_config._class_name:
-            raise Exception(f"evasion_attack_name and self.evasion_attack_config._class_name should be eqequal, "
+            raise Exception(f"evasion_attack_name and self.evasion_attack_config._class_name should be equal, "
                             f"but now evasion_attack_name is {evasion_attack_name}, "
                             f"self.evasion_attack_config._class_name is {self.evasion_attack_config._class_name}")
         self.evasion_attack_name = evasion_attack_name
@@ -387,7 +387,7 @@ class GNNModelManager:
         if mi_attack_name is None:
             mi_attack_name = self.mi_attack_config._class_name
         elif mi_attack_name != self.mi_attack_config._class_name:
-            raise Exception(f"mi_attack_name and self.mi_attack_config._class_name should be eqequal, "
+            raise Exception(f"mi_attack_name and self.mi_attack_config._class_name should be equal, "
                             f"but now mi_attack_name is {mi_attack_name}, "
                             f"self.mi_attack_config._class_name is {self.mi_attack_config._class_name}")
         self.mi_attack_name = mi_attack_name
@@ -423,7 +423,7 @@ class GNNModelManager:
         if poison_defense_name is None:
             poison_defense_name = self.poison_defense_config._class_name
         elif poison_defense_name != self.poison_defense_config._class_name:
-            raise Exception(f"poison_defense_name and self.poison_defense_config._class_name should be eqequal, "
+            raise Exception(f"poison_defense_name and self.poison_defense_config._class_name should be equal, "
                             f"but now poison_defense_name is {poison_defense_name}, "
                             f"self.poison_defense_config._class_name is {self.poison_defense_config._class_name}")
         self.poison_defense_name = poison_defense_name
@@ -459,7 +459,7 @@ class GNNModelManager:
         if evasion_defense_name is None:
             evasion_defense_name = self.evasion_defense_config._class_name
         elif evasion_defense_name != self.evasion_defense_config._class_name:
-            raise Exception(f"evasion_defense_name and self.evasion_defense_config._class_name should be eqequal, "
+            raise Exception(f"evasion_defense_name and self.evasion_defense_config._class_name should be equal, "
                             f"but now evasion_defense_name is {evasion_defense_name}, "
                             f"self.evasion_defense_config._class_name is {self.evasion_defense_config._class_name}")
         self.evasion_defense_name = evasion_defense_name
@@ -495,7 +495,7 @@ class GNNModelManager:
         if mi_defense_name is None:
             mi_defense_name = self.mi_defense_config._class_name
         elif mi_defense_name != self.mi_defense_config._class_name:
-            raise Exception(f"mi_defense_name and self.mi_defense_config._class_name should be eqequal, "
+            raise Exception(f"mi_defense_name and self.mi_defense_config._class_name should be equal, "
                             f"but now mi_defense_name is {mi_defense_name}, "
                             f"self.mi_defense_config._class_name is {self.mi_defense_config._class_name}")
         self.mi_defense_name = mi_defense_name
