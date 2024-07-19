@@ -296,20 +296,12 @@ class GNNModelManager:
 
     def set_poison_attacker(self, poison_attack_config=None, poison_attack_name: str = None):
         if poison_attack_config is None:
-            if poison_attack_name is None:
-                poison_attack_config = ConfigPattern(
-                    _class_name="EmptyPoisonAttacker",
-                    _import_path=POISON_ATTACK_PARAMETERS_PATH,
-                    _config_class="PoisonAttackConfig",
-                    _config_kwargs={}
-                )
-            else:
-                poison_attack_config = ConfigPattern(
-                    _class_name=poison_attack_name,
-                    _import_path=POISON_ATTACK_PARAMETERS_PATH,
-                    _config_class="PoisonAttackConfig",
-                    _config_kwargs={}
-                )
+            poison_attack_config = ConfigPattern(
+                _class_name=poison_attack_name or "EmptyPoisonAttacker",
+                _import_path=POISON_ATTACK_PARAMETERS_PATH,
+                _config_class="PoisonAttackConfig",
+                _config_kwargs={}
+            )
         elif isinstance(poison_attack_config, PoisonAttackConfig):
             if poison_attack_name is None:
                 raise Exception("if poison_attack_config is None, poison_attack_name must be defined")
@@ -340,19 +332,11 @@ class GNNModelManager:
 
     def set_evasion_attacker(self, evasion_attack_config=None, evasion_attack_name: str = None):
         if evasion_attack_config is None:
-            if evasion_attack_name is None:
-                evasion_attack_config = ConfigPattern(
-                    _class_name="EmptyEvasionAttacker",
-                    _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-                    _config_class="EvasionAttackConfig",
-                    _config_kwargs={}
-                )
-            else:
-                evasion_attack_config = ConfigPattern(
-                    _class_name=evasion_attack_name,
-                    _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-                    _config_class="EvasionAttackConfig",
-                    _config_kwargs={}
+            evasion_attack_config = ConfigPattern(
+                _class_name=evasion_attack_name or "EmptyEvasionAttacker",
+                _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+                _config_class="EvasionAttackConfig",
+                _config_kwargs={}
                 )
         elif isinstance(evasion_attack_config, EvasionAttackConfig):
             if evasion_attack_name is None:
@@ -384,19 +368,11 @@ class GNNModelManager:
 
     def set_mi_attacker(self, mi_attack_config=None, mi_attack_name: str = None):
         if mi_attack_config is None:
-            if mi_attack_name is None:
-                mi_attack_config = ConfigPattern(
-                    _class_name="EmptyMIAttacker",
-                    _import_path=MI_ATTACK_PARAMETERS_PATH,
-                    _config_class="MIAttackConfig",
-                    _config_kwargs={}
-                )
-            else:
-                mi_attack_config = ConfigPattern(
-                    _class_name=mi_attack_name,
-                    _import_path=MI_ATTACK_PARAMETERS_PATH,
-                    _config_class="MIAttackConfig",
-                    _config_kwargs={}
+            mi_attack_config = ConfigPattern(
+                _class_name=mi_attack_name or "EmptyMIAttacker",
+                _import_path=MI_ATTACK_PARAMETERS_PATH,
+                _config_class="MIAttackConfig",
+                _config_kwargs={}
                 )
         elif isinstance(mi_attack_config, MIAttackConfig):
             if mi_attack_name is None:
@@ -428,20 +404,12 @@ class GNNModelManager:
 
     def set_poison_defender(self, poison_defense_config=None, poison_defense_name: str = None):
         if poison_defense_config is None:
-            if poison_defense_name is None:
-                poison_defense_config = ConfigPattern(
-                    _class_name="EmptyPoisonDefender",
-                    _import_path=POISON_DEFENSE_PARAMETERS_PATH,
-                    _config_class="PoisonDefenseConfig",
-                    _config_kwargs={}
-                )
-            else:
-                poison_defense_config = ConfigPattern(
-                    _class_name=poison_defense_name,
-                    _import_path=POISON_DEFENSE_PARAMETERS_PATH,
-                    _config_class="PoisonDefenseConfig",
-                    _config_kwargs={}
-                )
+            poison_defense_config = ConfigPattern(
+                _class_name=poison_defense_name or "EmptyPoisonDefender",
+                _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+                _config_class="PoisonDefenseConfig",
+                _config_kwargs={}
+            )
         elif isinstance(poison_defense_config, PoisonDefenseConfig):
             if poison_defense_name is None:
                 raise Exception("if poison_defense_config is None, poison_defense_name must be defined")
@@ -472,20 +440,12 @@ class GNNModelManager:
 
     def set_evasion_defender(self, evasion_defense_config=None, evasion_defense_name: str = None):
         if evasion_defense_config is None:
-            if evasion_defense_name is None:
-                evasion_defense_config = ConfigPattern(
-                    _class_name="EmptyEvasionDefender",
-                    _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
-                    _config_class="EvasionDefenseConfig",
-                    _config_kwargs={}
-                )
-            else:
-                evasion_defense_config = ConfigPattern(
-                    _class_name=evasion_defense_name,
-                    _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
-                    _config_class="EvasionDefenseConfig",
-                    _config_kwargs={}
-                )
+            evasion_defense_config = ConfigPattern(
+                _class_name=evasion_defense_name or "EmptyEvasionDefender",
+                _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+                _config_class="EvasionDefenseConfig",
+                _config_kwargs={}
+            )
         elif isinstance(evasion_defense_config, EvasionDefenseConfig):
             if evasion_defense_name is None:
                 raise Exception("if evasion_defense_config is None, evasion_defense_name must be defined")
@@ -516,20 +476,12 @@ class GNNModelManager:
 
     def set_mi_defender(self, mi_defense_config=None, mi_defense_name: str = None):
         if mi_defense_config is None:
-            if mi_defense_name is None:
-                mi_defense_config = ConfigPattern(
-                    _class_name="EmptyMIDefender",
-                    _import_path=MI_DEFENSE_PARAMETERS_PATH,
-                    _config_class="MIDefenseConfig",
-                    _config_kwargs={}
-                )
-            else:
-                mi_defense_config = ConfigPattern(
-                    _class_name=mi_defense_name,
-                    _import_path=MI_DEFENSE_PARAMETERS_PATH,
-                    _config_class="MIDefenseConfig",
-                    _config_kwargs={}
-                )
+            mi_defense_config = ConfigPattern(
+                _class_name=mi_defense_name or "EmptyMIDefender",
+                _import_path=MI_DEFENSE_PARAMETERS_PATH,
+                _config_class="MIDefenseConfig",
+                _config_kwargs={}
+            )
         elif isinstance(mi_defense_config, MIDefenseConfig):
             if mi_defense_name is None:
                 raise Exception("if mi_defense_config is None, mi_defense_name must be defined")
