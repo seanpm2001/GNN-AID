@@ -20,12 +20,16 @@ from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
 from explainers.ProtGNN.MCTS import mcts_args
-from attacks.attack_base import PoisonAttacker, EvasionAttacker, MIAttacker
+from attacks.evasion_attacks import EvasionAttacker
+from attacks.mi_attacks import MIAttacker
+from attacks.poison_attacks import PoisonAttacker
 from aux.configs import ConfigPattern, PoisonAttackConfig, CONFIG_OBJ, EvasionAttackConfig, MIAttackConfig, \
     PoisonDefenseConfig, EvasionDefenseConfig, MIDefenseConfig
 from aux.utils import POISON_ATTACK_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, MI_ATTACK_PARAMETERS_PATH, \
     POISON_DEFENSE_PARAMETERS_PATH, EVASION_DEFENSE_PARAMETERS_PATH, MI_DEFENSE_PARAMETERS_PATH
-from defense.defense_base import PoisonDefender, EvasionDefender, MIDefender
+from defense.evasion_defense import EvasionDefender
+from defense.mi_defense import MIDefender
+from defense.poison_defense import PoisonDefender
 
 
 class Metric:
@@ -475,6 +479,9 @@ class GNNModelManager:
         self.evasion_defense_flag = True
 
     def set_mi_defender(self, mi_defense_config=None, mi_defense_name: str = None):
+        """
+
+        """
         if mi_defense_config is None:
             mi_defense_config = ConfigPattern(
                 _class_name=mi_defense_name or "EmptyMIDefender",
@@ -631,16 +638,24 @@ class GNNModelManager:
                                                            obj_name)
         return gnn
 
-    def _before_epoch(self, gen_dataset):
+    def before_epoch(self, gen_dataset):
+        """ This hook is called before training the next training epoch
+        """
         pass
 
-    def _after_epoch(self, gen_dataset):
+    def after_epoch(self, gen_dataset):
+        """ This hook is called after training the next training epoch
+        """
         pass
 
-    def _before_batch(self, batch):
+    def before_batch(self, batch):
+        """ This hook is called before training the next training batch
+        """
         pass
 
-    def _after_batch(self, batch):
+    def after_batch(self, batch):
+        """ This hook is called after training the next training batch
+        """
         pass
 
 
@@ -743,10 +758,10 @@ class FrameworkGNNModelManager(GNNModelManager):
 
     def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
         for _ in range(steps):
-            self._before_epoch(gen_dataset)
+            self.before_epoch(gen_dataset)
             print("epoch", self.modification.epochs)
             train_loss = self.train_1_step(gen_dataset)
-            self._after_epoch(gen_dataset)
+            self.after_epoch(gen_dataset)
             early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
                                                       metrics=metrics)
             if self.socket:
@@ -761,10 +776,6 @@ class FrameworkGNNModelManager(GNNModelManager):
 
     def train_1_step(self, gen_dataset):
         task_type = gen_dataset.domain()
-        if self.mi_defender:
-            self.mi_defender.pre_epoch()
-        if self.evasion_defender:
-            self.evasion_defender.pre_epoch()
         if task_type == "single-graph":
             # FIXME Kirill, add data_x_copy mask
             loader = NeighborLoader(gen_dataset.dataset._data,
@@ -782,19 +793,19 @@ class FrameworkGNNModelManager(GNNModelManager):
             raise ValueError("Unsupported task type")
         loss = 0
         for batch in loader:
-            self._before_batch(batch)
+            self.before_batch(batch)
             loss += self.train_on_batch(batch, task_type)
-            self._after_batch(batch)
-        if self.mi_defender:
-            self.mi_defender.post_epoch()
-        if self.evasion_defender:
-            self.evasion_defender.post_epoch()
+            self.after_batch(batch)
         print("loss %.8f" % loss)
         self.modification.epochs += 1
         self.gnn.eval()
         return loss.cpu().detach().numpy().tolist()
 
     def train_on_batch(self, batch, task_type=None):
+        if self.mi_defender:
+            self.mi_defender.pre_batch()
+        if self.evasion_defender:
+            self.evasion_defender.pre_batch(model_manager=self, batch=batch)
         loss = None
         if task_type == "single-graph":
             self.optimizer.zero_grad()
@@ -803,16 +814,14 @@ class FrameworkGNNModelManager(GNNModelManager):
             if self.clip is not None:
                 clip_grad_norm(self.gnn.parameters(), self.clip)
             self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            # print("batch_loss %.8f" % loss)
-
+            # loss.backward()
+            # self.optimizer.step()
         elif task_type == "multiple-graphs":
             self.optimizer.zero_grad()
             logits = self.gnn(batch.x, batch.edge_index, batch.batch)
             loss = self.loss_function(logits, batch.y)
-            loss.backward()
-            self.optimizer.step()
+            # loss.backward()
+            # self.optimizer.step()
         # TODO Kirill, remove False when release edge recommendation task
         elif task_type == "edge" and False:
             self.optimizer.zero_grad()
@@ -827,9 +836,20 @@ class FrameworkGNNModelManager(GNNModelManager):
             neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
 
             loss = pos_loss + neg_loss
-            loss.backward()
+            # loss.backward()
         else:
             raise ValueError("Unsupported task type")
+        if self.mi_defender:
+            self.mi_defender.post_batch()
+        evasion_defender_dict = None
+        if self.evasion_defender:
+            evasion_defender_dict = self.evasion_defender.post_batch(
+                model_manager=self, batch=batch, loss=loss,
+            )
+        if evasion_defender_dict and "loss" in evasion_defender_dict:
+            loss = evasion_defender_dict["loss"]
+        loss.backward()
+        self.optimizer.step()
         return loss
 
     def get_name(self, **kwargs):
@@ -1017,10 +1037,6 @@ class FrameworkGNNModelManager(GNNModelManager):
         :param metrics: list of metrics to compute. metric based on class Metric
         :return: dict {metric -> value}
         """
-        if self.evasion_attacker:
-            self.evasion_attacker.attack()
-        if self.mi_attacker:
-            self.mi_attacker.attack()
         mask_metrics = {}
         for metric in metrics:
             mask = metric.mask
@@ -1030,8 +1046,6 @@ class FrameworkGNNModelManager(GNNModelManager):
 
         metrics_values = {}
         for mask, ms in mask_metrics.items():
-            metrics_values[mask] = {}
-            y_pred = self.run_model(gen_dataset, mask=mask)
             try:
                 mask_tensor = {
                     'train': gen_dataset.train_mask.tolist(),
@@ -1042,12 +1056,17 @@ class FrameworkGNNModelManager(GNNModelManager):
             except KeyError:
                 assert isinstance(mask, list)
                 mask_tensor = mask
-            y_true = torch.tensor([y for m, y in zip(mask_tensor, gen_dataset.labels) if m])
+            if self.evasion_attacker:
+                self.evasion_attacker.attack(model_manager=self, gen_dataset=gen_dataset, mask_tensor=mask_tensor)
+            metrics_values[mask] = {}
+            y_pred = self.run_model(gen_dataset, mask=mask)
+            y_true = gen_dataset.labels[mask_tensor]
 
             for metric in ms:
                 metrics_values[mask][metric.name] = metric.compute(y_pred, y_true)
                 # metrics_values[mask][metric.name] = MetricManager.compute(metric, y_pred, y_true)
-
+        if self.mi_attacker:
+            self.mi_attacker.attack()
         return metrics_values
 
     def compute_stats_data(self, gen_dataset, predictions=False, logits=False):
