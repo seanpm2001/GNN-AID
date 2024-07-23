@@ -20,12 +20,16 @@ from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
 from explainers.ProtGNN.MCTS import mcts_args
-from attacks.attack_base import PoisonAttacker, EvasionAttacker, MIAttacker
+from attacks.evasion_attacks import EvasionAttacker
+from attacks.mi_attacks import MIAttacker
+from attacks.poison_attacks import PoisonAttacker
 from aux.configs import ConfigPattern, PoisonAttackConfig, CONFIG_OBJ, EvasionAttackConfig, MIAttackConfig, \
     PoisonDefenseConfig, EvasionDefenseConfig, MIDefenseConfig
 from aux.utils import POISON_ATTACK_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, MI_ATTACK_PARAMETERS_PATH, \
     POISON_DEFENSE_PARAMETERS_PATH, EVASION_DEFENSE_PARAMETERS_PATH, MI_DEFENSE_PARAMETERS_PATH
-from defense.defense_base import PoisonDefender, EvasionDefender, MIDefender
+from defense.evasion_defense import EvasionDefender
+from defense.mi_defense import MIDefender
+from defense.poison_defense import PoisonDefender
 
 
 class Metric:
