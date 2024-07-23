@@ -638,27 +638,23 @@ class GNNModelManager:
                                                            obj_name)
         return gnn
 
-    def _before_epoch(self, gen_dataset):
-        """
-        This hook is called before training the next training epoch
-        """
-        pass
-
-    def _after_epoch(self, gen_dataset):
-        """
-        This hook is called after training the next training epoch
+    def before_epoch(self, gen_dataset):
+        """ This hook is called before training the next training epoch
         """
         pass
 
-    def _before_batch(self, batch):
-        """
-        This hook is called before training the next training batch
+    def after_epoch(self, gen_dataset):
+        """ This hook is called after training the next training epoch
         """
         pass
 
-    def _after_batch(self, batch):
+    def before_batch(self, batch):
+        """ This hook is called before training the next training batch
         """
-        This hook is called after training the next training batch
+        pass
+
+    def after_batch(self, batch):
+        """ This hook is called after training the next training batch
         """
         pass
 
@@ -762,10 +758,10 @@ class FrameworkGNNModelManager(GNNModelManager):
 
     def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
         for _ in range(steps):
-            self._before_epoch(gen_dataset)
+            self.before_epoch(gen_dataset)
             print("epoch", self.modification.epochs)
             train_loss = self.train_1_step(gen_dataset)
-            self._after_epoch(gen_dataset)
+            self.after_epoch(gen_dataset)
             early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
                                                       metrics=metrics)
             if self.socket:
@@ -797,9 +793,9 @@ class FrameworkGNNModelManager(GNNModelManager):
             raise ValueError("Unsupported task type")
         loss = 0
         for batch in loader:
-            self._before_batch(batch)
+            self.before_batch(batch)
             loss += self.train_on_batch(batch, task_type)
-            self._after_batch(batch)
+            self.after_batch(batch)
         print("loss %.8f" % loss)
         self.modification.epochs += 1
         self.gnn.eval()
