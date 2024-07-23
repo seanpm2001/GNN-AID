@@ -5,18 +5,18 @@ class MIDefender(Defender):
     def __init__(self, **kwargs):
         super().__init__()
 
-    def pre_epoch(self, **kwargs):
+    def pre_batch(self, **kwargs):
         pass
 
-    def post_epoch(self, **kwargs):
+    def post_batch(self, **kwargs):
         pass
 
 
 class EmptyMIDefender(MIDefender):
     name = "EmptyMIDefender"
 
-    def pre_epoch(self, **kwargs):
+    def pre_batch(self, **kwargs):
         pass
 
-    def post_epoch(self, **kwargs):
+    def post_batch(self, **kwargs):
         pass
