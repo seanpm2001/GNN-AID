@@ -15,7 +15,19 @@ Working with datasets
 Creating and managing models
 ==============================
 .. automodule:: models_builder.gnn_models
-   :members: 
+   :members:
+
+
+Evasion Attacks
+==============================
+.. automodule:: attacks.evasion_attacks
+   :members:
+
+
+Evasion Defense
+==============================
+.. automodule:: attacks.evasion_defense
+   :members:
 
 
 Interpretation
