@@ -4,7 +4,8 @@ import warnings
 
 from torch import device
 
-from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH
+from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, \
+    EVASION_DEFENSE_PARAMETERS_PATH
 from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
@@ -94,8 +95,8 @@ def test_attack_defense():
         modification=ModelModificationConfig(model_ver_ind=0, epochs=steps_epochs)
     )
 
-    # save_model_flag = False
-    save_model_flag = True
+    save_model_flag = False
+    # save_model_flag = True
 
     # data.x = data.x.float()
     gnn_model_manager.gnn.to(my_device)
@@ -126,8 +127,27 @@ def test_attack_defense():
         }
     )
 
-    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
-    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
+    evasion_attack_config = ConfigPattern(
+        _class_name="FGSM",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+            "epsilon": 0.01 * 1,
+        }
+    )
+    evasion_defense_config = ConfigPattern(
+        _class_name="GradientRegularizationDefender",
+        _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+        _config_class="EvasionDefenseConfig",
+        _config_kwargs={
+            "regularization_strength": 0.1 * 10
+        }
+    )
+
+    # gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    # gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+    gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()
