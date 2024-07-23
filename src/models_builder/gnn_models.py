@@ -803,9 +803,9 @@ class FrameworkGNNModelManager(GNNModelManager):
 
     def train_on_batch(self, batch, task_type=None):
         if self.mi_defender:
-            self.mi_defender.pre_epoch()
+            self.mi_defender.pre_batch()
         if self.evasion_defender:
-            self.evasion_defender.pre_epoch(model_manager=self, batch=batch)
+            self.evasion_defender.pre_batch(model_manager=self, batch=batch)
         loss = None
         if task_type == "single-graph":
             self.optimizer.zero_grad()
@@ -840,7 +840,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         else:
             raise ValueError("Unsupported task type")
         if self.mi_defender:
-            self.mi_defender.post_epoch()
+            self.mi_defender.post_batch()
         evasion_defender_dict = None
         if self.evasion_defender:
             evasion_defender_dict = self.evasion_defender.post_batch(
