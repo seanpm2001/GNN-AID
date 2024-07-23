@@ -68,6 +68,12 @@ class GNNConstructor:
         """
         raise NotImplementedError("get_predictions can't be called, because it is not implemented")
 
+    def get_parameters(self):
+        """
+        :return: matrix with model parameters
+        """
+        raise NotImplementedError("get_predictions can't be called, because it is not implemented")
+
     def get_answer(self):
         """
         :return: an answer to which class the input belongs to.
@@ -502,6 +508,9 @@ class FrameworkGNNConstructor(GNNConstructorTorch):
     def get_predictions(self, *args, **kwargs):
         return self(*args, **kwargs).softmax(dim=-1)
         # return self.forward(*args, **kwargs)
+
+    def get_parameters(self):
+        return self.parameters()
 
     def get_answer(self, *args, **kwargs):
         return self.get_predictions(*args, **kwargs).argmax(dim=1)

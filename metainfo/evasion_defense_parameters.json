@@ -1,5 +1,9 @@
 {
  "EmptyEvasionDefender": {
+ }, 
+ "GradientRegularizationDefender": {
+  "regularization_strength": ["regularization_strength", "float", 0.1, {"min": 0.0001, "step": 0.01}, "?"]
  }
+
 }
 
