@@ -479,6 +479,9 @@ class GNNModelManager:
         self.evasion_defense_flag = True
 
     def set_mi_defender(self, mi_defense_config=None, mi_defense_name: str = None):
+        """
+
+        """
         if mi_defense_config is None:
             mi_defense_config = ConfigPattern(
                 _class_name=mi_defense_name or "EmptyMIDefender",
@@ -636,15 +639,27 @@ class GNNModelManager:
         return gnn
 
     def _before_epoch(self, gen_dataset):
+        """
+        This hook is called before training the next training epoch
+        """
         pass
 
     def _after_epoch(self, gen_dataset):
+        """
+        This hook is called after training the next training epoch
+        """
         pass
 
     def _before_batch(self, batch):
+        """
+        This hook is called before training the next training batch
+        """
         pass
 
     def _after_batch(self, batch):
+        """
+        This hook is called after training the next training batch
+        """
         pass
 
 
