@@ -3,6 +3,13 @@
  },
  "RandomPoisonAttack": {
   "n_edges_percent": ["n_edges_percent", "float", 0.1, {"min": 0.0001, "step": 0.01}, "?"]
+ },
+ "NettackPoisonAttack": {
+  "node_idx": ["node_idx", "int", 0, {"min":  0, "step": 1}, "Index of teh node to attack"],
+  "direct_attack": ["direct_attack", "bool", true, {}, "?"],
+  "n_influencers": ["n_influencers", "int", 5, {"min":  1, "step": 1}, "?"],
+  "perturb_features": ["perturb_features", "bool", true, {}, "?"],
+  "perturb_structure": ["perturb_structure", "bool", true, {}, "?"]
  }
 
 }

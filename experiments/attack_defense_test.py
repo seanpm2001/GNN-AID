@@ -144,10 +144,10 @@ def test_attack_defense():
         }
     )
 
-    # gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
     # gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
-    gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
+    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+    # gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()
@@ -175,7 +175,140 @@ def test_attack_defense():
     print(metric_loc)
 
 
+def test_nettack_attack():
+    my_device = device('cpu')
+
+    # Choose the node index
+    node_idx = 1900
+
+    # Load dataset
+    full_name = ("single-graph", "Planetoid", 'Cora')
+    dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
+        full_name=full_name,
+        dataset_ver_ind=0
+    )
+
+    n = dataset.data.x.size(0)
+    train_mask = torch.full((2708,), True, dtype=torch.bool)
+    num_false_elements = int(n * 0.3)
+    indices = torch.randperm(n)[1:num_false_elements]
+    train_mask.index_fill_(0, indices, False)
+    train_mask[node_idx] = False
+
+    dataset.train_mask = train_mask
+    dataset.test_mask =~ train_mask
+
+    dataset.val_mask = torch.full((2708,), False, dtype=torch.bool)
+    # dataset.test_mask = torch.full((2708,), False, dtype=torch.bool)
+
+    # Train model on original dataset and remember the model metric and node predicted probability
+    gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+
+    manager_config = ConfigPattern(
+        _config_class="ModelManagerConfig",
+        _config_kwargs={
+            "mask_features": [],
+            "optimizer": {
+                "_class_name": "Adam",
+                "_config_kwargs": {},
+            }
+        }
+    )
+
+    steps_epochs = 2000
+    gcn_gcn_model_manager = FrameworkGNNModelManager(
+        gnn=gcn_gcn,
+        dataset_path=results_dataset_path,
+        manager_config=manager_config,
+        modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
+    )
+
+    gcn_gcn_model_manager.gnn.to(my_device)
+
+    train_test_split_path = gcn_gcn_model_manager.train_model(gen_dataset=dataset,
+                                                              steps=steps_epochs,
+                                                              save_model_flag=False,
+                                                              metrics=[Metric("F1", mask='train', average=None)])
+
+    # save train_test_mask to test the model on poisoned data with the same split
+    dataset.save_train_test_mask(train_test_split_path)  # TODO сделать сохранение разбиения test/train
+
+    metric_original_dataset = gcn_gcn_model_manager.evaluate_model(
+        gen_dataset=dataset,
+        metrics=[Metric("Accuracy", mask='test')])['test']
+
+    gcn_gcn_model_manager.gnn.eval()
+    with torch.no_grad():
+        probabilities = torch.exp(gcn_gcn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
+
+    predicted_class = probabilities[node_idx].argmax().item()
+    predicted_probability = probabilities[node_idx][predicted_class].item()
+    real_class = dataset.data.y[node_idx].item()
+
+    original_dataset_predictions_info = {"metric_original_dataset": metric_original_dataset,
+                                         "node_idx": node_idx,
+                                         "predicted_class": predicted_class,
+                                         "predicted_probability": predicted_probability,
+                                         "real_class": real_class}
+
+    # Attack
+    nettack_poison_attack_config = ConfigPattern(
+        _class_name="NettackPoisonAttack",
+        _import_path=POISON_ATTACK_PARAMETERS_PATH,
+        _config_class="PoisonAttackConfig",
+        _config_kwargs={
+            "node_idx": node_idx,
+            "direct_attack": True,
+            "n_influencers": 5,
+            "perturb_features": True,
+            "perturb_structure": True
+        }
+    )
+    new_gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+    new_gcn_gcn_model_manager = FrameworkGNNModelManager(
+        gnn=new_gcn_gcn,
+        dataset_path=results_dataset_path,
+        manager_config=manager_config,
+        modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
+    )
+
+    new_gcn_gcn_model_manager.set_poison_attacker(poison_attack_config=nettack_poison_attack_config)
+
+    # TODO сделать сохранение разбиения test/train
+    # train_mask, val_mask, test_mask, train_test_sizes = torch.load(train_test_split_path / 'train_test_split')[:]
+    # dataset.train_mask, dataset.val_mask, dataset.test_mask = train_mask, val_mask, test_mask
+    # data.percent_train_class, data.percent_test_class = train_test_sizes
+
+    new_gcn_gcn_model_manager.train_model(gen_dataset=dataset,
+                                          steps=steps_epochs,
+                                          save_model_flag=False,
+                                          metrics=[Metric("F1", mask='train', average=None)])
+
+    metric_poison_dataset = new_gcn_gcn_model_manager.evaluate_model(
+        gen_dataset=new_gcn_gcn_model_manager.poison_attacker.attack_diff,
+        metrics=[Metric("Accuracy", mask='test')])['test']
+
+    new_gcn_gcn_model_manager.gnn.eval()
+    with torch.no_grad():
+        probabilities = torch.exp(new_gcn_gcn_model_manager.gnn(new_gcn_gcn_model_manager.poison_attacker.attack_diff.data.x,
+                                                                new_gcn_gcn_model_manager.poison_attacker.attack_diff.data.edge_index))
+
+    predicted_class = probabilities[node_idx].argmax().item()
+    predicted_probability = probabilities[node_idx][predicted_class].item()
+    real_class = dataset.data.y[node_idx].item()
+
+    poisoned_dataset_predictions_info = {"metric_poison_dataset": metric_poison_dataset,
+                                         "node_idx": node_idx,
+                                         "predicted_class": predicted_class,
+                                         "predicted_probability": predicted_probability,
+                                         "real_class": real_class}
+
+    print(original_dataset_predictions_info)
+    print(poisoned_dataset_predictions_info)
+
+
 if __name__ == '__main__':
-    test_attack_defense()
+    # test_attack_defense()
+    test_nettack_attack()
 
 
