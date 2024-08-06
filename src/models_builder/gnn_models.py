@@ -15,7 +15,7 @@ from torch_geometric.loader import NeighborLoader, LinkNeighborLoader
 
 from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME
 from aux.data_info import UserCodeInfo
-from aux.utils import import_by_name, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, hash_data_sha256, \
+from aux.utils import import_by_name, all_subclasses, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, hash_data_sha256, \
     TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
@@ -321,11 +321,13 @@ class GNNModelManager:
         elif poison_attack_name != self.poison_attack_config._class_name:
             raise Exception(f"poison_attack_name and self.poison_attack_config._class_name should be equal, "
                             f"but now poison_attack_name is {poison_attack_name}, "
-                            f"self.poison_attack_config._class_name is {self.poison_attack_config._class_name}")
+                            f"self.poisontorch.optim_attack_config._class_name is {self.poison_attack_config._class_name}")
         self.poison_attack_name = poison_attack_name
         poison_attack_kwargs = getattr(self.poison_attack_config, CONFIG_OBJ).to_dict()
 
-        name_klass = {e.name: e for e in PoisonAttacker.__subclasses__()}
+        # name_klass = {e.name: e for e in PoisonAttacker.__subclasses__()}
+        name_klass = {e.name: e for e in all_subclasses(PoisonAttacker)}
+
         klass = name_klass[self.poison_attack_name]
         self.poison_attacker = klass(
             # device=self.device,
