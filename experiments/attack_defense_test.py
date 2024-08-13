@@ -188,18 +188,12 @@ def test_nettack_attack():
         dataset_ver_ind=0
     )
 
-    n = dataset.data.x.size(0)
-    train_mask = torch.full((2708,), True, dtype=torch.bool)
-    num_false_elements = int(n * 0.3)
-    indices = torch.randperm(n)[1:num_false_elements]
-    train_mask.index_fill_(0, indices, False)
-    train_mask[node_idx] = False
-
-    dataset.train_mask = train_mask
-    dataset.test_mask =~ train_mask
-
-    dataset.val_mask = torch.full((2708,), False, dtype=torch.bool)
-    # dataset.test_mask = torch.full((2708,), False, dtype=torch.bool)
+    # Create mask
+    train_test_split_coeff = 0.7
+    train_mask = torch.rand(data.x.size(0)) < train_test_split_coeff  # 70% True, 30% False
+    data.train_mask = train_mask
+    data.test_mask = ~ train_mask
+    data.val_mask = torch.zeros(data.x.size(0), dtype=torch.bool)
 
     # Train model on original dataset and remember the model metric and node predicted probability
     gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
@@ -231,7 +225,7 @@ def test_nettack_attack():
                                                               metrics=[Metric("F1", mask='train', average=None)])
 
     # save train_test_mask to test the model on poisoned data with the same split
-    dataset.save_train_test_mask(train_test_split_path)  # TODO сделать сохранение разбиения test/train
+    # dataset.save_train_test_mask(train_test_split_path)  # TODO сделать сохранение разбиения test/train
 
     metric_original_dataset = gcn_gcn_model_manager.evaluate_model(
         gen_dataset=dataset,
@@ -258,10 +252,9 @@ def test_nettack_attack():
         _config_class="PoisonAttackConfig",
         _config_kwargs={
             "node_idx": node_idx,
-            "direct_attack": True,
-            "n_influencers": 5,
             "perturb_features": True,
-            "perturb_structure": True
+            "perturb_structure": True,
+            "hidden": gcn_gcn_model_manager.gnn.GCNConv_0.out_channels
         }
     )
     new_gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')

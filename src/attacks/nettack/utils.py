@@ -84,10 +84,10 @@ def data_to_csr_matrix(data):
     return adj_matrix, attr_matrix, labels
 
 
-def learn_w1_w2(dataset):
-    data = dataset.dataset.data
+def learn_w1_w2(dataset, hidden):
+    data = dataset.data
     # TODO передавать параметр hidden
-    model_gnn_lin = GNNLinear(dataset.num_node_features, 16, dataset.num_classes)
+    model_gnn_lin = GNNLinear(dataset.num_node_features, hidden, dataset.num_classes)
 
     optimizer = torch.optim.Adam(model_gnn_lin.parameters(),
                                  lr=0.001,

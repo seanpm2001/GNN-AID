@@ -20,18 +20,18 @@ class NettackPoisonAttack(PoisonAttacker):
 
     def __init__(self,
                  node_idx=0,
-                 direct_attack=True,
-                 n_influencers=5,
                  perturb_features=True,
-                 perturb_structure=True):
+                 perturb_structure=True,
+                 hidden=16):
 
         super().__init__()
         self.attack_diff = None
         self.node_idx = node_idx
-        self.direct_attack = direct_attack
-        self.n_influencers = n_influencers
         self.perturb_features = perturb_features
         self.perturb_structure = perturb_structure
+        self.hidden = hidden
+        self.direct_attack = True
+        self.n_influencers = 0
 
     def attack(self, gen_dataset):
         # Prepare
@@ -53,14 +53,15 @@ class NettackPoisonAttack(PoisonAttacker):
         _K = _z_obs.max() + 1
         _Z_obs = np.eye(_K)[_z_obs]
         _An = preprocess_graph(_A_obs)
-        sizes = [16, _K]
         degrees = _A_obs.sum(0).A1
         n_perturbations = int(degrees[self.node_idx])
         # n_perturbations = 3
         # End prepare
 
         # Learn matrix W1 and W2
-        W1, W2 = learn_w1_w2(gen_dataset)
+        # TODO Here I need access to the model, namely the value of the hidden layer.
+        #  Therefore I will pass it to the attack init
+        W1, W2 = learn_w1_w2(gen_dataset, self.hidden)
 
         # Attack
         nettack = Nettack(_A_obs, _X_obs, _z_obs, W1, W2, self.node_idx, verbose=True)

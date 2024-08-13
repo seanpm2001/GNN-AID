@@ -468,7 +468,6 @@ class Nettack:
         self.cooc_constraint = None
 
 
-# @jit(nopython=True)
 def connected_after(u, v, connected_before, delta):
     if u == v:
         if delta == -1:
@@ -478,7 +477,7 @@ def connected_after(u, v, connected_before, delta):
     else:
         return connected_before
 
-# @jit(nopython=True)
+
 def compute_new_a_hat_uv(edge_ixs, node_nb_ixs, edges_set, twohop_ixs, values_before, degs, potential_edges, u):
     """
     Compute the new values [A_hat_square]_u for every potential edge, where u is the target node. C.f. Theorem 5.1
@@ -574,6 +573,7 @@ def compute_new_a_hat_uv(edge_ixs, node_nb_ixs, edges_set, twohop_ixs, values_be
             return_values.append(new_val)
 
     return return_ixs, return_values
+
 
 def compute_alpha(n, S_d, d_min):
     """
