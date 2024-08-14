@@ -175,11 +175,8 @@ def test_attack_defense():
     print(metric_loc)
 
 
-def test_nettack_attack():
+def test_nettack_evasion():
     my_device = device('cpu')
-
-    # Choose the node index
-    node_idx = 1900
 
     # Load dataset
     full_name = ("single-graph", "Planetoid", 'Cora')
@@ -187,13 +184,6 @@ def test_nettack_attack():
         full_name=full_name,
         dataset_ver_ind=0
     )
-
-    # Create mask
-    train_test_split_coeff = 0.7
-    train_mask = torch.rand(data.x.size(0)) < train_test_split_coeff  # 70% True, 30% False
-    data.train_mask = train_mask
-    data.test_mask = ~ train_mask
-    data.val_mask = torch.zeros(data.x.size(0), dtype=torch.bool)
 
     # Train model on original dataset and remember the model metric and node predicted probability
     gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
@@ -209,99 +199,85 @@ def test_nettack_attack():
         }
     )
 
-    steps_epochs = 2000
-    gcn_gcn_model_manager = FrameworkGNNModelManager(
+    gnn_model_manager = FrameworkGNNModelManager(
         gnn=gcn_gcn,
         dataset_path=results_dataset_path,
         manager_config=manager_config,
         modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
     )
 
-    gcn_gcn_model_manager.gnn.to(my_device)
+    gnn_model_manager.gnn.to(my_device)
 
-    train_test_split_path = gcn_gcn_model_manager.train_model(gen_dataset=dataset,
-                                                              steps=steps_epochs,
-                                                              save_model_flag=False,
-                                                              metrics=[Metric("F1", mask='train', average=None)])
+    num_steps = 200
+    gnn_model_manager.train_model(gen_dataset=dataset,
+                                  steps=num_steps,
+                                  save_model_flag=False)
 
-    # save train_test_mask to test the model on poisoned data with the same split
-    # dataset.save_train_test_mask(train_test_split_path)  # TODO сделать сохранение разбиения test/train
+    # Evaluate model
+    acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                 metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
 
-    metric_original_dataset = gcn_gcn_model_manager.evaluate_model(
-        gen_dataset=dataset,
-        metrics=[Metric("Accuracy", mask='test')])['test']
+    # Node for attack
+    node_idx = 0
 
-    gcn_gcn_model_manager.gnn.eval()
+    # Model prediction on a node before an evasion attack on it
+    gnn_model_manager.gnn.eval()
     with torch.no_grad():
-        probabilities = torch.exp(gcn_gcn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
+        probabilities = torch.exp(gnn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
 
     predicted_class = probabilities[node_idx].argmax().item()
     predicted_probability = probabilities[node_idx][predicted_class].item()
     real_class = dataset.data.y[node_idx].item()
 
-    original_dataset_predictions_info = {"metric_original_dataset": metric_original_dataset,
-                                         "node_idx": node_idx,
-                                         "predicted_class": predicted_class,
-                                         "predicted_probability": predicted_probability,
-                                         "real_class": real_class}
+    info_before_evasion_attack = {"node_idx": node_idx,
+                                  "predicted_class": predicted_class,
+                                  "predicted_probability": predicted_probability,
+                                  "real_class": real_class}
 
-    # Attack
-    nettack_poison_attack_config = ConfigPattern(
-        _class_name="NettackPoisonAttack",
-        _import_path=POISON_ATTACK_PARAMETERS_PATH,
-        _config_class="PoisonAttackConfig",
+    # Attack config
+    evasion_attack_config = ConfigPattern(
+        _class_name="NettackEvasionAttacker",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
         _config_kwargs={
             "node_idx": node_idx,
+            "n_perturbations": 20,
             "perturb_features": True,
             "perturb_structure": True,
-            "hidden": gcn_gcn_model_manager.gnn.GCNConv_0.out_channels
+            "direct": True,
+            "n_influencers": 0
         }
     )
-    new_gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
-    new_gcn_gcn_model_manager = FrameworkGNNModelManager(
-        gnn=new_gcn_gcn,
-        dataset_path=results_dataset_path,
-        manager_config=manager_config,
-        modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
-    )
 
-    new_gcn_gcn_model_manager.set_poison_attacker(poison_attack_config=nettack_poison_attack_config)
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
-    # TODO сделать сохранение разбиения test/train
-    # train_mask, val_mask, test_mask, train_test_sizes = torch.load(train_test_split_path / 'train_test_split')[:]
-    # dataset.train_mask, dataset.val_mask, dataset.test_mask = train_mask, val_mask, test_mask
-    # data.percent_train_class, data.percent_test_class = train_test_sizes
+    # Attack
+    gnn_model_manager.evaluate_model(gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
 
-    new_gcn_gcn_model_manager.train_model(gen_dataset=dataset,
-                                          steps=steps_epochs,
-                                          save_model_flag=False,
-                                          metrics=[Metric("F1", mask='train', average=None)])
-
-    metric_poison_dataset = new_gcn_gcn_model_manager.evaluate_model(
-        gen_dataset=new_gcn_gcn_model_manager.poison_attacker.attack_diff,
-        metrics=[Metric("Accuracy", mask='test')])['test']
-
-    new_gcn_gcn_model_manager.gnn.eval()
+    # Model prediction on a node after an evasion attack on it
     with torch.no_grad():
-        probabilities = torch.exp(new_gcn_gcn_model_manager.gnn(new_gcn_gcn_model_manager.poison_attacker.attack_diff.data.x,
-                                                                new_gcn_gcn_model_manager.poison_attacker.attack_diff.data.edge_index))
+        probabilities = torch.exp(gnn_model_manager.gnn(gnn_model_manager.evasion_attacker.attack_diff.data.x,
+                                                        gnn_model_manager.evasion_attacker.attack_diff.data.edge_index))
 
     predicted_class = probabilities[node_idx].argmax().item()
     predicted_probability = probabilities[node_idx][predicted_class].item()
     real_class = dataset.data.y[node_idx].item()
 
-    poisoned_dataset_predictions_info = {"metric_poison_dataset": metric_poison_dataset,
-                                         "node_idx": node_idx,
-                                         "predicted_class": predicted_class,
-                                         "predicted_probability": predicted_probability,
-                                         "real_class": real_class}
+    info_after_evasion_attack = {"node_idx": node_idx,
+                                 "predicted_class": predicted_class,
+                                 "predicted_probability": predicted_probability,
+                                 "real_class": real_class}
 
-    print(original_dataset_predictions_info)
-    print(poisoned_dataset_predictions_info)
+    print(f"info_before_evasion_attack: {info_before_evasion_attack}")
+    print(f"info_after_evasion_attack: {info_after_evasion_attack}")
 
 
 if __name__ == '__main__':
     # test_attack_defense()
-    test_nettack_attack()
+    test_nettack_evasion()
+
 
 

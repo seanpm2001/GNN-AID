@@ -13,12 +13,12 @@ class GNNLinear(torch.nn.Module):
         super(GNNLinear, self).__init__()
 
         # Initialize the layers
-        self.conv1 = GCNConv(num_features, hidden, add_self_loops=False, bias=False)
-        self.conv2 = GCNConv(hidden, num_classes, add_self_loops=False, bias=False)
+        self.conv0 = GCNConv(num_features, hidden, add_self_loops=False, bias=False)
+        self.conv1 = GCNConv(hidden, num_classes, add_self_loops=False, bias=False)
 
     def forward(self, x=None, edge_index=None, **kwargs):
+        x = self.conv0(x, edge_index)
         x = self.conv1(x, edge_index)
-        x = self.conv2(x, edge_index)
         x = F.log_softmax(x, dim=1)
         return x
 
@@ -84,16 +84,16 @@ def data_to_csr_matrix(data):
     return adj_matrix, attr_matrix, labels
 
 
-def learn_w1_w2(dataset, hidden):
+def train_w1_w2(dataset, hidden):
     data = dataset.data
-    # TODO передавать параметр hidden
+
     model_gnn_lin = GNNLinear(dataset.num_node_features, hidden, dataset.num_classes)
 
     optimizer = torch.optim.Adam(model_gnn_lin.parameters(),
                                  lr=0.001,
                                  weight_decay=5e-4)
 
-    num_epochs = 2000
+    num_epochs = 1000
     print("Train surrogate model")
     for epoch in tqdm(range(num_epochs)):
         model_gnn_lin.train()
@@ -104,8 +104,8 @@ def learn_w1_w2(dataset, hidden):
         optimizer.step()
     print("End training")
 
-    W1 = model_gnn_lin.conv1.lin.weight.T
-    W2 = model_gnn_lin.conv2.lin.weight.T
+    W1 = model_gnn_lin.conv0.lin.weight.T
+    W2 = model_gnn_lin.conv1.lin.weight.T
     return W1, W2
 
 
