@@ -17,6 +17,7 @@ google-cloud
 google-cloud-aiplatform
 google-api-python-client
 google-cloud-language
+google-ai-generativelanguage
 
 # For synthetic datasets
 matplotlib
