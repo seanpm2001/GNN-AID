@@ -9,6 +9,12 @@
   "train_iters": ["Train iters (surrogate)", "int", 200, {}, "Trainig iterations for surrogate model"],
   "attack_structure": ["Attack structure", "bool", true, {}, "whether change graph structure with attack or not"],
   "attack_features": ["Attack features", "bool", false, {}, "whether change node features with attack or not"]
+ },
+ "MetaAttackApprox":{
+  "lambda_": ["Lambda", "float", 0.5, {}, "lambda coef - paper"],
+  "train_iters": ["Train iters (surrogate)", "int", 200, {}, "Trainig iterations for surrogate model"],
+  "attack_structure": ["Attack structure", "bool", true, {}, "whether change graph structure with attack or not"],
+  "attack_features": ["Attack features", "bool", false, {}, "whether change node features with attack or not"]
  }
 }
 

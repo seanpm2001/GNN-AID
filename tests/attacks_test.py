@@ -52,7 +52,7 @@ class AttacksTest(unittest.TestCase):
             }
         )
 
-    def test_metattack(self):
+    def test_metattack_full(self):
         poison_attack_config = ConfigPattern(
             _class_name="MetaAttackFull",
             _import_path=POISON_ATTACK_PARAMETERS_PATH,
@@ -76,6 +76,32 @@ class AttacksTest(unittest.TestCase):
         gnn_model_manager_sg_example.train_model(gen_dataset=self.gen_dataset_sg_example, steps=100, metrics=[Metric("Accuracy", mask='test')])
         metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example, metrics=[Metric("F1", mask='test', average='macro')])
         print(metric_loc)
+
+    def test_metattack_approx(self):
+        poison_attack_config = ConfigPattern(
+            _class_name="MetaAttackApprox",
+            _import_path=POISON_ATTACK_PARAMETERS_PATH,
+            _config_class="PoisonAttackConfig",
+            _config_kwargs={
+                "num_nodes": self.gen_dataset_sg_example.dataset.x.shape[0]  # is there more fancy way?
+            }
+        )
+
+        gat_gat_sg_example = model_configs_zoo(dataset=self.gen_dataset_sg_example, model_name='gat_gat')
+
+        gnn_model_manager_sg_example = FrameworkGNNModelManager(
+            gnn=gat_gat_sg_example,
+            dataset_path=self.results_dataset_path_sg_example,
+            modification=self.default_config,
+            manager_config=self.manager_config,
+        )
+
+        gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
+
+        gnn_model_manager_sg_example.train_model(gen_dataset=self.gen_dataset_sg_example, steps=100, metrics=[Metric("Accuracy", mask='test')])
+        metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example, metrics=[Metric("F1", mask='test', average='macro')])
+        print(metric_loc)
+
 
 if __name__ == '__main__':
     unittest.main()

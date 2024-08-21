@@ -609,9 +609,9 @@ def likelihood_ratio_filter(node_pairs, modified_adjacency, original_adjacency, 
     allowed_edges = new_ratios < threshold
 
     if allowed_edges.is_cuda:
-        filtered_edges = node_pairs[allowed_edges.cpu().numpy().astype(np.bool)]
+        filtered_edges = node_pairs[allowed_edges.cpu().numpy().astype(bool)]
     else:
-        filtered_edges = node_pairs[allowed_edges.numpy().astype(np.bool)]
+        filtered_edges = node_pairs[allowed_edges.numpy().astype(bool)]
 
     allowed_mask = torch.zeros(modified_adjacency.shape)
     allowed_mask[filtered_edges.T] = 1
@@ -642,7 +642,8 @@ def updated_log_likelihood_for_edge_changes(node_pairs, adjacency_matrix, d_min)
     """
     # For each node pair find out whether there is an edge or not in the input adjacency matrix.
 
-    edge_entries_before = adjacency_matrix[node_pairs.T]
+    #edge_entries_before = adjacency_matrix[node_pairs.T]
+    edge_entries_before = adjacency_matrix[node_pairs.T[0,:], node_pairs.T[1,:]]
     degree_sequence = adjacency_matrix.sum(1)
     D_G = degree_sequence[degree_sequence >= d_min.item()]
     sum_log_degrees = torch.log(D_G).sum()
