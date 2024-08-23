@@ -1,5 +1,7 @@
 import unittest
 
+import torch
+
 from base.datasets_processing import DatasetManager
 from models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from aux.configs import ModelManagerConfig, ModelModificationConfig, DatasetConfig, DatasetVarConfig, ConfigPattern
@@ -78,6 +80,8 @@ class AttacksTest(unittest.TestCase):
         print(metric_loc)
 
     def test_metattack_approx(self):
+        torch.manual_seed(100)  # DEBUG
+
         poison_attack_config = ConfigPattern(
             _class_name="MetaAttackApprox",
             _import_path=POISON_ATTACK_PARAMETERS_PATH,
@@ -96,10 +100,12 @@ class AttacksTest(unittest.TestCase):
             manager_config=self.manager_config,
         )
 
-        gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
+        # gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
 
         gnn_model_manager_sg_example.train_model(gen_dataset=self.gen_dataset_sg_example, steps=100, metrics=[Metric("Accuracy", mask='test')])
-        metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example, metrics=[Metric("F1", mask='test', average='macro')])
+        metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example,
+                                                                 metrics=[Metric("F1", mask='test', average='macro'),
+                                                                          Metric("Accuracy", mask='test')])
         print(metric_loc)
 
 

@@ -251,9 +251,9 @@ class MetaAttackFull(BaseMeta):
 
         self._initialize()
 
-        ori_features = gen_dataset.dataset.x
-        ori_adj = gen_dataset.dataset.edge_index
-        labels = gen_dataset.dataset.y
+        ori_features = gen_dataset.dataset.data.x
+        ori_adj = gen_dataset.dataset.data.edge_index
+        labels = gen_dataset.dataset.data.y
         idx_train = gen_dataset.train_mask
         idx_unlabeled = gen_dataset.test_mask
 
@@ -299,7 +299,7 @@ class MetaAttackFull(BaseMeta):
         if self.attack_features:
             self.modified_features = self.get_modified_features(ori_features).detach()
 
-        gen_dataset.dataset.edge_index = dense_to_sparse(self.modified_adj.int())[0]
+        gen_dataset.dataset.data.edge_index = dense_to_sparse(self.modified_adj.int())[0]
         print("TEST")
 
     def _initialize(self):
@@ -329,7 +329,7 @@ class MetaAttackFull(BaseMeta):
                 self.b_velocities[ix] = self.b_velocities[ix].detach()
                 self.b_velocities[ix].requires_grad = True
 
-        for j in range(self.train_iters):
+        for j in range(self.attack_iters):
             hidden = features
             for ix, w in enumerate(self.weights):
                 b = self.biases[ix] if self.with_bias else 0
@@ -398,7 +398,7 @@ class MetaAttackApprox(BaseMeta):
     name = "MetaAttackApprox"
 
     def __init__(self, num_nodes=None, feature_shape=None, attack_structure=True, attack_features=False,
-                 undirected=False, device='cpu', with_bias=False, lambda_=0.5, train_iters=200, attack_iters=100,
+                 undirected=False, device='cpu', with_bias=False, lambda_=0.5, train_iters=200, attack_iters=10,
                  lr=0.01, with_relu=False):
         super().__init__(num_nodes=num_nodes, feature_shape=feature_shape, lambda_=lambda_, train_iters=train_iters,
                          attack_iters=attack_iters, lr=lr, attack_features=attack_features,
@@ -406,6 +406,7 @@ class MetaAttackApprox(BaseMeta):
 
         self.lr = lr
         self.train_iters = train_iters
+        self.attack_iters = attack_iters
         self.adj_meta_grad = None
         self.features_meta_grad = None
         if self.attack_structure:
@@ -443,9 +444,9 @@ class MetaAttackApprox(BaseMeta):
         self.optimizer = optim.Adam(self.weights + self.biases, lr=self.lr)  # , weight_decay=5e-4)
         self._initialize()
 
-        ori_features = gen_dataset.dataset.x
-        ori_adj = gen_dataset.dataset.edge_index
-        labels = gen_dataset.dataset.y
+        ori_features = gen_dataset.dataset.data.x
+        ori_adj = gen_dataset.dataset.data.edge_index
+        labels = gen_dataset.dataset.data.y
         idx_train = gen_dataset.train_mask
         idx_unlabeled = gen_dataset.test_mask
 
@@ -491,7 +492,7 @@ class MetaAttackApprox(BaseMeta):
         if self.attack_features:
             self.modified_features = self.get_modified_features(ori_features).detach()
 
-        gen_dataset.dataset.edge_index = dense_to_sparse(self.modified_adj.int())[0]
+        gen_dataset.dataset.data.edge_index = dense_to_sparse(self.modified_adj.int())[0]
         print("TEST")
 
     def _initialize(self):
@@ -506,7 +507,7 @@ class MetaAttackApprox(BaseMeta):
 
     def inner_train(self, features, modified_adj, idx_train, idx_unlabeled, labels, labels_self_training):
         adj_norm = utils.normalize_adj_tensor(modified_adj)
-        for j in range(self.train_iters):
+        for j in range(self.attack_iters):
             # hidden = features
             # for w, b in zip(self.weights, self.biases):
             #     if self.sparse_features:
