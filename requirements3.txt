@@ -10,33 +10,7 @@ torch-spline-conv==1.2.2
 dive-into-graphs==1.1.0
 
 # PGMExplainer
-pgmpy
-# google-generativeai
-# google
-# google-cloud
-# google-cloud-aiplatform
-# google-api-python-client
-# google-cloud-language
-# google-ai-generativelanguage
-# google-api-core
-google
-# google--async-resumable-media
-# google--upb
-google-ai
-google-api
-google-api-core
-google-auth
-google-cloud
-google-gapic
-google-generativeai
-goggle-iam
-google-logging
-google-longrunning
-google-oauth2
-google-protobuf
-google-resumable-media
-google-rpc
-google-type
+pgmpy==0.1.24
 
 # For synthetic datasets
 matplotlib
