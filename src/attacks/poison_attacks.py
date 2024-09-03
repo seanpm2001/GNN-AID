@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from attacks.attack_base import Attacker
 
@@ -6,6 +7,13 @@ from attacks.attack_base import Attacker
 class PoisonAttacker(Attacker):
     def __init__(self, **kwargs):
         super().__init__()
+
+
+class EmptyPoisonAttacker(PoisonAttacker):
+    name = "EmptyPoisonAttacker"
+
+    def attack(self, **kwargs):
+        pass
 
 
 class RandomPoisonAttack(PoisonAttacker):
@@ -34,10 +42,3 @@ class RandomPoisonAttack(PoisonAttacker):
 
     def attack_diff(self):
         return self.attack_diff
-
-
-class EmptyPoisonAttacker(PoisonAttacker):
-    name = "EmptyPoisonAttacker"
-
-    def attack(self, **kwargs):
-        pass
