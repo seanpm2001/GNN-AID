@@ -72,7 +72,7 @@ class ModelsTest(unittest.TestCase):
                              labeling='binary',
                              dataset_ver_ind=0)
         )
-        self.gen_dataset_mg_small.train_test_split(percent_train_class=0.6, percent_test_class=0.4)
+        self.gen_dataset_mg_small.train_test_split(percent_train_class=0.6, percent_test_class=0.2)
         self.results_dataset_path_mg_small = self.gen_dataset_mg_small.results_dir
         self.default_config = ModelModificationConfig(
             model_ver_ind=0,
@@ -124,7 +124,8 @@ class ModelsTest(unittest.TestCase):
         )
 
         gnn_mm_mg_small.train_model(gen_dataset=self.gen_dataset_mg_small, steps=100,
-                                    metrics=[Metric("F1", mask='test')])
+                                    metrics=[Metric("F1", mask='val'),
+                                             Metric("F1", mask='test')])
         metric_loc = gnn_mm_mg_small.evaluate_model(
             gen_dataset=self.gen_dataset_mg_small, metrics=[Metric("F1", mask='test', average='macro')])
         print(metric_loc)
