@@ -90,7 +90,7 @@ def to_tensor(adj, features, labels=None, device='cpu'):
 
     Parameters
     ----------
-    adj : scipy.sparse.csr_matrix
+    adj : torch.Tensor
         the adjacency matrix.
     features : scipy.sparse.csr_matrix
         node features
