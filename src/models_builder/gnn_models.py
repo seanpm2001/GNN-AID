@@ -1154,14 +1154,14 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         _config_class="ModelManagerConfig",
         _config_kwargs={
             "mask_features": [],
-            # "optimizer": {
-            #     "_config_class": "Config",
-            #     "_class_name": "Adam",
-            #     "_import_path": OPTIMIZERS_PARAMETERS_PATH,
-            #     "_class_import_info": ["torch.optim"],
-            #     "_config_kwargs": {},
-            # },
-            # FUNCTIONS_PARAMETERS_PATH,
+            "optimizer": {
+                "_config_class": "Config",
+                "_class_name": "Adam",
+                "_import_path": OPTIMIZERS_PARAMETERS_PATH,
+                "_class_import_info": ["torch.optim"],
+                "_config_kwargs": {},
+            },
+            #FUNCTIONS_PARAMETERS_PATH,
             "loss_function": {
                 "_config_class": "Config",
                 "_class_name": "CrossEntropyLoss",
@@ -1236,7 +1236,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
 
         return metrics_values
 
-    def train_full(self, gen_dataset, steps=None, metrics=None):
+    def train_full(self, gen_dataset, steps=None, metrics=None, pbar=None):
         """
         Train ProtGNN model for Graph classification
         """
@@ -1296,6 +1296,9 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         best_prots = prot_layer.prototype_graphs
         # data_indices = train_loader.dataset.indices
         for step in range(steps):
+            self.before_epoch(gen_dataset)
+            print("epoch", self.modification.epochs)
+
             acc = []
             precision = []
             recall = []
@@ -1317,8 +1320,8 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
                     p.requires_grad = True
 
             for batch in train_loader:
-                min_distances = self.gnn.min_distances
                 logits = self.gnn(batch.x, batch.edge_index, batch.batch)
+                min_distances = self.gnn.min_distances
                 loss = self.loss_function(logits, batch.y)
                 # cluster loss
                 prot_layer.prototype_class_identity = prot_layer.prototype_class_identity
@@ -1423,6 +1426,16 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             """
             self.modification.epochs = step + 1
 
+            self.after_epoch(gen_dataset)
+            early_stopping_flag = self.early_stopping(train_loss=np.average(loss_list), gen_dataset=gen_dataset,
+                                                      metrics=metrics)
+            if self.socket:
+                self.report_results(train_loss=np.average(loss_list), gen_dataset=gen_dataset,
+                                    metrics=metrics)
+            pbar.update(1)
+            if early_stopping_flag:
+                break
+
         print(f"The best validation accuracy is {best_acc}.")
         # report test msg
         # checkpoint = torch.load(os.path.join(ckpt_dir, f'{model_args.model_name}_best.pth'))
@@ -1433,6 +1446,23 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         self.gnn.best_prots = best_prots
 
         return best_acc
+
+    def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
+        print("TEST TEST TEST")
+        self.train_full(gen_dataset=gen_dataset, steps=steps, pbar=pbar, metrics=metrics)
+        # for _ in range(steps):
+            # self.before_epoch(gen_dataset)
+            # print("epoch", self.modification.epochs)
+            # train_loss = self.train_1_step(gen_dataset)
+            # self.after_epoch(gen_dataset)
+            # early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
+            #                                           metrics=metrics)
+            # if self.socket:
+            #     self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
+            #                         metrics=metrics)
+            # pbar.update(1)
+            # if early_stopping_flag:
+            #     break
 
     def run_model(self, gen_dataset, mask='test', out='answers'):
         """
