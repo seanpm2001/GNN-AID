@@ -283,7 +283,7 @@ def model_configs_zoo(dataset, model_name):
                             'layer_name': 'GCNConv',
                             'layer_kwargs': {
                                 'in_channels': dataset.num_node_features,
-                                'out_channels': 7,
+                                'out_channels': 16,
                             },
                         },
                         'activation': {
@@ -297,7 +297,7 @@ def model_configs_zoo(dataset, model_name):
                         'layer': {
                             'layer_name': 'GCNConv',
                             'layer_kwargs': {
-                                'in_channels': 7,
+                                'in_channels': 16,
                                 'out_channels': dataset.num_classes,
                             },
                         },
