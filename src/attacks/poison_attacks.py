@@ -1,8 +1,11 @@
 import numpy as np
+import importlib
 import torch
 
 from attacks.attack_base import Attacker
+from pathlib import Path
 
+POISON_ATTACKS_DIR = Path(__file__).parent.resolve() / 'poison_attacks_collection'
 
 class PoisonAttacker(Attacker):
     def __init__(self, **kwargs):
@@ -42,3 +45,20 @@ class RandomPoisonAttack(PoisonAttacker):
 
     def attack_diff(self):
         return self.attack_diff
+
+class EmptyPoisonAttacker(PoisonAttacker):
+    name = "EmptyPoisonAttacker"
+
+    def attack(self, **kwargs):
+        pass
+
+# for attack_name in POISON_ATTACKS_DIR.rglob("*_attack.py"):
+#     try:
+#         importlib.import_module(str(attack_name))
+#     except ImportError:
+#         print(f"Couldn't import Attack: {attack_name}")
+
+# import attacks.poison_attacks_collection.metattack.meta_gradient_attack
+
+# # TODO this is not best practice to import this thing here this way
+# from attacks.poison_attacks_collection.metattack.meta_gradient_attack import BaseMeta
