@@ -1172,6 +1172,29 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         }
     )
 
+    def __init__(self, gnn=None, dataset_path=None, **kwargs):
+        super().__init__(gnn=gnn, dataset_path=dataset_path, **kwargs)
+
+        # Get prot layer and its params
+        self.prot_layer = getattr(self.gnn, self.gnn.prot_layer_name)
+        _config_obj = getattr(self.manager_config, CONFIG_OBJ)
+        self.clst = _config_obj.clst
+        self.sep = _config_obj.sep
+        #lr = _config_obj.lr
+        self.early_stopping_marker = _config_obj.early_stopping
+        self.proj_epochs = _config_obj.proj_epochs
+        self.warm_epoch = _config_obj.warm_epoch
+        self.save_epoch = _config_obj.save_epoch
+        self.save_thrsh = _config_obj.save_thrsh
+        # TODO implement other MCTS args too
+        # TODO MCTS args via static ?
+        mcts_args.min_atoms = _config_obj.mcts_min_atoms
+        mcts_args.max_atoms = _config_obj.mcts_max_atoms
+        self.prot_thrsh = _config_obj.prot_thrsh
+        self.early_stop_count = 0
+        self.gnn.best_prots = self.prot_layer.prototype_graphs
+        self.best_acc = 0.0
+
     def save_model(self, path=None):
         """
         Save the model in torch format
@@ -1236,233 +1259,107 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
 
         return metrics_values
 
-    def train_full(self, gen_dataset, steps=None, metrics=None, pbar=None):
-        """
-        Train ProtGNN model for Graph classification
-        """
-        metrics = metrics or []
-        # TODO Misha can we split into 1-step funcs?
-        #  do we need steps here?
-
-        # Get prot layer and its params
-        prot_layer = getattr(self.gnn, self.gnn.prot_layer_name)
-        _config_obj = getattr(self.manager_config, CONFIG_OBJ)
-        clst = _config_obj.clst
-        sep = _config_obj.sep
-        lr = _config_obj.lr
-        early_stopping = _config_obj.early_stopping
-        proj_epochs = _config_obj.proj_epochs
-        warm_epoch = _config_obj.warm_epoch
-        save_epoch = _config_obj.save_epoch
-        save_thrsh = _config_obj.save_thrsh
-        # TODO implement other MCTS args too
-        mcts_args.min_atoms = _config_obj.mcts_min_atoms
-        mcts_args.max_atoms = _config_obj.mcts_max_atoms
-        prot_thrsh = _config_obj.prot_thrsh
-
-        print(f"cluster loss cost: {clst}", f"separation loss cost: {sep}", sep='\n')
-
-        # TODO Misha use save_model_flag and other params
-        # TODO Misha add checkpoint
-
-        # criterion = torch.nn.CrossEntropyLoss()
-        # FIXME use optimizer from manager_config and its LR
-        self.optimizer = torch.optim.Adam(self.gnn.parameters(), lr=lr)
-
-        dataset = gen_dataset.dataset
-        data = gen_dataset.data
-        train_dataset = dataset.index_select(gen_dataset.train_mask)
-        train_loader = DataLoader(train_dataset, batch_size=self.batch, shuffle=False)
-        train_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
-        # val_ind = [n for n, x in enumerate(gen_dataset.val_mask) if x]
-
-        # data.x = data.x.float()
-
-        avg_nodes = 0.0
-        avg_edge_index = 0.0
-        for i in range(len(dataset)):
-            avg_nodes += dataset[i].x.shape[0]
-            avg_edge_index += dataset[i].edge_index.shape[1]
-        avg_nodes /= len(dataset)
-        avg_edge_index /= len(dataset)
-        print(
-            f"graphs {len(dataset)}, avg_nodes{avg_nodes :.4f}, avg_edge_index_{avg_edge_index / 2 :.4f}")
-
-        best_acc = 0.0
-        data_size = len(dataset)
-        print(f'The total num of dataset is {data_size}')
-
-        early_stop_count = 0
-        best_prots = prot_layer.prototype_graphs
-        # data_indices = train_loader.dataset.indices
+    def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
+        self.max_epoch = steps
         for step in range(steps):
             self.before_epoch(gen_dataset)
             print("epoch", self.modification.epochs)
-
-            acc = []
-            precision = []
-            recall = []
-            loss_list = []
-            ld_loss_list = []
-
-            # Prototype projection
-            if step > proj_epochs and step % proj_epochs == 0:
-                prot_layer.projection(self.gnn, dataset, train_ind, data, thrsh=prot_thrsh)
-            self.gnn.train()
-            for p in self.gnn.parameters():
-                p.requires_grad = True
-            prot_layer.prototype_vectors.requires_grad = True
-            if step < warm_epoch:
-                for p in prot_layer.last_layer.parameters():
-                    p.requires_grad = False
-            else:
-                for p in prot_layer.last_layer.parameters():
-                    p.requires_grad = True
-
-            for batch in train_loader:
-                logits = self.gnn(batch.x, batch.edge_index, batch.batch)
-                min_distances = self.gnn.min_distances
-                loss = self.loss_function(logits, batch.y)
-                # cluster loss
-                prot_layer.prototype_class_identity = prot_layer.prototype_class_identity
-                prototypes_of_correct_class = torch.t(
-                    prot_layer.prototype_class_identity[:, batch.y].bool())
-                cluster_cost = torch.mean(
-                    torch.min(min_distances[prototypes_of_correct_class]
-                              .reshape(-1, prot_layer.num_prototypes_per_class), dim=1)[0])
-
-                # seperation loss
-                separation_cost = -torch.mean(
-                    torch.min(min_distances[~prototypes_of_correct_class].reshape(-1, (
-                            prot_layer.output_dim - 1) * prot_layer.num_prototypes_per_class),
-                              dim=1)[0])
-
-                # sparsity loss
-                l1_mask = 1 - torch.t(prot_layer.prototype_class_identity)
-                l1 = (prot_layer.last_layer.weight * l1_mask).norm(p=1)
-
-                # diversity loss
-                ld = 0
-                for k in range(prot_layer.output_dim):
-                    p = prot_layer.prototype_vectors[
-                        k * prot_layer.num_prototypes_per_class:
-                        (k + 1) * prot_layer.num_prototypes_per_class]
-                    p = F.normalize(p, p=2, dim=1)
-                    matrix1 = torch.mm(p, torch.t(p)) - torch.eye(p.shape[0]) - 0.3
-                    matrix2 = torch.zeros(matrix1.shape)
-                    ld += torch.sum(torch.where(matrix1 > 0, matrix1, matrix2))
-
-                loss = loss + clst * cluster_cost + sep * separation_cost + 5e-4 * l1 + 0.00 * ld
-
-                # optimization
-                self.optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_value_(self.gnn.parameters(), clip_value=2.0)
-                self.optimizer.step()
-
-                # record
-                _, prediction = torch.max(logits, -1)
-                loss_list.append(loss.item())
-                ld_loss_list.append(ld.item())
-                acc.append(prediction.eq(batch.y).cpu().numpy())
-                precision.append(
-                    prediction[prediction == 1].eq(batch.y[prediction == 1]).cpu().numpy())
-                recall.append(prediction[batch.y == 1].eq(batch.y[batch.y == 1]).cpu().numpy())
-
-            # if best_prots == 0:
-            #    best_prots = model.prototype_graphs
-
-            # report train msg
-            print(
-                f"Train Epoch:{step}  |Loss: {np.average(loss_list):.3f} | Ld: {np.average(ld_loss_list):.3f} | "
-                f"Acc: {np.concatenate(acc, axis=0).mean():.3f} | "
-                f"Precision: {np.concatenate(precision, axis=0).mean():.3f} | "
-                f"Recall: {np.concatenate(recall, axis=0).mean():.3f}")
-
-            # report eval msg
-            # eval_state = self.evaluate(val_loader)
-
-            metrics_values = self.evaluate_model(
-                gen_dataset, metrics=[Metric("Accuracy", mask='val'),
-                                      Metric("Precision", mask='val'),
-                                      Metric("Recall", mask='val')] + metrics)
-            # model_data = self.get_stats_data(gen_dataset, predictions=True, logits=True)
-            # self.send_epoch_results(metrics_values, model_data, loss=np.average(loss_list))
-            acc = metrics_values['val']["Accuracy"]
-            print(
-                f"Eval Epoch: {step} | Acc: {acc:.3f} | "
-                f"Precision: {metrics_values['val']['Precision']:.3f} | "
-                f"Recall: {metrics_values['val']['Recall']:.3f}")
-
-            # only save the best model
-            is_best = (acc - best_acc >= 0.01)
-
-            if is_best:
-                early_stop_count = 0
-            else:
-                early_stop_count += 1
-
-            if early_stop_count > early_stopping:
-                break
-
-            if is_best:
-                best_acc = acc
-                early_stop_count = 0
-                best_prots = prot_layer.prototype_graphs
-            if is_best or step % save_epoch == 0:
-                # save_best(ckpt_dir, epoch, gnnNets, model_args.model_name, acc, is_best)
-                pass
-
-            if acc > save_thrsh:
-                if best_prots == 0:
-                    prot_layer.projection(dataset, train_ind, data, thrsh=prot_thrsh)
-                best_prots = prot_layer.prototype_graphs
-                best_acc = acc
-                break
-
-            """
-            if best_acc >= save_thrsh and projected:
-                break
-            """
-            self.modification.epochs = step + 1
-
-            self.after_epoch(gen_dataset)
-            early_stopping_flag = self.early_stopping(train_loss=np.average(loss_list), gen_dataset=gen_dataset,
-                                                      metrics=metrics)
+            train_loss = self.train_1_step(gen_dataset)
+            early_stopping_flag = self.after_epoch(gen_dataset)
+            # early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
+            #                                           metrics=metrics)
             if self.socket:
-                self.report_results(train_loss=np.average(loss_list), gen_dataset=gen_dataset,
+                self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
                                     metrics=metrics)
             pbar.update(1)
             if early_stopping_flag:
                 break
 
-        print(f"The best validation accuracy is {best_acc}.")
-        # report test msg
-        # checkpoint = torch.load(os.path.join(ckpt_dir, f'{model_args.model_name}_best.pth'))
-        # gnnNets.update_state_dict(checkpoint['net'])
-        # test_state, _, _ = test_GC(dataloader['test'], model, criterion)
-        # print(f"Test: | Loss: {test_state['loss']:.3f} | Acc: {test_state['acc']:.3f}")
-        print("End(for breakpoint)")
-        self.gnn.best_prots = best_prots
+    def train_on_batch(self, batch, task_type=None):
+        if self.mi_defender:
+            self.mi_defender.pre_batch()
+        if self.evasion_defender:
+            self.evasion_defender.pre_batch(model_manager=self, batch=batch)
+        loss = None
+        if task_type == "single-graph":
+            # TODO Prot with single-graph
+            self.optimizer.zero_grad()
+            logits = self.gnn(batch.x, batch.edge_index)
+            min_distances = self.gnn.min_distances
 
-        return best_acc
+            # cluster loss
+            self.prot_layer.prototype_class_identity = self.prot_layer.prototype_class_identity
+            prototypes_of_correct_class = torch.t(
+                self.prot_layer.prototype_class_identity[:, batch.y].bool())
+            cluster_cost = torch.mean(
+                torch.min(min_distances[prototypes_of_correct_class]
+                          .reshape(-1, self.prot_layer.num_prototypes_per_class), dim=1)[0])
 
-    def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
-        print("TEST TEST TEST")
-        self.train_full(gen_dataset=gen_dataset, steps=steps, pbar=pbar, metrics=metrics)
-        # for _ in range(steps):
-            # self.before_epoch(gen_dataset)
-            # print("epoch", self.modification.epochs)
-            # train_loss = self.train_1_step(gen_dataset)
-            # self.after_epoch(gen_dataset)
-            # early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
-            #                                           metrics=metrics)
-            # if self.socket:
-            #     self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
-            #                         metrics=metrics)
-            # pbar.update(1)
-            # if early_stopping_flag:
-            #     break
+            # seperation loss
+            separation_cost = -torch.mean(
+                torch.min(min_distances[~prototypes_of_correct_class].reshape(-1, (
+                        self.prot_layer.output_dim - 1) * self.prot_layer.num_prototypes_per_class),
+                          dim=1)[0])
+
+            # sparsity loss
+            l1_mask = 1 - torch.t(self.prot_layer.prototype_class_identity)
+            l1 = (self.prot_layer.last_layer.weight * l1_mask).norm(p=1)
+
+            # diversity loss
+            ld = 0
+            # TODO expreriments required. With zero coeff - meaningless
+            # for k in range(prot_layer.output_dim):
+            #     p = prot_layer.prototype_vectors[
+            #         k * prot_layer.num_prototypes_per_class:
+            #         (k + 1) * prot_layer.num_prototypes_per_class]
+            #     p = F.normalize(p, p=2, dim=1)
+            #     matrix1 = torch.mm(p, torch.t(p)) - torch.eye(p.shape[0]) - 0.3
+            #     matrix2 = torch.zeros(matrix1.shape)
+            #     ld += torch.sum(torch.where(matrix1 > 0, matrix1, matrix2))
+
+            loss = self.loss_function(logits, batch.y)
+            loss += self.clst * cluster_cost + self.sep * separation_cost + 5e-4 * l1 + 0.00 * ld
+            if self.clip is not None:
+                clip_grad_norm(self.gnn.parameters(), self.clip)
+            self.optimizer.zero_grad()
+            # loss.backward()
+            # self.optimizer.step()
+        elif task_type == "multiple-graphs":
+            self.optimizer.zero_grad()
+            logits = self.gnn(batch.x, batch.edge_index, batch.batch)
+            loss = self.loss_function(logits, batch.y)
+            # loss.backward()
+            # self.optimizer.step()
+        # TODO Kirill, remove False when release edge recommendation task
+        elif task_type == "edge" and False:
+            self.optimizer.zero_grad()
+            edge_index = batch.edge_index
+            pos_edge_index = edge_index[:, batch.y == 1]
+            neg_edge_index = edge_index[:, batch.y == 0]
+
+            pos_out = self.gnn(batch.x, pos_edge_index)
+            neg_out = self.gnn(batch.x, neg_edge_index)
+
+            pos_loss = self.loss_function(pos_out, torch.ones_like(pos_out))
+            neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
+
+            loss = pos_loss + neg_loss
+            # loss.backward()
+        else:
+            raise ValueError("Unsupported task type")
+        if self.mi_defender:
+            self.mi_defender.post_batch()
+        evasion_defender_dict = None
+        if self.evasion_defender:
+            evasion_defender_dict = self.evasion_defender.post_batch(
+                model_manager=self, batch=batch, loss=loss,
+            )
+        if evasion_defender_dict and "loss" in evasion_defender_dict:
+            loss = evasion_defender_dict["loss"]
+        loss.backward()
+        torch.nn.utils.clip_grad_value_(self.gnn.parameters(), clip_value=2.0)
+        self.optimizer.step()
+        return loss
 
     def run_model(self, gen_dataset, mask='test', out='answers'):
         """
@@ -1473,6 +1370,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         :param out: if 'answers' return answers, otherwise predictions
         :return: y_pred, y_true
         """
+        #QUE ProtGNN run overload needed ?
         try:
             mask = {
                 'train': gen_dataset.train_mask,
@@ -1544,3 +1442,50 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
                     # y_true = torch.cat((y_true, data.y[mask_copy]))
 
         return full_out
+
+
+    def before_epoch(self, gen_dataset):
+        cur_step = self.modification.epochs
+        train_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
+        # Prototype projection
+        if cur_step > self.proj_epochs and cur_step % self.proj_epochs == 0:
+            self.prot_layer.projection(self.gnn, gen_dataset.dataset, train_ind, gen_dataset.dataset.data, thrsh=self.prot_thrsh)
+        self.gnn.train()
+        for p in self.gnn.parameters():
+            p.requires_grad = True
+        self.prot_layer.prototype_vectors.requires_grad = True
+        if cur_step < self.warm_epoch:
+            for p in self.prot_layer.last_layer.parameters():
+                p.requires_grad = False
+        else:
+            for p in self.prot_layer.last_layer.parameters():
+                p.requires_grad = True
+
+    def after_epoch(self, gen_dataset):
+        step = self.modification.epochs
+
+        # check if best model
+        # QUE Better way to get metrics?
+        metrics_values = self.evaluate_model(
+            gen_dataset, metrics=[Metric("Accuracy", mask='val'),
+                                  Metric("Precision", mask='val'),
+                                  Metric("Recall", mask='val')])
+        acc = metrics_values['val']["Accuracy"]
+        is_best = (acc - self.best_acc >= 0.01)
+
+        if is_best:
+            self.early_stop_count = 0
+        else:
+            self.early_stop_count += 1
+
+        # if self.early_stop_count > self.early_stopping_marker:
+        #     self.early_stop_flag
+
+        if is_best:
+            self.best_acc = acc
+            self.early_stop_count = 0
+            self.gnn.best_prots = self.prot_layer.prototype_graphs
+
+        last_projection = (step % self.proj_epochs == 0 and step + self.proj_epochs >= self.max_epoch)
+
+        return self.early_stop_count >= self.early_stopping_marker or last_projection
