@@ -765,7 +765,7 @@ class FrameworkGNNModelManager(GNNModelManager):
             train_loss = self.train_1_step(gen_dataset)
             self.after_epoch(gen_dataset)
             early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
-                                                      metrics=metrics)
+                                                      metrics=metrics, steps=steps)
             if self.socket:
                 self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
                                     metrics=metrics)
@@ -773,7 +773,7 @@ class FrameworkGNNModelManager(GNNModelManager):
             if early_stopping_flag:
                 break
 
-    def early_stopping(self, train_loss, gen_dataset, metrics):
+    def early_stopping(self, train_loss, gen_dataset, metrics, steps):
         return False
 
     def train_1_step(self, gen_dataset):
@@ -921,8 +921,9 @@ class FrameworkGNNModelManager(GNNModelManager):
         assert issubclass(type(self), GNNModelManager)
 
         assert mode in ['1_step', 'full', None]
-        has_complete = self.train_complete != super(type(self), self).train_complete
-        assert has_complete
+        # TODO Kirill what is this? Outdated?
+        # has_complete = self.train_complete != super(type(self), self).train_complete
+        # assert has_complete
         do_1_step = True
 
         try:
@@ -1140,12 +1141,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         gen_dataset.train_mask, gen_dataset.val_mask, gen_dataset.test_mask, _ = torch.load(path)[:]
         return gen_dataset
 
-
-# FIXME George
 class ProtGNNModelManager(FrameworkGNNModelManager):
-    """
-    Prot layer needs a special training procedure.
-    """
     # additional_config = ModelManagerConfig(
     #     loss_function={CONFIG_CLASS_NAME: "CrossEntropyLoss"},
     #     mask_features=[],
@@ -1223,58 +1219,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             self.init()
         return self.gnn
 
-    def evaluate_model(self, gen_dataset, metrics):
-        """
-        Compute metrics for a model result on a part of dataset specified by the metric mask.
-
-        :param gen_dataset: wrapper over the dataset, stores the dataset and all meta-information about the dataset
-        :param metrics: list of metrics ot compute
-        :return: dict {metric -> value}
-        """
-        mask_metrics = {}
-        for metric in metrics:
-            mask = metric.mask
-            if mask not in mask_metrics:
-                mask_metrics[mask] = []
-            mask_metrics[mask].append(metric)
-
-        metrics_values = {}
-        for mask, ms in mask_metrics.items():
-            metrics_values[mask] = {}
-            y_pred = self.run_model(gen_dataset, mask=mask)
-            try:
-                mask_tensor = {
-                    'train': gen_dataset.train_mask.tolist(),
-                    'val': gen_dataset.val_mask.tolist(),
-                    'test': gen_dataset.test_mask.tolist(),
-                    'all': [True] * len(gen_dataset.labels),
-                }[mask]
-            except KeyError:
-                assert isinstance(mask, list)
-            y_true = torch.tensor([y for m, y in zip(mask_tensor, gen_dataset.labels) if m])
-
-            for metric in ms:
-                metrics_values[mask][metric.name] = metric.compute(y_pred, y_true)
-                # metrics_values[mask][metric.name] = MetricManager.compute(metric, y_pred, y_true)
-
-        return metrics_values
-
-    def train_complete(self, gen_dataset, steps=None, pbar=None, metrics=None, **kwargs):
-        self.max_epoch = steps
-        for step in range(steps):
-            self.before_epoch(gen_dataset)
-            print("epoch", self.modification.epochs)
-            train_loss = self.train_1_step(gen_dataset)
-            early_stopping_flag = self.after_epoch(gen_dataset)
-            # early_stopping_flag = self.early_stopping(train_loss=train_loss, gen_dataset=gen_dataset,
-            #                                           metrics=metrics)
-            if self.socket:
-                self.report_results(train_loss=train_loss, gen_dataset=gen_dataset,
-                                    metrics=metrics)
-            pbar.update(1)
-            if early_stopping_flag:
-                break
-
+    # TODO Kirill train_on_batch to be divided into two parts
     def train_on_batch(self, batch, task_type=None):
         if self.mi_defender:
             self.mi_defender.pre_batch()
@@ -1361,89 +1306,6 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         self.optimizer.step()
         return loss
 
-    def run_model(self, gen_dataset, mask='test', out='answers'):
-        """
-        Run the model on a part of dataset specified with a mask.
-
-        :param gen_dataset: wrapper over the dataset, stores the dataset and all meta-information about the dataset
-        :param mask: 'train', 'val', 'test', or a bool valued list
-        :param out: if 'answers' return answers, otherwise predictions
-        :return: y_pred, y_true
-        """
-        #QUE ProtGNN run overload needed ?
-        try:
-            mask = {
-                'train': gen_dataset.train_mask,
-                'val': gen_dataset.val_mask,
-                'test': gen_dataset.test_mask,
-                'all': tensor([True] * len(gen_dataset.labels)),
-            }[mask]
-        except KeyError:
-            assert isinstance(mask, torch.Tensor)
-
-        run_func = {
-            'answers': self.gnn.get_answer,
-            'predictions': self.gnn.get_predictions,
-            'logits': self.gnn.__call__,
-        }[out]
-        self.gnn.eval()
-        with torch.no_grad():  # Turn off gradients computation
-            if gen_dataset.is_multi():
-                dataset = gen_dataset.dataset
-                part_loader = DataLoader(
-                    dataset.index_select(mask), batch_size=self.batch, shuffle=False)
-                full_out = torch.Tensor()
-                # y_true = torch.Tensor()
-                if hasattr(self, 'optimizer'):
-                    self.optimizer.zero_grad()
-                for data in part_loader:
-                    # logits_batch = self.gnn(data.x, data.edge_index, data.batch)
-                    # pred_batch = logits_batch.argmax(dim=1)
-                    out = run_func(data.x, data.edge_index, data.batch)
-                    full_out = torch.cat((full_out, out))
-                    # y_true = torch.cat((y_true, data.y))
-            else:  # single-graph
-                data = gen_dataset.dataset.data
-                ver_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
-                mask_size = len(ver_ind)
-                random.shuffle(ver_ind)
-
-                number_of_batches = ceil(mask_size / self.batch)
-                # data_x_elem_len = data.x.size()[1]
-                full_out = torch.Tensor()
-
-                for batch_ind in range(number_of_batches):
-                    data_x_copy = torch.clone(data.x)
-                    mask_copy = [False] * data.x.size()[0]
-
-                    # features_mask_tensor_copy = torch.clone(features_mask_tensor)
-
-                    train_batch = ver_ind[batch_ind * self.batch: (batch_ind + 1) * self.batch]
-                    for elem_ind in train_batch:
-                        for feature in self.mask_features:
-                            # features_mask_tensor_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-                            #                                     gen_dataset.info.node_attr_slices[feature][1]] = False
-                            data_x_copy[elem_ind][gen_dataset.info.node_attr_slices[feature][0]:
-                                                  gen_dataset.info.node_attr_slices[feature][1]] = 0
-                        # if self.gnn_mm.train_mask_flag:
-                        #     data_x_copy[elem_ind] = torch.zeros(data_x_elem_len)
-                        # y_true = torch.masked.masked_tensor(data.y, mask_tensor)
-                        mask_copy[elem_ind] = True
-
-                    # mask_x_tensor = torch.masked.masked_tensor(data.x, features_mask_tensor_copy)
-
-                    # FIXME Kirill what to do if no optimizer, train_mask_flag, batch?
-                    if hasattr(self, 'optimizer'):
-                        self.optimizer.zero_grad()
-                    # logits_batch = self.gnn(data_x_copy, data.edge_index)
-                    # pred_batch = logits_batch.argmax(dim=1)
-                    out = run_func(data_x_copy, data.edge_index, data.batch)
-                    full_out = torch.cat((full_out, out[mask_copy]))
-                    # y_true = torch.cat((y_true, data.y[mask_copy]))
-
-        return full_out
-
-
     def before_epoch(self, gen_dataset):
         cur_step = self.modification.epochs
         train_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
@@ -1462,30 +1324,28 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
                 p.requires_grad = True
 
     def after_epoch(self, gen_dataset):
-        step = self.modification.epochs
+        # TODO compare is_best with different metrics to be implemented
 
         # check if best model
-        # QUE Better way to get metrics?
         metrics_values = self.evaluate_model(
             gen_dataset, metrics=[Metric("Accuracy", mask='val'),
                                   Metric("Precision", mask='val'),
                                   Metric("Recall", mask='val')])
-        acc = metrics_values['val']["Accuracy"]
-        is_best = (acc - self.best_acc >= 0.01)
+        self.cur_acc = metrics_values['val']["Accuracy"]
+        self.is_best = (self.cur_acc - self.best_acc >= 0.01)
 
-        if is_best:
-            self.early_stop_count = 0
-        else:
-            self.early_stop_count += 1
-
-        # if self.early_stop_count > self.early_stopping_marker:
-        #     self.early_stop_flag
-
-        if is_best:
-            self.best_acc = acc
+        if self.is_best:
+            self.best_acc = self.cur_acc
             self.early_stop_count = 0
             self.gnn.best_prots = self.prot_layer.prototype_graphs
 
-        last_projection = (step % self.proj_epochs == 0 and step + self.proj_epochs >= self.max_epoch)
+
+    def early_stopping(self, train_loss, gen_dataset, metrics, steps):
+        step = self.modification.epochs
+        if self.is_best:
+            self.early_stop_count = 0
+        else:
+            self.early_stop_count += 1
+        last_projection = (step % self.proj_epochs == 0 and step + self.proj_epochs >= steps)
 
         return self.early_stop_count >= self.early_stopping_marker or last_projection
