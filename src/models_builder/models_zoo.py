@@ -311,6 +311,46 @@ def model_configs_zoo(dataset, model_name):
         )
     )
 
+    gcn_gcn_for_pgd_attack = FrameworkGNNConstructor(
+        model_config=ModelConfig(
+            structure=ModelStructureConfig(
+                [
+                    {
+                        'label': 'n',
+                        'layer': {
+                            'layer_name': 'GCNConv',
+                            'layer_kwargs': {
+                                'in_channels': dataset.num_node_features,
+                                'out_channels': 16,
+                                'add_self_loops': False
+                            },
+                        },
+                        'activation': {
+                            'activation_name': 'ReLU',
+                            'activation_kwargs': None,
+                        },
+                    },
+
+                    {
+                        'label': 'n',
+                        'layer': {
+                            'layer_name': 'GCNConv',
+                            'layer_kwargs': {
+                                'in_channels': 16,
+                                'out_channels': dataset.num_classes,
+                                'add_self_loops': False
+                            },
+                        },
+                        'activation': {
+                            'activation_name': 'LogSoftmax',
+                            'activation_kwargs': None,
+                        },
+                    },
+                ]
+            )
+        )
+    )
+
     gcn = FrameworkGNNConstructor(
         model_config=ModelConfig(
             structure=ModelStructureConfig(
