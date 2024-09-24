@@ -297,7 +297,7 @@ def model_configs_zoo(dataset, model_name):
                         'layer': {
                             'layer_name': 'GCNConv',
                             'layer_kwargs': {
-                                'in_channels': 16,
+                                'in_channels': 7,
                                 'out_channels': dataset.num_classes,
                             },
                         },
@@ -311,7 +311,7 @@ def model_configs_zoo(dataset, model_name):
         )
     )
 
-    gcn_gcn_for_pgd_attack = FrameworkGNNConstructor(
+    gcn_gcn_linearized = FrameworkGNNConstructor(
         model_config=ModelConfig(
             structure=ModelStructureConfig(
                 [
@@ -322,13 +322,19 @@ def model_configs_zoo(dataset, model_name):
                             'layer_kwargs': {
                                 'in_channels': dataset.num_node_features,
                                 'out_channels': 16,
-                                'add_self_loops': False
+                                'bias': True,
                             },
                         },
-                        'activation': {
-                            'activation_name': 'ReLU',
-                            'activation_kwargs': None,
-                        },
+                        # 'activation': {
+                        #     'activation_name': 'ReLU',
+                        #     'activation_kwargs': None,
+                        # },
+                        'dropout': {
+                            'dropout_name': 'Dropout',
+                            'dropout_kwargs': {
+                                'p': 0.5,
+                            }
+                        }
                     },
 
                     {
@@ -338,7 +344,7 @@ def model_configs_zoo(dataset, model_name):
                             'layer_kwargs': {
                                 'in_channels': 16,
                                 'out_channels': dataset.num_classes,
-                                'add_self_loops': False
+                                'bias': True,
                             },
                         },
                         'activation': {

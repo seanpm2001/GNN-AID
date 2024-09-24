@@ -142,3 +142,7 @@ def setting_class_default_parameters(class_name: str, class_kwargs: dict, defaul
 
     return class_kwargs_for_save, class_kwargs_for_init
 
+
+def all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
