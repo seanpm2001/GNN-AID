@@ -906,7 +906,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         :param socket: socket to use for sending data to frontend
         """
         if self.poison_attacker:
-            loc = self.poison_attacker.attack(gen_dataset=gen_dataset)
+            loc = self.poison_attacker.attack(model_manager=self, gen_dataset=gen_dataset)
             if loc is not None:
                 gen_dataset = loc
 
