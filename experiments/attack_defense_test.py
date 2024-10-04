@@ -383,16 +383,14 @@ def test_pgd():
                                   save_model_flag=False)
 
     # Evaluate model before attack on it
-    acc_train_ba = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
     acc_test_ba = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
     # print(f"Before attack: Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
 
     # Attack config
-    poison_attack_config = ConfigPattern(
+    evasion_attack_config = ConfigPattern(
         _class_name="PGD",
-        _import_path=POISON_ATTACK_PARAMETERS_PATH,
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
         _config_kwargs={
             "perturb_ratio": 0.5,
@@ -402,21 +400,14 @@ def test_pgd():
         }
     )
 
-    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
     # Attack
-    gnn_model_manager.train_model(gen_dataset=dataset,
-                                  steps=num_steps,
-                                  save_model_flag=False)
-
-    # Evaluate model after attack
-    acc_train_aa = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
     acc_test_aa = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
 
-    print(f"Before attack: Accuracy on train: {acc_train_ba}. Accuracy on test: {acc_test_ba}")
-    print(f"After PGD attack: Accuracy on train: {acc_train_aa}. Accuracy on test: {acc_test_aa}")
+    print(f"Before attack: Accuracy on test: {acc_test_ba}")
+    print(f"After PGD attack: Accuracy on test: {acc_test_aa}")
 
 
 if __name__ == '__main__':
