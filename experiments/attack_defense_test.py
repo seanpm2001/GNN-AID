@@ -382,6 +382,16 @@ def test_qattack():
                                   steps=num_steps,
                                   save_model_flag=False)
 
+    evasion_attack_config = ConfigPattern(
+        _class_name="QAttack",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+        }
+    )
+
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+
     # Evaluate model
     acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                  metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
@@ -407,17 +417,9 @@ def test_qattack():
                                   "real_class": real_class}
 
     # Attack config
-    evasion_attack_config = ConfigPattern(
-        _class_name="QAttack",
-        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-        _config_class="EvasionAttackConfig",
-        _config_kwargs={
-        }
-    )
 
-    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
-    dataset = gnn_model_manager.evasion_attacker.attack(gnn_model_manager, dataset, None)
+    #dataset = gnn_model_manager.evasion_attacker.attack(gnn_model_manager, dataset, None)
 
     # Attack
     gnn_model_manager.evaluate_model(gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
