@@ -31,7 +31,7 @@ class QAttacker(EvasionAttacker):
         #num_nodes = gen_dataset.dataset.x.shape[0]
 
 
-        for i in tqdm(range(self.population_size)):
+        for i in tqdm(range(self.population_size), desc='Init first population:'):
             non_isolated_nodes = set(gen_dataset.dataset.edge_index[0].tolist()).union(
                 set(gen_dataset.dataset.edge_index[1].tolist()))
             selected_nodes = np.random.choice(list(self.adj_list.keys()), size=self.individual_size, replace=False)
@@ -39,7 +39,9 @@ class QAttacker(EvasionAttacker):
             # deletion = {}
             gene = {}
             for n in selected_nodes:
-                addition_nodes = non_isolated_nodes.difference(set(self.adj_list[n]))
+                connected_nodes = set(self.adj_list[n])
+                connected_nodes.add(n)
+                addition_nodes = non_isolated_nodes.difference(connected_nodes)
                 # addition[n] = np.random.choice(list(addition_nodes), size=1)
                 # deletion[n] = np.random.choice(list(adj_list[n]), size=1)
                 gene[n] = {'add': np.random.choice(list(addition_nodes), size=1),
@@ -68,7 +70,8 @@ class QAttacker(EvasionAttacker):
             adj_list = get_adj_list(dataset)
             #for n in rewiring['add'].keys():
             for n in rewiring.keys():
-                adj_list[n] = list(set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))
+                # adj_list[n] = list(set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))
+                adj_list[n] = list(set(adj_list[n]).union({int(rewiring[n]['add'])}).difference({int(rewiring[n]['del'])}))
             dataset.edge_index = from_adj_list(adj_list)
 
             # Get labels from black-box
@@ -157,8 +160,11 @@ class QAttacker(EvasionAttacker):
                                                                       copy.deepcopy(self.population[i * 2 + 1]))
 
     def gene_crossover(self, parent_1, parent_2):
-        parent_1_set = set([(n, v['add'][0], v['del'][0]) for n, v in parent_1.items()])
-        parent_2_set = set([(n, v['add'][0], v['del'][0]) for n, v in parent_2.items()])
+        # parent_1_set = set([(n, v['add'][0], v['del'][0]) for n, v in parent_1.items()])
+        # parent_2_set = set([(n, v['add'][0], v['del'][0]) for n, v in parent_2.items()])
+
+        parent_1_set = set(parent_1.keys())
+        parent_2_set = set(parent_2.keys())
 
         parent_1_unique = parent_1_set.difference(parent_2_set)
         parent_2_unique = parent_2_set.difference(parent_1_set)
@@ -179,8 +185,21 @@ class QAttacker(EvasionAttacker):
         parent_1_set.update(parent_2_cross)
         parent_2_set.update(parent_1_cross)
 
-        child_1 = {x[0]: {'add': np.array([x[1]]), 'del': np.array([x[2]])} for x in parent_1_set}
-        child_2 = {x[0]: {'add': np.array([x[1]]), 'del': np.array([x[2]])} for x in parent_2_set}
+        child_1 = {}
+        child_2 = {}
+        for n in parent_1_set:
+            if n in parent_1.keys():
+                child_1[n] = parent_1[n]
+            else:
+                child_1[n] = parent_2[n]
+        for n in parent_2_set:
+            if n in parent_2.keys():
+                child_2[n] = parent_2[n]
+            else:
+                child_2[n] = parent_1[n]
+
+        # child_1 = {x[0]: {'add': np.array([x[1]]), 'del': np.array([x[2]])} for x in parent_1_set}
+        # child_2 = {x[0]: {'add': np.array([x[1]]), 'del': np.array([x[2]])} for x in parent_2_set}
 
         return child_1,child_2
 
@@ -204,7 +223,9 @@ class QAttacker(EvasionAttacker):
                         set(gen_dataset.dataset.edge_index[1].tolist()))
                     if mut_type == 0:
                         # add mutation
-                        addition_nodes = non_isolated_nodes.difference(set(self.adj_list[n]))
+                        connected_nodes = set(self.adj_list[n])
+                        connected_nodes.add(n)
+                        addition_nodes = non_isolated_nodes.difference(connected_nodes)
                         self.population[i][n]['add'] = np.random.choice(list(addition_nodes), 1)
                     elif mut_type == 1:
                         # del mutation
@@ -232,7 +253,7 @@ class QAttacker(EvasionAttacker):
     def attack(self, model_manager, gen_dataset, mask_tensor):
         self.init(gen_dataset)
 
-        for i in tqdm(range(self.generations)):
+        for i in tqdm(range(self.generations), desc='Attack iterations:', position=0, leave=True):
             self.selection(model_manager, gen_dataset)
             self.crossover()
             self.mutation(gen_dataset)
@@ -245,7 +266,7 @@ class QAttacker(EvasionAttacker):
         # for n in rewiring['add'].keys():
         for n in rewiring.keys():
             adj_list[n] = list(
-                set(adj_list[n]).union(set([int(rewiring[n]['add'])]).difference(set([int(rewiring[n]['del'])]))))
+                set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))
 
-        gen_dataset.edge_index = from_adj_list(adj_list)
+        gen_dataset.dataset.edge_index = from_adj_list(adj_list)
         return gen_dataset

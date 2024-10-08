@@ -1,3 +1,5 @@
+import copy
+
 import torch
 
 def get_adj_list(gen_dataset):
@@ -31,14 +33,14 @@ def adj_list_oriented_to_non_oriented(adj_list):
     non_oriented_adj_list = {}
     for node, neighs in adj_list.items():
         if node not in non_oriented_adj_list.keys():
-            non_oriented_adj_list[node] = adj_list[node]
+            non_oriented_adj_list[node] = copy.deepcopy(adj_list[node])
             for in_node in adj_list[node]:
                 if in_node not in non_oriented_adj_list.keys():
                     non_oriented_adj_list[in_node] = [node]
                 else:
                     non_oriented_adj_list[in_node].append(node)
         else:
-            non_oriented_adj_list[node] += adj_list[node]
+            non_oriented_adj_list[node] += copy.deepcopy(adj_list[node])
             for in_node in adj_list[node]:
                 if in_node not in non_oriented_adj_list.keys():
                     non_oriented_adj_list[in_node] = [node]

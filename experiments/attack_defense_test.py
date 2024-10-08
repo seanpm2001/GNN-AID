@@ -348,7 +348,8 @@ def test_qattack():
     my_device = device('cpu')
 
     # Load dataset
-    full_name = ("single-graph", "Planetoid", 'Cora')
+    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ('single-graph', 'pytorch-geometric-other', 'KarateClub')
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
         dataset_ver_ind=0
@@ -392,29 +393,35 @@ def test_qattack():
 
     gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
+    edge_index_old = dataset.dataset.edge_index.detach() # TEST
+
+
     # Evaluate model
     acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                  metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+
+    edge_index_new = dataset.dataset.edge_index.detach() # TEST
+
     acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
     print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
 
     # Node for attack
-    node_idx = 0
+    # node_idx = 0
+    #
+    # # Model prediction on a node before an evasion attack on it
+    # gnn_model_manager.gnn.eval()
+    # with torch.no_grad():
+    #     probabilities = torch.exp(gnn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
+    #
+    # predicted_class = probabilities[node_idx].argmax().item()
+    # predicted_probability = probabilities[node_idx][predicted_class].item()
+    # real_class = dataset.data.y[node_idx].item()
 
-    # Model prediction on a node before an evasion attack on it
-    gnn_model_manager.gnn.eval()
-    with torch.no_grad():
-        probabilities = torch.exp(gnn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
-
-    predicted_class = probabilities[node_idx].argmax().item()
-    predicted_probability = probabilities[node_idx][predicted_class].item()
-    real_class = dataset.data.y[node_idx].item()
-
-    info_before_evasion_attack = {"node_idx": node_idx,
-                                  "predicted_class": predicted_class,
-                                  "predicted_probability": predicted_probability,
-                                  "real_class": real_class}
+    # info_before_evasion_attack = {"node_idx": node_idx,
+    #                               "predicted_class": predicted_class,
+    #                               "predicted_probability": predicted_probability,
+    #                               "real_class": real_class}
 
     # Attack config
 
@@ -422,11 +429,11 @@ def test_qattack():
     #dataset = gnn_model_manager.evasion_attacker.attack(gnn_model_manager, dataset, None)
 
     # Attack
-    gnn_model_manager.evaluate_model(gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
-
-    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    print(f"Accuracy on test after attack: {acc_test}")
+    # gnn_model_manager.evaluate_model(gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
+    #
+    # acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                             metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    # print(f"Accuracy on test after attack: {acc_test}")
 
     # # Model prediction on a node after an evasion attack on it
     # with torch.no_grad():
