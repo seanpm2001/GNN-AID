@@ -268,5 +268,5 @@ class QAttacker(EvasionAttacker):
             adj_list[n] = list(
                 set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))
 
-        gen_dataset.dataset.edge_index = from_adj_list(adj_list)
+        gen_dataset.dataset.data.edge_index = from_adj_list(adj_list)
         return gen_dataset

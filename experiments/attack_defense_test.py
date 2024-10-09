@@ -378,7 +378,7 @@ def test_qattack():
 
     gnn_model_manager.gnn.to(my_device)
 
-    num_steps = 200
+    num_steps = 100
     gnn_model_manager.train_model(gen_dataset=dataset,
                                   steps=num_steps,
                                   save_model_flag=False)
@@ -393,18 +393,16 @@ def test_qattack():
 
     gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
-    edge_index_old = dataset.dataset.edge_index.detach() # TEST
-
-
     # Evaluate model
-    acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
 
-    edge_index_new = dataset.dataset.edge_index.detach() # TEST
+    # acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                              metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+
 
     acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+    # print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+    print(f"Accuracy on test: {acc_test}")
 
     # Node for attack
     # node_idx = 0
