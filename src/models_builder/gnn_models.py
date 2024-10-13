@@ -447,7 +447,7 @@ class GNNModelManager:
         self.poison_defense_name = poison_defense_name
         poison_defense_kwargs = getattr(self.poison_defense_config, CONFIG_OBJ).to_dict()
 
-        name_klass = {e.name: e for e in PoisonDefender.__subclasses__()}
+        name_klass = {e.name: e for e in all_subclasses(PoisonDefender)}
         klass = name_klass[self.poison_defense_name]
         self.poison_defender = klass(
             # device=self.device,
