@@ -282,15 +282,21 @@ def test_nettack_evasion():
                                   steps=num_steps,
                                   save_model_flag=False)
 
+    # Node for attack
+    node_idx = 1
+
     # Evaluate model
+    mask_loc = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=[node_idx])
+    acc_test_loc = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                    metrics=[Metric("Accuracy", mask=mask_loc)])[mask_loc]['Accuracy']
+
     acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                  metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
     acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
 
-    # Node for attack
-    node_idx = 0
+    print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+    print(f"Accuracy on test loc: {acc_test_loc}")
 
     # Model prediction on a node before an evasion attack on it
     gnn_model_manager.gnn.eval()
@@ -342,9 +348,13 @@ def test_nettack_evasion():
 
     print(f"info_before_evasion_attack: {info_before_evasion_attack}")
     print(f"info_after_evasion_attack: {info_after_evasion_attack}")
+    acc_test_loc = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                    metrics=[Metric("Accuracy", mask=mask_loc)])[mask_loc]['Accuracy']
+    print(f"Accuracy on test loc: {acc_test_loc}")
 
 
 if __name__ == '__main__':
     #test_attack_defense()
-    torch.manual_seed(5000)
-    test_meta()
+    # torch.manual_seed(5000)
+    # test_meta()
+    test_nettack_evasion()
