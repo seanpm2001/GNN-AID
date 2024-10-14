@@ -13,6 +13,8 @@
   "n_influencers": ["n_influencers", "int", 0, {"min":  0, "step": 1}, "Number of influencing nodes. Will be ignored if direct is True"]
  },
 "EAttack": {
-"attack_budget":
+"attack_budget_node": ["Attack budget (node)", "int", 0, {"min":  0, "step": 1}, "Number of nodes could change with attack"],
+ "attack_budget_edge": ["Attack budget (edge)", "int", 0, {"min":  0, "step": 1}, "Number of edges could change with attack"],
+ "attack_budget_feature": ["Attack budget (feature)", "int", 0, {"min":  0, "step": 1}, "Number of features could change with attack"]
 }
 }
