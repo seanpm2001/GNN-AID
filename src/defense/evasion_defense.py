@@ -64,30 +64,27 @@ class AdvTraining(EvasionDefender):
     def __init__(self, epsilon=0.1, attack_type="FGSM", device='cpu'):
         super().__init__()
         assert device is not None, "Please specify 'device'!"
-        # if attack_type=="NettackEvasion":
-        #     self.attacker = evasion_attacks.NettackEvasionAttacker()
-        # elif attack_type=="FGSM":
-        #     self.attacker = evasion_attacks.FGSMAttacker(epsilon=epsilon)
-        # self.attacker = import_by_name(attack_type, ['attacks.evasion_attacks'])()
-        self.attacker = FGSMAttacker(epsilon=epsilon)
+        self.epsilon = epsilon
 
     def pre_batch(self, model_manager, batch):
         super().pre_batch(model_manager=model_manager, batch=batch)
-        # print(batch)
-        gen_data = data.Data()
-        gen_data.data = copy.deepcopy(batch)
-        # print(gen_data)
-        # print(batch.batch)
-        attacked_batch = self.attacker.attack(model_manager, gen_data, batch.train_mask).data
-        new_batch = self.merge_batches(batch, attacked_batch)
-        # print(attacked_batch.x.mean() - batch.x.mean())
+        batch.x.requires_grad = True
+        outputs = model_manager.gnn(batch.x, batch.edge_index)
+        loss_loc = model_manager.loss_function(outputs, batch.y)
+        gradients = torch.autograd.grad(outputs=loss_loc, inputs=batch.x,
+                                        grad_outputs=torch.ones_like(loss_loc),
+                                        create_graph=True, retain_graph=True, only_inputs=True)[0]
+        perturbed_data_x = batch.x + self.epsilon*gradients.sign()
+        perturbed_data_x = torch.clamp(perturbed_data_x, 0, 1)
+        self.attacked_batch = copy.deepcopy(batch)
+        self.attacked_batch.x = perturbed_data_x
 
-        # print(batch)
-        batch = new_batch
-        # print(batch)
     
     def post_batch(self, model_manager, batch, loss) -> dict:
         super().post_batch(model_manager=model_manager, batch=batch, loss=loss)
+        outputs = model_manager.gnn(self.attacked_batch.x, self.attacked_batch.edge_index)
+        loss_loc = model_manager.loss_function(outputs, batch.y)
+        return {"loss": loss + loss_loc}
 
     @staticmethod
     def merge_batches(batch1, batch2):
