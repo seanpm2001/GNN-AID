@@ -28,33 +28,19 @@ class QAttacker(EvasionAttacker):
         self.population = []
 
         self.adj_list = get_adj_list(gen_dataset)
-        #num_nodes = gen_dataset.dataset.x.shape[0]
-
 
         for i in tqdm(range(self.population_size), desc='Init first population:'):
             non_isolated_nodes = set(gen_dataset.dataset.edge_index[0].tolist()).union(
                 set(gen_dataset.dataset.edge_index[1].tolist()))
             selected_nodes = np.random.choice(list(self.adj_list.keys()), size=self.individual_size, replace=False)
-            # addition = {}
-            # deletion = {}
             gene = {}
             for n in selected_nodes:
                 connected_nodes = set(self.adj_list[n])
                 connected_nodes.add(n)
                 addition_nodes = non_isolated_nodes.difference(connected_nodes)
-                # addition[n] = np.random.choice(list(addition_nodes), size=1)
-                # deletion[n] = np.random.choice(list(adj_list[n]), size=1)
                 gene[n] = {'add': np.random.choice(list(addition_nodes), size=1),
                            'del': np.random.choice(list(self.adj_list[n]), size=1)}
-            # gene = {'add': addition, 'del': deletion}
             self.population.append(gene)
-
-    # def apply_rewire(self, dataset, rewire):
-    #     adj_list = get_adj_list(dataset)
-    #     # for n in rewiring['add'].keys():
-    #     for n in rewire.keys():
-    #         adj_list[n] = list(set(adj_list[n]).union(set(rewire[n]['add'])).difference(set(rewire[n]['del'])))
-    #     dataset.edge_index = from_adj_list(adj_list)
 
     def fitness(self, model, gen_dataset):
         """
@@ -66,11 +52,8 @@ class QAttacker(EvasionAttacker):
             # Get rewired dataset
             dataset = copy.deepcopy(gen_dataset.dataset)
             rewiring = self.population[i]
-            # self.apply_rewire(dataset, rewiring)
             adj_list = get_adj_list(dataset)
-            #for n in rewiring['add'].keys():
             for n in rewiring.keys():
-                # adj_list[n] = list(set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))
                 adj_list[n] = list(set(adj_list[n]).union({int(rewiring[n]['add'])}).difference({int(rewiring[n]['del'])}))
             dataset.edge_index = from_adj_list(adj_list)
 
@@ -79,16 +62,14 @@ class QAttacker(EvasionAttacker):
             labeled_nodes = {n: labels.tolist()[n-1] for n in adj_list.keys()}  # FIXME check order for labels and node id consistency
 
             # Calculate modularity
-            Q = QAttacker.modularity(adj_list, labeled_nodes)
+            Q = self.modularity(adj_list, labeled_nodes)
             fit_scores.append(1 / math.exp(Q))
         return fit_scores
 
     def fitness_individual(self, model, gen_dataset, gene):
         dataset = copy.deepcopy(gen_dataset.dataset)
         rewiring = gene
-        # self.apply_rewire(dataset, rewiring)
         adj_list = get_adj_list(dataset)
-        #for n in rewiring['add'].keys():
         for n in rewiring.keys():
             adj_list[n] = list(set(adj_list[n]).union(set(rewiring[n]['add'])).difference(set(rewiring[n]['del'])))
         dataset.edge_index = from_adj_list(adj_list)
@@ -98,8 +79,7 @@ class QAttacker(EvasionAttacker):
         labeled_nodes = {n: labels.tolist()[n-1] for n in adj_list.keys()}  # FIXME check order for labels and node id consistency
 
         # Calculate modularity
-        Q = QAttacker.modularity(adj_list, labeled_nodes)
-        #fit_scores.append(1 / math.exp(Q))
+        Q = self.modularity(adj_list, labeled_nodes)
         return 1 / math.exp(Q)
 
     @staticmethod
@@ -121,12 +101,10 @@ class QAttacker(EvasionAttacker):
         links //= 2
 
         for node, edges in non_oriented_adj_list.items():
-            # com = partition[str(node)]
             com = labeled_nodes[node]
             deg[com] = deg.get(com, 0.) + len(non_oriented_adj_list[node])
             for neighbor in edges:
                 edge_weight = 1 # TODO weighted graph to be implemented
-                # if partition[str(neighbor)] == com:
                 if labeled_nodes[neighbor] == com:
                     if neighbor == node:
                         inc[com] = inc.get(com, 0.) + float(edge_weight)
@@ -160,9 +138,6 @@ class QAttacker(EvasionAttacker):
                                                                       copy.deepcopy(self.population[i * 2 + 1]))
 
     def gene_crossover(self, parent_1, parent_2):
-        # parent_1_set = set([(n, v['add'][0], v['del'][0]) for n, v in parent_1.items()])
-        # parent_2_set = set([(n, v['add'][0], v['del'][0]) for n, v in parent_2.items()])
-
         parent_1_set = set(parent_1.keys())
         parent_2_set = set(parent_2.keys())
 
@@ -198,9 +173,6 @@ class QAttacker(EvasionAttacker):
             else:
                 child_2[n] = parent_1[n]
 
-        # child_1 = {x[0]: {'add': np.array([x[1]]), 'del': np.array([x[2]])} for x in parent_1_set}
-        # child_2 = {x[0]: {'add': np.array([x[1]]), 'del': np.array([x[2]])} for x in parent_2_set}
-
         return child_1,child_2
 
     def mutation(self, gen_dataset):
@@ -212,9 +184,7 @@ class QAttacker(EvasionAttacker):
                     mut_type = np.random.randint(3)
                     dataset = copy.deepcopy(gen_dataset.dataset)
                     rewiring = self.population[i]
-                    # self.apply_rewire(dataset, rewiring)
                     adj_list = get_adj_list(dataset)
-                    # for n in rewiring['add'].keys():
                     for n in rewiring.keys():
                         adj_list[n] = list(
                             set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))
@@ -259,11 +229,8 @@ class QAttacker(EvasionAttacker):
             self.mutation(gen_dataset)
             best_offspring = self.elitism(model_manager, gen_dataset)
 
-        # dataset = copy.deepcopy(gen_dataset.dataset)
         rewiring = best_offspring
-        # self.apply_rewire(dataset, rewiring)
         adj_list = get_adj_list(gen_dataset)
-        # for n in rewiring['add'].keys():
         for n in rewiring.keys():
             adj_list[n] = list(
                 set(adj_list[n]).union(set([int(rewiring[n]['add'])])).difference(set([int(rewiring[n]['del'])])))

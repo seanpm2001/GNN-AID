@@ -34,18 +34,13 @@ def adj_list_oriented_to_non_oriented(adj_list):
     for node, neighs in adj_list.items():
         if node not in non_oriented_adj_list.keys():
             non_oriented_adj_list[node] = copy.deepcopy(adj_list[node])
-            for in_node in adj_list[node]:
-                if in_node not in non_oriented_adj_list.keys():
-                    non_oriented_adj_list[in_node] = [node]
-                else:
-                    non_oriented_adj_list[in_node].append(node)
         else:
             non_oriented_adj_list[node] += copy.deepcopy(adj_list[node])
-            for in_node in adj_list[node]:
-                if in_node not in non_oriented_adj_list.keys():
-                    non_oriented_adj_list[in_node] = [node]
-                else:
-                    non_oriented_adj_list[in_node].append(node)
+        for in_node in adj_list[node]:
+            if in_node not in non_oriented_adj_list.keys():
+                non_oriented_adj_list[in_node] = [node]
+            else:
+                non_oriented_adj_list[in_node].append(node)
     for k in non_oriented_adj_list.keys():
         non_oriented_adj_list[k] = list(set(non_oriented_adj_list[k]))
     return non_oriented_adj_list
