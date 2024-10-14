@@ -343,8 +343,116 @@ def test_nettack_evasion():
     print(f"info_before_evasion_attack: {info_before_evasion_attack}")
     print(f"info_after_evasion_attack: {info_after_evasion_attack}")
 
+def test_qattack():
+    from attacks.QAttack import qattack
+    my_device = device('cpu')
+
+    # Load dataset
+    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ('single-graph', 'pytorch-geometric-other', 'KarateClub')
+    dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
+        full_name=full_name,
+        dataset_ver_ind=0
+    )
+
+    # Train model on original dataset and remember the model metric and node predicted probability
+    gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+
+    manager_config = ConfigPattern(
+        _config_class="ModelManagerConfig",
+        _config_kwargs={
+            "mask_features": [],
+            "optimizer": {
+                "_class_name": "Adam",
+                "_config_kwargs": {},
+            }
+        }
+    )
+
+    gnn_model_manager = FrameworkGNNModelManager(
+        gnn=gcn_gcn,
+        dataset_path=results_dataset_path,
+        manager_config=manager_config,
+        modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
+    )
+
+    gnn_model_manager.gnn.to(my_device)
+
+    num_steps = 100
+    gnn_model_manager.train_model(gen_dataset=dataset,
+                                  steps=num_steps,
+                                  save_model_flag=False)
+
+    evasion_attack_config = ConfigPattern(
+        _class_name="QAttack",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+        }
+    )
+
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+
+    # Evaluate model
+
+    # acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                              metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+
+
+    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    # print(f"Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+    print(f"Accuracy on test: {acc_test}")
+
+    # Node for attack
+    # node_idx = 0
+    #
+    # # Model prediction on a node before an evasion attack on it
+    # gnn_model_manager.gnn.eval()
+    # with torch.no_grad():
+    #     probabilities = torch.exp(gnn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
+    #
+    # predicted_class = probabilities[node_idx].argmax().item()
+    # predicted_probability = probabilities[node_idx][predicted_class].item()
+    # real_class = dataset.data.y[node_idx].item()
+
+    # info_before_evasion_attack = {"node_idx": node_idx,
+    #                               "predicted_class": predicted_class,
+    #                               "predicted_probability": predicted_probability,
+    #                               "real_class": real_class}
+
+    # Attack config
+
+
+    #dataset = gnn_model_manager.evasion_attacker.attack(gnn_model_manager, dataset, None)
+
+    # Attack
+    # gnn_model_manager.evaluate_model(gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
+    #
+    # acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                             metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    # print(f"Accuracy on test after attack: {acc_test}")
+
+    # # Model prediction on a node after an evasion attack on it
+    # with torch.no_grad():
+    #     probabilities = torch.exp(gnn_model_manager.gnn(gnn_model_manager.evasion_attacker.attack_diff.data.x,
+    #                                                     gnn_model_manager.evasion_attacker.attack_diff.data.edge_index))
+    #
+    # predicted_class = probabilities[node_idx].argmax().item()
+    # predicted_probability = probabilities[node_idx][predicted_class].item()
+    # real_class = dataset.data.y[node_idx].item()
+    #
+    # info_after_evasion_attack = {"node_idx": node_idx,
+    #                              "predicted_class": predicted_class,
+    #                              "predicted_probability": predicted_probability,
+    #                              "real_class": real_class}
+    #
+    # print(f"info_before_evasion_attack: {info_before_evasion_attack}")
+    # print(f"info_after_evasion_attack: {info_after_evasion_attack}")
+
 
 if __name__ == '__main__':
     #test_attack_defense()
     torch.manual_seed(5000)
-    test_meta()
+    #test_meta()
+    test_qattack()
