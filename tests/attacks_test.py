@@ -54,6 +54,9 @@ class AttacksTest(unittest.TestCase):
             }
         )
 
+        #Single-Graph - Cora
+
+
     def test_metattack_full(self):
         poison_attack_config = ConfigPattern(
             _class_name="MetaAttackFull",
@@ -100,13 +103,22 @@ class AttacksTest(unittest.TestCase):
             manager_config=self.manager_config,
         )
 
-        # gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
+        gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
 
         gnn_model_manager_sg_example.train_model(gen_dataset=self.gen_dataset_sg_example, steps=100, metrics=[Metric("Accuracy", mask='test')])
         metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example,
                                                                  metrics=[Metric("F1", mask='test', average='macro'),
                                                                           Metric("Accuracy", mask='test')])
         print(metric_loc)
+
+    def test_qattack_Cora(self):
+        evasion_attack_config = ConfigPattern(
+            _class_name="QAttack",
+            _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+            _config_class="EvasionAttackConfig",
+            _config_kwargs={
+            }
+        )
 
 
 if __name__ == '__main__':
