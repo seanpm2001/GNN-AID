@@ -108,53 +108,56 @@ from src.aux.configs import ModelConfig
 class GNNGuard(PoisonDefender):
     name = 'GNNGuard'
 
-    def __init__(self, model=None, lr=0.01, attention=False, drop=False, device='cpu', with_bias=False, with_relu=False):
+    def __init__(self, model=None, lr=0.01, train_iters=100, attention=False, drop=False, device='cpu', with_bias=False, with_relu=False):
         super().__init__()
-        print(model, lr)
         assert device is not None, "Please specify 'device'!"
+        self.model = model
         self.with_bias = with_bias
         self.with_relu = with_relu
         self.attention = attention
         self.lr = lr
         self.device = device
         self.drop = drop
-        self.train_iters = 10
+        self.train_iters = train_iters
         self.droplearn = nn.Linear(2, 1)
         self.beta = nn.Parameter(torch.rand(1))
 
+        
 
     def defense(self, gen_dataset):
         super().defense(gen_dataset=gen_dataset)
-
-        self.model = model_configs_zoo(gen_dataset, 'gcn_gcn_linearized')
-        default_config = ModelModificationConfig(
-            model_ver_ind=0,
-        )
-        manager_config = ConfigPattern(
-            _config_class="ModelManagerConfig",
-            _config_kwargs={
-                "mask_features": [],
-                "optimizer": {
-                    "_config_class": "Config",
-                    "_class_name": "Adam",
-                    "_import_path": OPTIMIZERS_PARAMETERS_PATH,
-                    "_class_import_info": ["torch.optim"],
-                    "_config_kwargs": {"weight_decay": 5e-4},
+        if self.model is None:
+            self.model = model_configs_zoo(gen_dataset, 'gcn_gcn_linearized')
+            default_config = ModelModificationConfig(
+                model_ver_ind=0,
+            )
+            manager_config = ConfigPattern(
+                _config_class="ModelManagerConfig",
+                _config_kwargs={
+                    "mask_features": [],
+                    "optimizer": {
+                        "_config_class": "Config",
+                        "_class_name": "Adam",
+                        "_import_path": OPTIMIZERS_PARAMETERS_PATH,
+                        "_class_import_info": ["torch.optim"],
+                        "_config_kwargs": {"weight_decay": 5e-4},
+                    }
                 }
-            }
-        )
-        gnn_model_manager_surrogate = FrameworkGNNModelManager(
-            gnn=self.model,
-            dataset_path=gen_dataset,
-            modification=default_config,
-            manager_config=manager_config,
-        )
-        gnn_model_manager_surrogate.train_model(gen_dataset=gen_dataset, steps=self.train_iters)
-        # self.pred_labels = gnn_model_manager_surrogate.run_model(gen_dataset=gen_dataset, mask='all', out='answers')
-        self.gnn = gnn_model_manager_surrogate.gnn
+            )
+            gnn_model_manager_surrogate = FrameworkGNNModelManager(
+                gnn=self.model,
+                dataset_path=gen_dataset,
+                modification=default_config,
+                manager_config=manager_config,
+            )
+            gnn_model_manager_surrogate.train_model(gen_dataset=gen_dataset, steps=self.train_iters)
+            # self.pred_labels = gnn_model_manager_surrogate.run_model(gen_dataset=gen_dataset, mask='all', out='answers')
+            self.gnn = gnn_model_manager_surrogate.gnn
+        else:
+            self.gnn = self.model
         # self.embeddings = self.gnn.get_all_layer_embeddings()
 
-        n_node = gen_dataset.data.edge_index.shape[0]
+        
         edge_weights_mem = None
         # print(self.model.forward)
         print(gen_dataset.data, flush=True)
@@ -165,36 +168,34 @@ class GNNGuard(PoisonDefender):
         edge_index = gen_dataset.data.edge_index
         batch = gen_dataset.data.batch
 
-        self.embeddings = self.gnn.get_all_layer_embeddings(x, edge_index, batch)
-        adj_index, adj_value = self.att_coef(gen_dataset)
-        
-        if edge_weights_mem is None:
-            edge_weights = (1 - self.beta) * adj_value
-        else:
-            edge_weights = self.beta * edge_weights_mem + (1 - self.beta) * adj_value
-        edge_weights_mem = edge_weights
+        self.embeddings = self.get_embeddings(x, edge_index, batch)
+        print(self.embeddings.keys())
+        embeddings_count = len(self.embeddings)
 
-        # gen_dataset.data.edge_weights = edge_weights
-        print(gen_dataset.data.x.shape, gen_dataset.data.edge_index.shape, edge_weights.shape)
+        for k in range(-1, embeddings_count-1):
+            adj_index, adj_value = self.att_coef(gen_dataset, k=k)
+            
+            if edge_weights_mem is None:
+                edge_weights = (1 - self.beta) * adj_value
+            else:
+                edge_weights = self.beta * edge_weights_mem + (1 - self.beta) * adj_value
+            edge_weights_mem = edge_weights
+            gen_dataset.data.edge_index = adj_index
+            gen_dataset.data.edge_weights = adj_value
+            # print(adj_value)
+        return gen_dataset
 
-    def att_coef(self, gen_dataset, i=0):
-        # print(edge_index)
-        # if is_lil == False:
-        #     edge_index = edge_index._indices()
-        # else:
-        #     edge_index = edge_index.tocoo()
+
+    def att_coef(self, gen_dataset, k=-1):
         x = gen_dataset.data.x
         edge_index = gen_dataset.data.edge_index
         batch = gen_dataset.data.batch
-        n_node = edge_index.size(1)
-        print(n_node)
+
+        n_node = gen_dataset.data.num_nodes
         
-        fea = self.embeddings[0]
-        # print(embeddings.items())
-        print(len(self.embeddings[0][0]))
-        # n_node = fea.shape[0]
+        fea = self.embeddings[k]
+
         row, col = edge_index[0].cpu().data.numpy()[:], edge_index[1].cpu().data.numpy()[:]
-        print(row, col)
         
         fea_copy = fea.cpu().data.numpy()
         sim_matrix = cosine_similarity(X=fea_copy, Y=fea_copy)  # try cosine similarity
@@ -202,9 +203,8 @@ class GNNGuard(PoisonDefender):
         sim[sim<0.1] = 0
         """build a attention matrix"""
         att_dense = lil_matrix((n_node, n_node), dtype=np.float32)
-        
         att_dense[row, col] = sim
-        print(sim.shape)
+        
         if att_dense[0, 0] == 1:
             att_dense = att_dense - sp.diags(att_dense.diagonal(), offsets=0, format="lil")
         # normalization, make the sum of each row is 1
@@ -216,22 +216,17 @@ class GNNGuard(PoisonDefender):
                                     att_dense_norm[col, row].A1))
             character = torch.from_numpy(character.T)
             drop_score = self.droplearn(character)
-            drop_score = torch.sigmoid(drop_score)  # do not use softmax since we only have one element
+            drop_score = torch.sigmoid(drop_score)
             mm = torch.nn.Threshold(-0.5, 0)
             drop_score = -mm(-drop_score)
-            # mm_2 = torch.nn.Threshold(-0.49, 1)
-            # drop_score = mm_2(-drop_score)
             drop_decision = drop_score
             drop_decision = drop_score.clone().requires_grad_()
-            
-            # print('rate of left edges', drop_decision.sum().data/drop_decision.shape[0])
+
             drop_mask = lil_matrix((n_node, n_node), dtype=np.float32)
             # print(drop_mask)
             drop_mask[row, col] = drop_decision.cpu().data.numpy().squeeze(-1)
-            # print(row, col)
-            print(drop_decision.cpu().data.numpy().squeeze(-1).shape, drop_decision.cpu().data.numpy().squeeze(-1))
             drop_mask = drop_mask.tocsr()
-            # print("MASK", drop_mask)
+            
             att_dense_norm = att_dense_norm.multiply(drop_mask)  # update, remove the 0 edges
 
         if att_dense_norm[0, 0] == 0:  # add the weights of self-loop only add self-loop at the first layer
@@ -241,8 +236,6 @@ class GNNGuard(PoisonDefender):
             att = att_dense_norm + self_weight  # add the self loop
         else:
             att = att_dense_norm
-        # print(att)
-        row, col = att.nonzero()
         att_adj = np.vstack((row, col))
         att_edge_weight = att[row, col]
         att_edge_weight = np.exp(att_edge_weight)   # exponent, kind of softmax
@@ -253,127 +246,12 @@ class GNNGuard(PoisonDefender):
         shape = (n_node, n_node)
         new_adj = torch.sparse.FloatTensor(att_adj, att_edge_weight, shape)
         print(new_adj)
-        # print(new_adj.to_dense())
-        # print(new_adj._indices(), new_adj._values())
-
         return (new_adj._indices(), new_adj._values())
     
-    def new_forward(self, *args, **kwargs):
-        """we don't change the edge_index, just update the edge_weight;
-            some edge_weight are regarded as removed if it equals to zero"""
-        print("NEWNFONIOANVINOVINDVOIN")
-        # layer_ind = -1
-        # tensor_storage = {}
-        # dim_cat = 0
-        # layer_emb_dict = {}
-        # save_emb_flag = self._save_emb_flag
-
-        # x, edge_index, batch = self.arguments_read(*args, **kwargs)
-        # print(edge_index)
-        # feat = x
-        # adj = edge_index.tocoo()
-        # adj_memory = None
-        # # print(list(self.__dict__['_modules'].items()))
-        # for elem in list(self.__dict__['_modules'].items()):
-        #     layer_name, curr_layer_ind = elem[0].split('_')
-        #     if layer_name=="droplearn":
-        #         continue
-        #     curr_layer_ind = int(curr_layer_ind)
-        #     inp = torch.clone(x)
-        #     loc_flag = False
-        #     if curr_layer_ind != layer_ind:
-        #         if save_emb_flag:
-        #             loc_flag = True
-        #         zeroing_x_flag = False
-        #         for key, value in self.conn_dict.items():
-        #             if key[0] == layer_ind and layer_ind not in tensor_storage:
-        #                 tensor_storage[layer_ind] = torch.clone(x)
-        #         layer_ind = curr_layer_ind
-        #         x_copy = torch.clone(x)
-        #         connection_tensor = torch.Tensor()
-        #         for key, value in self.conn_dict.items():
-
-        #             if key[1] == curr_layer_ind:
-        #                 if key[1] - key[0] == 1:
-        #                     zeroing_x_flag = True
-        #                 for con in self.conn_dict[key]:
-        #                     if self.embedding_levels_by_layers[key[1]] == 'n' and \
-        #                             self.embedding_levels_by_layers[key[0]] == 'n':
-        #                         connection_tensor = torch.cat((connection_tensor,
-        #                                                     tensor_storage[key[0]]), 1)
-        #                         dim_cat = 1
-        #                     elif self.embedding_levels_by_layers[key[1]] == 'g' and \
-        #                             self.embedding_levels_by_layers[key[0]] == 'g':
-        #                         connection_tensor = torch.cat((connection_tensor,
-        #                                                     tensor_storage[key[0]]), 0)
-        #                         dim_cat = 0
-        #                     elif self.embedding_levels_by_layers[key[1]] == 'g' and \
-        #                             self.embedding_levels_by_layers[key[0]] == 'n':
-        #                         con_pool = import_by_name(con['pool']['pool_type'],
-        #                                                 ["torch_geometric.nn"])
-        #                         tensor_after_pool = con_pool(tensor_storage[key[0]], batch)
-        #                         connection_tensor = torch.cat((connection_tensor,
-        #                                                     tensor_after_pool), 1)
-        #                         dim_cat = 1
-        #                     else:
-        #                         raise Exception(
-        #                             "Connection from layer type "
-        #                             f"{self.embedding_levels_by_layers[curr_layer_ind - 1]} to"
-        #                             f" layer type {self.embedding_levels_by_layers[curr_layer_ind]}"
-        #                             "is not supported now")
-                
-
-        #         if zeroing_x_flag:
-        #             x = connection_tensor
-        #         else:
-        #             x = torch.cat((x_copy, connection_tensor), dim_cat)
-                
-
-        #         if self.attention:
-        #             if layer_name == 'GINConv':
-        #                 if adj_memory is None:
-        #                     adj = self.att_coef(x, adj, is_lil=False,i=layer_ind)
-        #                     edge_index = adj._indices()
-        #                     edge_weight = adj._values()
-        #                     adj_memory = adj
-        #                 elif adj_memory is not None:
-        #                     adj = self.att_coef(x, adj_memory, is_lil=False, i=layer_ind)
-        #                     edge_weight = self.gate * adj_memory._values() + (1 - self.gate) * adj._values()
-        #                     adj_memory = adj
-        #             elif layer_name == 'GCNConv' or layer_name == 'GATConv':
-        #                 if adj_memory is None:
-        #                     adj = self.att_coef(x, adj, i=0)
-        #                     edge_index = adj._indices()
-        #                     edge_weight = adj._values()
-        #                     adj_memory = adj
-        #                 elif adj_memory is not None:
-        #                     adj = self.att_coef(x, adj_memory, i=layer_ind).to_dense()
-        #                     row, col = adj.nonzero()[:,0], adj.nonzero()[:,1]
-        #                     edge_index = torch.stack((row, col), dim=0)
-        #                     edge_weight = adj[row, col]
-        #                     adj_memory = adj
-        #         else:
-        #             edge_index = adj._indices()
-        #             edge_weight = adj._values()
-
-
-        #     # QUE Kirill, maybe we should not off UserWarning
-        #     with warnings.catch_warnings():
-        #         warnings.filterwarnings("ignore", category=UserWarning)
-        #         # mid = x
-        #         if layer_name in self.modules_info:
-        #             code_str = f"getattr(self, elem[0])" \
-        #                         f"({self.modules_info[layer_name][TECHNICAL_PARAMETER_KEY]['forward_parameters']}," \
-        #                         f" edge_weight=edge_weight)"
-        #             x = eval(f"{code_str}")
-        #         else:
-        #             x = getattr(self, elem[0])(x)
-        #     if loc_flag:
-        #         layer_emb_dict[layer_ind] = torch.clone(x)
-
-        # if save_emb_flag:
-        #     return layer_emb_dict
-        # return x
+    def get_embeddings(self, x, edge_index, batch):
+        self.embeddings = self.gnn.get_all_layer_embeddings(x, edge_index, batch)
+        self.embeddings[-1] = x
+        return self.embeddings
 
 
 class GuardWrapper(nn.Module):
