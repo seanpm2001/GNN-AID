@@ -75,6 +75,18 @@ class Metric:
 
         raise NotImplementedError()
 
+    @staticmethod
+    def create_mask_by_target_list(y_true, target_list=None):
+        if target_list is None:
+            mask = [True] * len(y_true)
+        else:
+            mask = [False] * len(y_true)
+        for i in target_list:
+            if 0 <= i < len(mask):
+                mask[i] = True
+        return tensor(mask)
+        # return mask
+
 
 class GNNModelManager:
     """ class of basic functions over models:
@@ -1057,7 +1069,7 @@ class FrameworkGNNModelManager(GNNModelManager):
                     'all': [True] * len(gen_dataset.labels),
                 }[mask]
             except KeyError:
-                assert isinstance(mask, list)
+                assert isinstance(mask, torch.Tensor)
                 mask_tensor = mask
             if self.evasion_attacker:
                 self.evasion_attacker.attack(model_manager=self, gen_dataset=gen_dataset, mask_tensor=mask_tensor)
