@@ -18,6 +18,7 @@ from src.models_builder.models_zoo import model_configs_zoo
 
 
 def test_attack_defense():
+    from defense.GNNGuard import gnnguard
     # my_device = device('cuda' if is_available() else 'cpu')
     my_device = device('cpu')
 
@@ -121,7 +122,8 @@ def test_attack_defense():
         _import_path=POISON_DEFENSE_PARAMETERS_PATH,
         _config_class="PoisonDefenseConfig",
         _config_kwargs={
-            "n_edges_percent": 0.1,
+            # "n_edges_percent": 0.1,
+            "model": gnn_model_manager.gnn
         }
     )
 
@@ -143,7 +145,7 @@ def test_attack_defense():
         }
     )
 
-    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
+    # gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
     gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
     # gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
     # gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
@@ -421,5 +423,5 @@ def test_gnnguard():
 if __name__ == '__main__':
     #test_attack_defense()
     torch.manual_seed(5000)
-    test_gnnguard()
-    # test_attack_defense()
+    # test_gnnguard()
+    test_attack_defense()
