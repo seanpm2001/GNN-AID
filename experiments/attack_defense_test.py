@@ -2,9 +2,9 @@ import torch
 
 import warnings
 
-import sys
-import os
-sys.path.append(f"{os.getcwd()}/src")
+# import sys
+# import os
+# sys.path.append(f"{os.getcwd()}/src")
 
 from torch import device
 
@@ -384,81 +384,6 @@ def test_nettack_evasion():
     print(f"info_before_evasion_attack: {info_before_evasion_attack}")
     print(f"info_after_evasion_attack: {info_after_evasion_attack}")
 
-
-def test_gnnguard():
-    # from attacks.poison_attacks_collection.metattack import meta_gradient_attack
-    from defense.GNNGuard import gnnguard
-
-    my_device = device('cpu')
-    full_name = ("single-graph", "Planetoid", 'Cora')
-
-    dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
-        full_name=full_name,
-        dataset_ver_ind=0
-    )
-    gnn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
-    manager_config = ConfigPattern(
-        _config_class="ModelManagerConfig",
-        _config_kwargs={
-            "mask_features": [],
-            "optimizer": {
-                # "_config_class": "Config",
-                "_class_name": "Adam",
-                # "_import_path": OPTIMIZERS_PARAMETERS_PATH,
-                # "_class_import_info": ["torch.optim"],
-                "_config_kwargs": {},
-            }
-        }
-    )
-    steps_epochs = 200
-    gnn_model_manager = FrameworkGNNModelManager(
-        gnn=gnn,
-        dataset_path=results_dataset_path,
-        manager_config=manager_config,
-        modification=ModelModificationConfig(model_ver_ind=0, epochs=steps_epochs)
-    )
-    save_model_flag = False
-    gnn_model_manager.gnn.to(my_device)
-    data = data.to(my_device)
-    print(type(data))
-    poison_defense_config = ConfigPattern(
-        _class_name="GNNGuard",
-        _import_path=POISON_DEFENSE_PARAMETERS_PATH,
-        _config_class="PoisonDefenseConfig",
-        _config_kwargs={
-            # "num_nodes": dataset.dataset.x.shape[0]
-        }
-    )
-    from defense.poison_defense import PoisonDefender
-    from src.aux.utils import all_subclasses
-    print([e.name for e in all_subclasses(PoisonDefender)])
-    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-
-    warnings.warn("Start training")
-    dataset.train_test_split(percent_train_class=0.1)
-
-    try:
-        raise FileNotFoundError()
-        # gnn_model_manager.load_model_executor()
-    except FileNotFoundError:
-        gnn_model_manager.epochs = gnn_model_manager.modification.epochs = 0
-        train_test_split_path = gnn_model_manager.train_model(gen_dataset=dataset, steps=steps_epochs,
-                                                              save_model_flag=save_model_flag,
-                                                              metrics=[Metric("F1", mask='train', average=None)])
-
-        if train_test_split_path is not None:
-            dataset.save_train_test_mask(train_test_split_path)
-            train_mask, val_mask, test_mask, train_test_sizes = torch.load(train_test_split_path / 'train_test_split')[
-                                                                :]
-            dataset.train_mask, dataset.val_mask, dataset.test_mask = train_mask, val_mask, test_mask
-            data.percent_train_class, data.percent_test_class = train_test_sizes
-
-    warnings.warn("Training was successful")
-
-    metric_loc = gnn_model_manager.evaluate_model(
-        gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro'),
-                                      Metric("Accuracy", mask='test')])
-    print(metric_loc)
 
 def test_adv_training():
     from defense.evasion_defense import AdvTraining
