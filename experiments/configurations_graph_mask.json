@@ -1,0 +1,14 @@
+{
+  "analysis":
+  {
+    "strategy": "GraphMask",
+    "parameters": {
+        "node_idx": 1709,
+        "epochs": 100,
+        "learning_rate": 3e-4,
+        "coff_size": 0.001,
+        "coff_ent": 0.001,
+        "allowance": 0.03
+    }
+  }
+}
