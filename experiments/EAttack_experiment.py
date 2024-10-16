@@ -20,10 +20,11 @@ from aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARA
 from explainers.explainers_manager import FrameworkExplainersManager
 
 from explainers.GNNExplainer.torch_geom_our.out import GNNExplainer
+from explainers.SubgraphX.out import SubgraphXExplainer
 
 
 def test():
-    from attacks.EGNNE.egnne_attack import EAttack
+    from attacks.EAttack.eattack_attack import EAttack
 
     my_device = device('cpu')
 
@@ -74,8 +75,30 @@ def test():
     print(f"BEFORE ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
     # print(f"Accuracy on test: {acc_test}")
 
+    # explainer_init_config = ConfigPattern(
+    #     _class_name="GNNExplainer(torch-geom)",
+    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #     _config_class="ExplainerInitConfig",
+    #     _config_kwargs={
+    #     }
+    # )
+    # explainer_run_config = ConfigPattern(
+    #     _config_class="ExplainerRunConfig",
+    #     _config_kwargs={
+    #         "mode": "local",
+    #         "kwargs": {
+    #             "_class_name": "GNNExplainer(torch-geom)",
+    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+    #             "_config_class": "Config",
+    #             "_config_kwargs": {
+    #
+    #             },
+    #         }
+    #     }
+    # )
+
     explainer_init_config = ConfigPattern(
-        _class_name="GNNExplainer(torch-geom)",
+        _class_name="SubgraphX",
         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
         _config_class="ExplainerInitConfig",
         _config_kwargs={
@@ -86,7 +109,7 @@ def test():
         _config_kwargs={
             "mode": "local",
             "kwargs": {
-                "_class_name": "GNNExplainer(torch-geom)",
+                "_class_name": "SubgraphX",
                 "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
                 "_config_class": "Config",
                 "_config_kwargs": {
@@ -96,20 +119,15 @@ def test():
         }
     )
 
-    # explainer_GNNExpl = FrameworkExplainersManager(
-    #     init_config=explainer_init_config,
-    #     dataset=dataset, gnn_manager=gnn_model_manager,
-    #     explainer_name='GNNExplainer(torch-geom)',
-    # )
-
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
-    explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=device, **init_kwargs)
+    # explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
 
     node_inds = np.arange(dataset.dataset.data.x.shape[0])
     # dataset = gen_dataset.dataset.data[mask_tensor]
     # num_nodes = len(node_inds)
     # attacked_node_size = int(num_nodes * self.attack_size)
-    attacked_node_size = int((0.15 * len(node_inds)))
+    attacked_node_size = int((0.01 * len(node_inds)))
     attack_inds = np.random.choice(node_inds, attacked_node_size)
 
     evasion_attack_config = ConfigPattern(

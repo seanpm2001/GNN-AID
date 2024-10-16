@@ -6,12 +6,12 @@
 },
 
  "SubgraphX": {
-  "rollout": ["Rollout","int",20,{"min": 1},"Number of iteration to get the prediction"],
+  "rollout": ["Rollout","int",10,{"min": 1},"Number of iteration to get the prediction"],
   "min_atoms": ["Min atoms","int",5,{"min": 1},"Number of atoms of the leaf node in search tree"],
   "c_puct": ["C-puct","float",10.0,{"min": 0},"The hyperparameter which encourages the exploration"],
-  "expand_atoms": ["Expand atoms","int",14,{"min": 1},"The number of atoms to expand when extend the child nodes in the search tree"],
+  "expand_atoms": ["Expand atoms","int",5,{"min": 1},"The number of atoms to expand when extend the child nodes in the search tree"],
   "local_radius": ["Local radius","int",4,{"min": 1},"Number of local radius to calculate"],
-  "sample_num": ["Samples","int",100,{"min": 1},"Sampling time of monte carlo sampling approximation for mc_shapley"],
+  "sample_num": ["Samples","int",25,{"min": 1},"Sampling time of monte carlo sampling approximation for mc_shapley"],
   "reward_method": ["Reward","string","mc_l_shapley",["gnn_score","l_shapley","mc_shapley","mc_l_shapley","nc_mc_l_shapley"],"The command string to select the ???"],
   "high2low": ["high2low","bool",false,{},"Whether to expand children nodes from high degree to low degree when extend the child nodes in the search tree"],
   "subgraph_building_method": ["subgraph_building_method","string","zero_filling",["zero_filling","split"],null]

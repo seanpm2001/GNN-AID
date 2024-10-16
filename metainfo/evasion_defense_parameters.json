@@ -6,7 +6,9 @@
  }, 
  "QuantizationDefender": {
   "qbit": ["qbit", "int", 8, {"min": 1, "step": 1}, "?"]
+ },
+ "AdvTraining": {
+  "epsilon": ["epsilon", "float", 0.1, {"min": 0.001, "step": 0.005}]
  }
-
 }
 

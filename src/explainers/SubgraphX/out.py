@@ -315,7 +315,7 @@ class SubgraphXExplainer(Explainer):
     @finalize_decorator
     def run(self, mode, kwargs, finalize=True):
         assert mode == "local"
-        idx = kwargs.pop('element_idx')
+        idx = int(kwargs.pop('element_idx'))
         self.pbar.reset(total=self.rollout * self.num_classes)
         if self.gen_dataset.is_multi():
             self.explained_graph = idx

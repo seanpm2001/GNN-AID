@@ -44,6 +44,7 @@ class EAttack(EvasionAttacker):
         # get explanations
         for i in tqdm(range(len(self.attack_inds))):
             self.params['element_idx'] = self.attack_inds[i]
+            # self.params['node_idx'] = self.attack_inds[i]
             self.explainer.pbar = ProgressBar(None, "er", desc=f'{self.explainer.name} explaining')
             self.explainer.run(self.mode, self.params, finalize=True)
             explanations.append(copy.deepcopy(self.explainer.explanation))
