@@ -3,7 +3,7 @@ Experiment on attacking GNN via GNNExplainer's explanations
 """
 
 import torch
-
+import numpy as np
 import warnings
 
 from torch import device
@@ -105,6 +105,13 @@ def test():
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
     explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=device, **init_kwargs)
 
+    node_inds = np.arange(dataset.dataset.data.x.shape[0])
+    # dataset = gen_dataset.dataset.data[mask_tensor]
+    # num_nodes = len(node_inds)
+    # attacked_node_size = int(num_nodes * self.attack_size)
+    attacked_node_size = int((0.15 * len(node_inds)))
+    attack_inds = np.random.choice(node_inds, attacked_node_size)
+
     evasion_attack_config = ConfigPattern(
         _class_name="EAttack",
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
@@ -112,23 +119,33 @@ def test():
         _config_kwargs={
             'explainer': explainer,
             'run_config': explainer_run_config,
-            'mode': 'local'
+            'mode': 'local',
+            'attack_inds': attack_inds
         }
     )
 
     gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
+    mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=attack_inds)
+
     # explainer_GNNExpl.conduct_experiment(explainer_run_config)
 
     # Evaluate model
 
-    acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+    acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                 metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
+    print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
+
+    # acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                              metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+    #
+    #
+    # acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                             metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    # print(f"AFTER ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
 
 
-    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    print(f"AFTER ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+
 
 
 

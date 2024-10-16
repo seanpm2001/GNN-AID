@@ -464,5 +464,5 @@ if __name__ == '__main__':
     #test_attack_defense()
     # torch.manual_seed(5000)
     # test_meta()
-    # test_qattack()
-    test_nettack_evasion()
+    test_qattack()
+    # test_nettack_evasion()
