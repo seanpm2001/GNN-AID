@@ -122,7 +122,7 @@ class GNNGuard(PoisonDefender):
         self.droplearn = nn.Linear(2, 1)
         self.beta = nn.Parameter(torch.rand(1))
 
-        
+
 
     def defense(self, gen_dataset):
         super().defense(gen_dataset=gen_dataset)
@@ -157,7 +157,7 @@ class GNNGuard(PoisonDefender):
             self.gnn = self.model
         # self.embeddings = self.gnn.get_all_layer_embeddings()
 
-        
+
         edge_weights_mem = None
         # print(self.model.forward)
         # print(gen_dataset.data, flush=True)
@@ -174,7 +174,7 @@ class GNNGuard(PoisonDefender):
 
         for k in range(-1, embeddings_count-1):
             adj_index, adj_value = self.att_coef(gen_dataset, k=k)
-            
+
             if edge_weights_mem is None:
                 edge_weights = (1 - self.beta) * adj_value
             else:
@@ -192,11 +192,11 @@ class GNNGuard(PoisonDefender):
         batch = gen_dataset.data.batch
 
         n_node = gen_dataset.data.num_nodes
-        
+
         fea = self.embeddings[k]
 
         row, col = edge_index[0].cpu().data.numpy()[:], edge_index[1].cpu().data.numpy()[:]
-        
+
         fea_copy = fea.cpu().data.numpy()
         sim_matrix = cosine_similarity(X=fea_copy, Y=fea_copy)  # try cosine similarity
         sim = sim_matrix[row, col]
@@ -204,7 +204,7 @@ class GNNGuard(PoisonDefender):
         """build a attention matrix"""
         att_dense = lil_matrix((n_node, n_node), dtype=np.float32)
         att_dense[row, col] = sim
-        
+
         if att_dense[0, 0] == 1:
             att_dense = att_dense - sp.diags(att_dense.diagonal(), offsets=0, format="lil")
         # normalization, make the sum of each row is 1
@@ -226,7 +226,7 @@ class GNNGuard(PoisonDefender):
             # print(drop_mask)
             drop_mask[row, col] = drop_decision.cpu().data.numpy().squeeze(-1)
             drop_mask = drop_mask.tocsr()
-            
+
             att_dense_norm = att_dense_norm.multiply(drop_mask)  # update, remove the 0 edges
 
         if att_dense_norm[0, 0] == 0:  # add the weights of self-loop only add self-loop at the first layer
@@ -247,7 +247,7 @@ class GNNGuard(PoisonDefender):
         new_adj = torch.sparse.FloatTensor(att_adj, att_edge_weight, shape)
         # print(new_adj)
         return (new_adj._indices(), new_adj._values())
-    
+
     def get_embeddings(self, x, edge_index, batch):
         self.embeddings = self.gnn.get_all_layer_embeddings(x, edge_index, batch)
         self.embeddings[-1] = x
@@ -260,10 +260,10 @@ class GuardWrapper(nn.Module):
         self.model = model
         self.drop = drop
         self.attention = attention
-        
+
         # Override the forward method directly
         self.model.forward = self.new_forward
-        
+
         # Other dynamic attributes
         self.model.att_coef = types.MethodType(self.att_coef, self.model)
         setattr(self.model, "drop", self.drop)
@@ -277,7 +277,7 @@ class GuardWrapper(nn.Module):
 
     def new_forward(self, *args, **kwargs):
         """we don't change the edge_index, just update the edge_weight;
-            some edge_weight are regarded as removed if it equals to zero"""   
+            some edge_weight are regarded as removed if it equals to zero"""
         layer_ind = -1
         tensor_storage = {}
         dim_cat = 0
@@ -337,13 +337,13 @@ class GuardWrapper(nn.Module):
                                     f"{self.embedding_levels_by_layers[curr_layer_ind - 1]} to"
                                     f" layer type {self.embedding_levels_by_layers[curr_layer_ind]}"
                                     "is not supported now")
-                
+
 
                 if zeroing_x_flag:
                     x = connection_tensor
                 else:
                     x = torch.cat((x_copy, connection_tensor), dim_cat)
-                
+
 
                 if self.attention:
                     if layer_name == 'GINConv':
@@ -405,7 +405,7 @@ class GuardWrapper(nn.Module):
         sim_matrix = cosine_similarity(X=fea_copy, Y=fea_copy)  # try cosine similarity
         sim = sim_matrix[row, col]
         sim[sim<0.1] = 0
-        
+
         """build a attention matrix"""
         att_dense = lil_matrix((n_node, n_node), dtype=np.float32)
         att_dense[row, col] = sim
@@ -415,38 +415,28 @@ class GuardWrapper(nn.Module):
         att_dense_norm = normalize(att_dense, axis=1, norm='l1')
 
 
-        """add learnable dropout, make character vector"""
-        if self.drop:
-            character = np.vstack((att_dense_norm[row, col].A1,
-                                    att_dense_norm[col, row].A1))
-            character = torch.from_numpy(character.T)
-            drop_score = self.droplearn_1(character)
-            drop_score = torch.sigmoid(drop_score)  # do not use softmax since we only have one element
-            mm = torch.nn.Threshold(0.5, 0)
-            drop_score = mm(drop_score)
-            mm_2 = torch.nn.Threshold(-0.49, 1)
-            drop_score = mm_2(-drop_score)
-            drop_decision = drop_score.clone().requires_grad_()
-            # print('rate of left edges', drop_decision.sum().data/drop_decision.shape[0])
-            drop_matrix = lil_matrix((n_node, n_node), dtype=np.float32)
-            drop_matrix[row, col] = drop_decision.cpu().data.numpy().squeeze(-1)
-            att_dense_norm = att_dense_norm.multiply(drop_matrix.tocsr())  # update, remove the 0 edges
+# if __name__ == "__main__":
+#     from deeprobust.graph.data import Dataset, Dpr2Pyg
+#     # from deeprobust.graph.defense import GCN
+#     data = Dataset(root='/tmp/', name='citeseer', setting='prognn')
+#     adj, features, labels = data.adj, data.features, data.labels
+#     idx_train, idx_val, idx_test = data.idx_train, data.idx_val, data.idx_test
+#     model = GCN(nfeat=features.shape[1],
+#           nhid=16,
+#           nclass=labels.max().item() + 1,
+#           dropout=0.5, device='cuda')
+#     model = model.to('cuda')
+#     pyg_data = Dpr2Pyg(data)[0]
 
-        if att_dense_norm[0, 0] == 0:  # add the weights of self-loop only add self-loop at the first layer
-            degree = (att_dense_norm != 0).sum(1).A1
-            lam = 1 / (degree + 1) # degree +1 is to add itself
-            self_weight = sp.diags(np.array(lam), offsets=0, format="lil")
-            att = att_dense_norm + self_weight  # add the self loop
-        else:
-            att = att_dense_norm
+#     # model.fit(features, adj, labels, idx_train, train_iters=200, verbose=True)
+#     # model.test(idx_test)
 
-        row, col = att.nonzero()
-        att_adj = np.vstack((row, col))
-        att_edge_weight = att[row, col]
-        att_edge_weight = np.exp(att_edge_weight)   # exponent, kind of softmax
-        att_edge_weight = torch.tensor(np.array(att_edge_weight)[0], dtype=torch.float32)#.cuda()
-        att_adj = torch.tensor(att_adj, dtype=torch.int64)#.cuda()
+#     from utils import get_dataset
+#     pyg_data = get_dataset('citeseer', True, if_dpr=False)[0]
 
-        shape = (n_node, n_node)
-        new_adj = torch.sparse.FloatTensor(att_adj, att_edge_weight, shape)
-        return new_adj
+#     import ipdb
+#     ipdb.set_trace()
+
+#     model.fit(pyg_data, verbose=True) # train with earlystopping
+#     model.test()
+#     print(model.predict())
