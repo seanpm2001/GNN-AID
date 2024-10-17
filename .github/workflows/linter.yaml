@@ -24,7 +24,20 @@ jobs:
           python -m pip install --exists-action=w --no-cache-dir -r requirements2.txt
           python -m pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
           python -m pip install --upgrade --upgrade-strategy eager --no-cache-dir .
+      - name: Set PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> $GITHUB_ENV
 
-      - name: Run Pylint
-        run: pylint your_module_name
+      - name: Run Pylint Models
+        run: pylint models_builder
+      - name: Run Pylint defense
+        run: pylint defense
+      - name: Run Pylint attacks
+        run: pylint attacks
+      - name: Run Pylint aux
+        run: pylint aux
+      - name: Run Pylint tests
+        run: pylint tests
+      - name: Run Pylint explainers
+        run: pylint explainers
 
