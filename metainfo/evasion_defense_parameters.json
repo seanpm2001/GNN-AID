@@ -10,6 +10,5 @@
  "AdvTraining": {
   "attack_name": ["attack_name", "str", "FGSM", {}, "?"]
  }
-
 }
 
