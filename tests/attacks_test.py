@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.append(f'/home/igor/Documents/graphs/GNN-AID/src')
-
 import unittest
 
 import torch

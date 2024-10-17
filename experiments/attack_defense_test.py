@@ -2,9 +2,6 @@ import torch
 
 import warnings
 
-# import sys
-# import os
-# sys.path.append(f"{os.getcwd()}/src")
 
 from torch import device
 
@@ -14,14 +11,12 @@ from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
-
+from attacks.QAttack import qattack
 
 
 def test_attack_defense():
-    from attacks.QAttack import qattack
-    # from attacks.poison_attacks_collection.metattack import meta_gradient_attack
-    # my_device = device('cuda' if is_available() else 'cpu')
-    my_device = device('cpu')
+
+    my_device = device('cuda' if torch.cuda.is_available() else 'cpu')
 
     full_name = None
 

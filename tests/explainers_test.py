@@ -8,9 +8,6 @@ import shutil
 import signal
 from time import time
 
-import sys
-import os
-sys.path.append(f'/home/igor/Documents/graphs/GNN-AID/src')
 
 from aux import utils
 from aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
