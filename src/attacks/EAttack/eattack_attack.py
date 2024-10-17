@@ -84,7 +84,7 @@ class EAttack(EvasionAttacker):
         edge_index = gen_dataset.dataset.data.edge_index.tolist()
         edge_index_set = set([(u, v) for u, v in zip(edge_index[0], edge_index[1])])
         neighbours = {n: set() for n in self.attack_inds}
-        neighbours_list = list(neighbours)
+        # neighbours_list = list(neighbours)
         for u, v in  zip(edge_index[0], edge_index[1]):
             if u in neighbours.keys():
                 neighbours[u].add(v)
@@ -108,6 +108,7 @@ class EAttack(EvasionAttacker):
                 else:
                     continue
                 if max_rewire:
+                    neighbours_list = list(neighbours[n])
                     sample = random.sample(neighbours_list, 2)
                     new_neigh = sample[0] if sample[0] != neigh_node else sample[1]
                     edge_index_set.remove((u, v))

@@ -18,7 +18,7 @@
  },
 
  "GNNExplainer(torch-geom)": {
-  "epochs":  ["Epochs","int",100,{"min": 1},"The number of epochs to train"],
+  "epochs":  ["Epochs","int",200,{"min": 1},"The number of epochs to train"],
   "lr": ["Learn rate","float",0.01,{"min": 0, "step": 0.0001},"The learning rate to apply"],
   "node_mask_type": ["Node mask","string","object",["None","object","common_attributes","attributes"],"The type of mask to apply on nodes"],
   "edge_mask_type": ["Edge mask","string","object",["None","object","common_attributes","attributes"],"The type of mask to apply on edges"],

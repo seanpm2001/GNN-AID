@@ -27,6 +27,7 @@ from explainers.Zorro.out import ZorroExplainer
 
 def test():
     from attacks.EAttack.eattack_attack import EAttack
+    #from defense.JaccardDefense import
 
     my_device = device('cpu')
 
@@ -60,6 +61,19 @@ def test():
     )
 
     gnn_model_manager.gnn.to(my_device)
+
+    poison_defense_config = ConfigPattern(
+        _class_name="JaccardDefender",
+        _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+        _config_class="PoisonDefenseConfig",
+        _config_kwargs={
+        }
+    )
+
+    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
+
+
+
 
     num_steps = 100
     gnn_model_manager.train_model(gen_dataset=dataset,
@@ -130,46 +144,33 @@ def test():
     # dataset = gen_dataset.dataset.data[mask_tensor]
     # num_nodes = len(node_inds)
     # attacked_node_size = int(num_nodes * self.attack_size)
-    edge_index = dataset.dataset.data.edge_index.tolist()
-    adj_list = {}
-    for u, v in zip(edge_index[0], edge_index[1]):
-        # if u not in adj_list:
-        #     adj_list[u] = [v]
-        # else:
-        #     adj_list[u].append(v)
-        if v not in adj_list:
-            adj_list[v] = [u]
-        else:
-            if u not in adj_list[v]:
-                adj_list[v].append(u)
-    node_inds = [n for n in adj_list.keys() if len(adj_list[n]) > 1]
-    attacked_node_size = int((0.02 * len(node_inds)))
-    attack_inds = np.random.choice(node_inds, attacked_node_size)
 
-    evasion_attack_config = ConfigPattern(
-        _class_name="EAttack",
-        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-        _config_class="EvasionAttackConfig",
-        _config_kwargs={
-            'explainer': explainer,
-            'run_config': explainer_run_config,
-            'mode': 'local',
-            'attack_inds': attack_inds,
-            'random_rewire': False
-        }
-    )
 
-    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+    # edge_index = dataset.dataset.data.edge_index.tolist()
+    # adj_list = {}
+    # for u, v in zip(edge_index[0], edge_index[1]):
+    #     # if u not in adj_list:
+    #     #     adj_list[u] = [v]
+    #     # else:
+    #     #     adj_list[u].append(v)
+    #     if v not in adj_list:
+    #         adj_list[v] = [u]
+    #     else:
+    #         if u not in adj_list[v]:
+    #             adj_list[v].append(u)
+    # node_inds = [n for n in adj_list.keys() if len(adj_list[n]) > 1]
+    # attacked_node_size = int((0.01 * len(node_inds)))
+    # attack_inds = np.random.choice(node_inds, attacked_node_size)
 
-    mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=attack_inds)
+    # mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=attack_inds)
 
     # explainer_GNNExpl.conduct_experiment(explainer_run_config)
 
     # Evaluate model
 
-    acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
-    print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
+    # acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                              metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
+    # print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
 
     # acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
     #                                              metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']

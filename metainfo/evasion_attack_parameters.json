@@ -15,7 +15,7 @@
 "EAttack": {
  "attack_size": ["Attack size (edge)", "float", 0.15, {"min":  0, "max":  1, "step":  0.01}, "Percent of nodes to be rewired"],
  "targeted": ["Targeted attack", "bool", true, {}, "Whether attack targeted or not"],
- "max_rewire": ["Max 2-hop node to rewire for target", "int", 10, {"min":  1, "step":  1}, "Not more than this amount of node from 2-hop neighbourhood will be rewired"],
+ "max_rewire": ["Max 2-hop node to rewire for target", "int", 20, {"min":  1, "step":  1}, "Not more than this amount of node from 2-hop neighbourhood will be rewired"],
  "random_rewire": ["Random rewire", "bool", false, {}, "Rewire based on random, not on explanation (for comparison)"]
 },
  "QAttack": {
