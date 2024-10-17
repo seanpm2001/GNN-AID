@@ -108,7 +108,7 @@ def test_attack_defense():
     gnn_model_manager.gnn.to(my_device)
     data = data.to(my_device)
 
-    poison_attack_config = ConfigPattern(
+    random_poison_attack_config = ConfigPattern(
         _class_name="RandomPoisonAttack",
         _import_path=POISON_ATTACK_PARAMETERS_PATH,
         _config_class="PoisonAttackConfig",
@@ -117,18 +117,19 @@ def test_attack_defense():
         }
     )
 
-    poison_defense_config = ConfigPattern(
+    gnnguard_poison_defense_config = ConfigPattern(
         _class_name="GNNGuard",
         _import_path=POISON_DEFENSE_PARAMETERS_PATH,
         _config_class="PoisonDefenseConfig",
         _config_kwargs={
             "lr": 0.01,
-            "train_iters": 50,
+            "train_iters": 100,
+            # "model": gnn_model_manager.gnn
         }
     )
 
 
-    evasion_attack_config = ConfigPattern(
+    fgsm_evasion_attack_config = ConfigPattern(
         _class_name="FGSM",
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
@@ -136,7 +137,7 @@ def test_attack_defense():
             "epsilon": 0.01 * 1,
         }
     )
-    evasion_defense_config = ConfigPattern(
+    gradientregularization_evasion_defense_config = ConfigPattern(
         _class_name="GradientRegularizationDefender",
         _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
         _config_class="EvasionDefenseConfig",
@@ -145,10 +146,10 @@ def test_attack_defense():
         }
     )
 
-    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
-    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
-    # gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
+    gnn_model_manager.set_poison_attacker(poison_attack_config=random_poison_attack_config)
+    # gnn_model_manager.set_poison_defender(poison_defense_config=gnnguard_poison_defense_config)
+    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=fgsm_evasion_attack_config)
+    # gnn_model_manager.set_evasion_defender(evasion_defense_config=gradientregularization_evasion_defense_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()
@@ -172,7 +173,8 @@ def test_attack_defense():
     warnings.warn("Training was successful")
 
     metric_loc = gnn_model_manager.evaluate_model(
-        gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro')])
+        gen_dataset=dataset, metrics=[Metric("F1", mask='test', average='macro'),
+                                      Metric("Accuracy", mask='test')])
     print(metric_loc)
 
 def test_meta():
@@ -419,7 +421,9 @@ def test_gnnguard():
     print(metric_loc)
 
 if __name__ == '__main__':
+    import random
+    random.seed(10)
     #test_attack_defense()
-    torch.manual_seed(5000)
+    # torch.manual_seed(5000)
     # test_gnnguard()
     test_attack_defense()

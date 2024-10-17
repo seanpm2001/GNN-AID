@@ -160,16 +160,16 @@ class GNNGuard(PoisonDefender):
         
         edge_weights_mem = None
         # print(self.model.forward)
-        print(gen_dataset.data, flush=True)
-        print(gen_dataset.data.edge_index)
-        print(gen_dataset.num_node_features)
+        # print(gen_dataset.data, flush=True)
+        # print(gen_dataset.data.edge_index)
+        # print(gen_dataset.num_node_features)
 
         x = gen_dataset.data.x
         edge_index = gen_dataset.data.edge_index
         batch = gen_dataset.data.batch
 
         self.embeddings = self.get_embeddings(x, edge_index, batch)
-        print(self.embeddings.keys())
+        # print(self.embeddings.keys())
         embeddings_count = len(self.embeddings)
 
         for k in range(-1, embeddings_count-1):
@@ -245,7 +245,7 @@ class GNNGuard(PoisonDefender):
 
         shape = (n_node, n_node)
         new_adj = torch.sparse.FloatTensor(att_adj, att_edge_weight, shape)
-        print(new_adj)
+        # print(new_adj)
         return (new_adj._indices(), new_adj._values())
     
     def get_embeddings(self, x, edge_index, batch):
