@@ -3,6 +3,13 @@ import random
 import torch
 import copy
 
+from explainers.GNNExplainer.torch_geom_our.out import GNNExplainer
+from explainers.SubgraphX.out import SubgraphXExplainer
+from explainers.Zorro.out import ZorroExplainer
+from aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
+    EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH
+from aux.configs import ConfigPattern
+
 from tqdm import tqdm
 from networkx.classes import neighbors
 from numpy.array_api import astype
@@ -45,6 +52,17 @@ class EAttack(EvasionAttacker):
         for i in tqdm(range(len(self.attack_inds))):
             self.params['element_idx'] = self.attack_inds[i]
             # self.params['node_idx'] = self.attack_inds[i]
+
+            explainer_init_config = ConfigPattern(
+                _class_name="SubgraphX",
+                _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+                _config_class="ExplainerInitConfig",
+                _config_kwargs={
+                }
+            )
+            init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
+            self.expainer = SubgraphXExplainer(gen_dataset=gen_dataset, model=model_manager.gnn, device='cpu', **init_kwargs)
+
             self.explainer.pbar = ProgressBar(None, "er", desc=f'{self.explainer.name} explaining')
             self.explainer.run(self.mode, self.params, finalize=True)
             explanations.append(copy.deepcopy(self.explainer.explanation))

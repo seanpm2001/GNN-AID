@@ -21,7 +21,7 @@ from explainers.explainers_manager import FrameworkExplainersManager
 
 from explainers.GNNExplainer.torch_geom_our.out import GNNExplainer
 from explainers.SubgraphX.out import SubgraphXExplainer
-
+from explainers.Zorro.out import ZorroExplainer
 
 def test():
     from attacks.EAttack.eattack_attack import EAttack
@@ -122,6 +122,7 @@ def test():
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
     # explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    # explainer = ZorroExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
 
     node_inds = np.arange(dataset.dataset.data.x.shape[0])
     # dataset = gen_dataset.dataset.data[mask_tensor]
