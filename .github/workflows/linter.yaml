@@ -17,14 +17,14 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-      run: |
-        sudo apt update
-        python -m pip install --upgrade --no-cache-dir pip setuptools
-        python -m pip install --exists-action=w --no-cache-dir -r requirements1.txt
-        python -m pip install --exists-action=w --no-cache-dir -r requirements2.txt
-        python -m pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
-        python -m pip install --upgrade --upgrade-strategy eager --no-cache-dir .
+        run: |
+          sudo apt update
+          python -m pip install --upgrade --no-cache-dir pip setuptools
+          python -m pip install --exists-action=w --no-cache-dir -r requirements1.txt
+          python -m pip install --exists-action=w --no-cache-dir -r requirements2.txt
+          python -m pip install --exists-action=w --no-cache-dir -r docs/requirements.txt
+          python -m pip install --upgrade --upgrade-strategy eager --no-cache-dir .
 
       - name: Run Pylint
         run: pylint your_module_name
-        
+
