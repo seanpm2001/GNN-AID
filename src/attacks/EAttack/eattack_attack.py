@@ -24,7 +24,7 @@ from typing import Dict, Optional
 class EAttack(EvasionAttacker):
     name = "EAttack"
 
-    def __init__(self, explainer, run_config, attack_size, attack_inds, targeted, max_rewire, **kwargs):
+    def __init__(self, explainer, run_config, attack_size, attack_inds, targeted, max_rewire, random_rewire, **kwargs):
         super().__init__(**kwargs)
         self.explainer = explainer
         self.run_config = run_config
@@ -35,6 +35,7 @@ class EAttack(EvasionAttacker):
         self.targeted = targeted
         self.max_rewire = max_rewire
         self.attack_inds = attack_inds
+        self.random_rewire = random_rewire
 
 
     def attack(self, model_manager, gen_dataset, mask_tensor):
@@ -49,23 +50,36 @@ class EAttack(EvasionAttacker):
             self.attack_inds = np.random.choice(node_inds, self.attacked_node_size)
 
         # get explanations
-        for i in tqdm(range(len(self.attack_inds))):
-            self.params['element_idx'] = self.attack_inds[i]
-            # self.params['node_idx'] = self.attack_inds[i]
+        if self.random_rewire:
+            # get random explanation
+            for i in tqdm(range(len(self.attack_inds))):
+                edge_index = gen_dataset.dataset.data.edge_index.tolist()
+                neighbours = {n: set() for n in self.attack_inds}
+                neighbours_list = list(neighbours)
+                for u, v in zip(edge_index[0], edge_index[1]):
+                    if u in neighbours.keys():
+                        neighbours[u].add(v)
+                    elif v in neighbours.keys():
+                        neighbours[v].add(u)
 
-            explainer_init_config = ConfigPattern(
-                _class_name="SubgraphX",
-                _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-                _config_class="ExplainerInitConfig",
-                _config_kwargs={
-                }
-            )
-            init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
-            self.expainer = SubgraphXExplainer(gen_dataset=gen_dataset, model=model_manager.gnn, device='cpu', **init_kwargs)
+        else:
+            for i in tqdm(range(len(self.attack_inds))):
+                self.params['element_idx'] = self.attack_inds[i]
+                # self.params['node_idx'] = self.attack_inds[i]
 
-            self.explainer.pbar = ProgressBar(None, "er", desc=f'{self.explainer.name} explaining')
-            self.explainer.run(self.mode, self.params, finalize=True)
-            explanations.append(copy.deepcopy(self.explainer.explanation))
+                explainer_init_config = ConfigPattern(
+                    _class_name="SubgraphX",
+                    _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+                    _config_class="ExplainerInitConfig",
+                    _config_kwargs={
+                    }
+                )
+                init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
+                self.expainer = SubgraphXExplainer(gen_dataset=gen_dataset, model=model_manager.gnn, device='cpu', **init_kwargs)
+
+                self.explainer.pbar = ProgressBar(None, "er", desc=f'{self.explainer.name} explaining')
+                self.explainer.run(self.mode, self.params, finalize=True)
+                explanations.append(copy.deepcopy(self.explainer.explanation))
 
         edge_index = gen_dataset.dataset.data.edge_index.tolist()
         edge_index_set = set([(u, v) for u, v in zip(edge_index[0], edge_index[1])])

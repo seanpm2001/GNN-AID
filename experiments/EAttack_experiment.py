@@ -75,30 +75,8 @@ def test():
     print(f"BEFORE ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
     # print(f"Accuracy on test: {acc_test}")
 
-    # explainer_init_config = ConfigPattern(
-    #     _class_name="GNNExplainer(torch-geom)",
-    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-    #     _config_class="ExplainerInitConfig",
-    #     _config_kwargs={
-    #     }
-    # )
-    # explainer_run_config = ConfigPattern(
-    #     _config_class="ExplainerRunConfig",
-    #     _config_kwargs={
-    #         "mode": "local",
-    #         "kwargs": {
-    #             "_class_name": "GNNExplainer(torch-geom)",
-    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-    #             "_config_class": "Config",
-    #             "_config_kwargs": {
-    #
-    #             },
-    #         }
-    #     }
-    # )
-
     explainer_init_config = ConfigPattern(
-        _class_name="SubgraphX",
+        _class_name="GNNExplainer(torch-geom)",
         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
         _config_class="ExplainerInitConfig",
         _config_kwargs={
@@ -109,7 +87,7 @@ def test():
         _config_kwargs={
             "mode": "local",
             "kwargs": {
-                "_class_name": "SubgraphX",
+                "_class_name": "GNNExplainer(torch-geom)",
                 "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
                 "_config_class": "Config",
                 "_config_kwargs": {
@@ -119,9 +97,31 @@ def test():
         }
     )
 
+    # explainer_init_config = ConfigPattern(
+    #     _class_name="SubgraphX",
+    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #     _config_class="ExplainerInitConfig",
+    #     _config_kwargs={
+    #     }
+    # )
+    # explainer_run_config = ConfigPattern(
+    #     _config_class="ExplainerRunConfig",
+    #     _config_kwargs={
+    #         "mode": "local",
+    #         "kwargs": {
+    #             "_class_name": "SubgraphX",
+    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+    #             "_config_class": "Config",
+    #             "_config_kwargs": {
+    #
+    #             },
+    #         }
+    #     }
+    # )
+
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
-    # explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
-    explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    # explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     # explainer = ZorroExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
 
     node_inds = np.arange(dataset.dataset.data.x.shape[0])
@@ -139,7 +139,8 @@ def test():
             'explainer': explainer,
             'run_config': explainer_run_config,
             'mode': 'local',
-            'attack_inds': attack_inds
+            'attack_inds': attack_inds,
+            'random_rewire': False
         }
     )
 
