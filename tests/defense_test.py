@@ -4,16 +4,17 @@ import torch
 
 from base.datasets_processing import DatasetManager
 from models_builder.gnn_models import FrameworkGNNModelManager, Metric
-from aux.configs import ModelModificationConfig, DatasetConfig, DatasetVarConfig, ConfigPattern
+from aux.configs import ModelManagerConfig, ModelModificationConfig, DatasetConfig, DatasetVarConfig, ConfigPattern
 from models_builder.models_zoo import model_configs_zoo
 
-from aux.utils import POISON_ATTACK_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, \
-    OPTIMIZERS_PARAMETERS_PATH
+from aux.utils import POISON_DEFENSE_PARAMETERS_PATH, \
+    EVASION_DEFENSE_PARAMETERS_PATH, OPTIMIZERS_PARAMETERS_PATH
 
-class AttacksTest(unittest.TestCase):
+class DefenseTest(unittest.TestCase):
     def setUp(self):
         print('setup')
-
+        
+        from defense.poison_defense.GNNGuard_defense import GNNGuard_defense
         # Init datasets
         # Single-Graph - Example
         self.dataset_sg_example, _, results_dataset_path_sg_example = DatasetManager.get_by_full_name(
@@ -53,17 +54,13 @@ class AttacksTest(unittest.TestCase):
             }
         )
 
-        #Single-Graph - Cora
-
-
-    def test_metattack_full(self):
-        from attacks.metattack import meta_gradient_attack
-        poison_attack_config = ConfigPattern(
-            _class_name="MetaAttackFull",
-            _import_path=POISON_ATTACK_PARAMETERS_PATH,
-            _config_class="PoisonAttackConfig",
+    def test_gnnguard(self):
+        poison_defense_config = ConfigPattern(
+            _class_name="GNNGuard",
+            _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+            _config_class="PoisonDefenseConfig",
             _config_kwargs={
-                "num_nodes": self.gen_dataset_sg_example.dataset.x.shape[0]  # is there more fancy way?
+                # "num_nodes": self.gen_dataset_sg_example.dataset.x.shape[0]  # is there more fancy way?
             }
         )
 
@@ -76,49 +73,11 @@ class AttacksTest(unittest.TestCase):
             manager_config=self.manager_config,
         )
 
-        gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
+        gnn_model_manager_sg_example.set_poison_defender(poison_defense_config=poison_defense_config)
 
         gnn_model_manager_sg_example.train_model(gen_dataset=self.gen_dataset_sg_example, steps=100, metrics=[Metric("Accuracy", mask='test')])
         metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example, metrics=[Metric("F1", mask='test', average='macro')])
         print(metric_loc)
-
-    def test_metattack_approx(self):
-        torch.manual_seed(100)  # DEBUG
-
-        poison_attack_config = ConfigPattern(
-            _class_name="MetaAttackApprox",
-            _import_path=POISON_ATTACK_PARAMETERS_PATH,
-            _config_class="PoisonAttackConfig",
-            _config_kwargs={
-                "num_nodes": self.gen_dataset_sg_example.dataset.x.shape[0]  # is there more fancy way?
-            }
-        )
-
-        gat_gat_sg_example = model_configs_zoo(dataset=self.gen_dataset_sg_example, model_name='gat_gat')
-
-        gnn_model_manager_sg_example = FrameworkGNNModelManager(
-            gnn=gat_gat_sg_example,
-            dataset_path=self.results_dataset_path_sg_example,
-            modification=self.default_config,
-            manager_config=self.manager_config,
-        )
-
-        gnn_model_manager_sg_example.set_poison_attacker(poison_attack_config=poison_attack_config)
-
-        gnn_model_manager_sg_example.train_model(gen_dataset=self.gen_dataset_sg_example, steps=100, metrics=[Metric("Accuracy", mask='test')])
-        metric_loc = gnn_model_manager_sg_example.evaluate_model(gen_dataset=self.gen_dataset_sg_example,
-                                                                 metrics=[Metric("F1", mask='test', average='macro'),
-                                                                          Metric("Accuracy", mask='test')])
-        print(metric_loc)
-
-    def test_qattack_Cora(self):
-        evasion_attack_config = ConfigPattern(
-            _class_name="QAttack",
-            _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-            _config_class="EvasionAttackConfig",
-            _config_kwargs={
-            }
-        )
 
 
 if __name__ == '__main__':
