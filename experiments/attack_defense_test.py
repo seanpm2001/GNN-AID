@@ -1,7 +1,9 @@
 import torch
 
 import warnings
-
+import sys
+import os
+sys.path.append(f"{os.getcwd()}/src")
 
 from torch import device
 
@@ -12,6 +14,8 @@ from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
 from attacks.QAttack import qattack
+from attacks.metattack import meta_gradient_attack
+from defense.GNNGuard import gnnguard
 
 
 def test_attack_defense():
@@ -113,7 +117,7 @@ def test_attack_defense():
     #     }
     # )
 
-    poison_attack_config = ConfigPattern(
+    metafull_poison_attack_config = ConfigPattern(
         _class_name="MetaAttackFull",
         _import_path=POISON_ATTACK_PARAMETERS_PATH,
         _config_class="PoisonAttackConfig",
@@ -122,14 +126,14 @@ def test_attack_defense():
         }
     )
 
-    # poison_attack_config = ConfigPattern(
-    #     _class_name="RandomPoisonAttack",
-    #     _import_path=POISON_ATTACK_PARAMETERS_PATH,
-    #     _config_class="PoisonAttackConfig",
-    #     _config_kwargs={
-    #         "n_edges_percent": 0.1,
-    #     }
-    # )
+    random_poison_attack_config = ConfigPattern(
+        _class_name="RandomPoisonAttack",
+        _import_path=POISON_ATTACK_PARAMETERS_PATH,
+        _config_class="PoisonAttackConfig",
+        _config_kwargs={
+            "n_edges_percent": 0.5,
+        }
+    )
 
     gnnguard_poison_defense_config = ConfigPattern(
         _class_name="GNNGuard",
@@ -143,7 +147,7 @@ def test_attack_defense():
     )
 
 
-    evasion_attack_config = ConfigPattern(
+    qattack_evasion_attack_config = ConfigPattern(
         _class_name="QAttack",
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
@@ -155,37 +159,51 @@ def test_attack_defense():
             "prob_mutate": 0.02
         }
     )
-    # evasion_attack_config = ConfigPattern(
-    #     _class_name="FGSM",
-    #     _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-    #     _config_class="EvasionAttackConfig",
-    #     _config_kwargs={
-    #         "epsilon": 0.01 * 1,
-    #     }
-    # )
+    fgsm_evasion_attack_config = ConfigPattern(
+        _class_name="FGSM",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+            "epsilon": 0.01 * 1,
+        }
+    )
 
-    # evasion_defense_config = ConfigPattern(
-    #     _class_name="GradientRegularizationDefender",
-    #     _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
-    #     _config_class="EvasionDefenseConfig",
-    #     _config_kwargs={
-    #         "regularization_strength": 0.1 * 10
-    #     }
-    # )
-    evasion_defense_config = ConfigPattern(
+    netattack_evasion_attack_config = ConfigPattern(
+        _class_name="NettackEvasionAttacker",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+            "node_idx": 0, # Node for attack
+            "n_perturbations": 20,
+            "perturb_features": True,
+            "perturb_structure": True,
+            "direct": True,
+            "n_influencers": 0
+        }
+    )
+
+    gradientregularization_evasion_defense_config = ConfigPattern(
+        _class_name="GradientRegularizationDefender",
+        _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+        _config_class="EvasionDefenseConfig",
+        _config_kwargs={
+            "regularization_strength": 0.1 * 10
+        }
+    )
+    at_evasion_defense_config = ConfigPattern(
         _class_name="AdvTraining",
         _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
         _config_class="EvasionDefenseConfig",
         _config_kwargs={
             "attack_name": None,
-            "attack_config": evasion_attack_config # evasion_attack_config
+            "attack_config": fgsm_evasion_attack_config # evasion_attack_config
         }
     )
 
-    gnn_model_manager.set_poison_attacker(poison_attack_config=poison_attack_config)
-    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
-    # gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
+    gnn_model_manager.set_poison_attacker(poison_attack_config=metafull_poison_attack_config)
+    # gnn_model_manager.set_poison_defender(poison_defense_config=gnnguard_poison_defense_config)
+    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=qattack_evasion_attack_config)
+    # gnn_model_manager.set_evasion_defender(evasion_defense_config=at_evasion_defense_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()
@@ -214,7 +232,7 @@ def test_attack_defense():
     print(metric_loc)
 
 def test_meta():
-    from attacks.poison_attacks_collection.metattack import meta_gradient_attack
+    from attacks.metattack import meta_gradient_attack
     my_device = device('cpu')
     full_name = ("single-graph", "Planetoid", 'Cora')
 
