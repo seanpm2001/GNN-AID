@@ -554,6 +554,9 @@ class FrameworkGNNConstructor(GNNConstructorTorch):
             else:
                 raise ValueError(f"forward's args should take 2 or 3 arguments but got {len(args)}")
         else:
-            x, edge_index, batch, edge_weight = data.x, data.edge_index, data.batch, data.edge_weight
+            if hasattr(data, "edge_weight"):
+                x, edge_index, batch, edge_weight = data.x, data.edge_index, data.batch, data.edge_weight
+            else:
+                x, edge_index, batch, edge_weight = data.x, data.edge_index, data.batch, None
 
         return x, edge_index, batch, edge_weight

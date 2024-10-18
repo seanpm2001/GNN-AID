@@ -23,7 +23,7 @@
 		{
 			"import_info":  ["SAGEConv", ["torch_geometric.nn"]],
             "need_full_gnn_flag": false,
-            "forward_parameters": "x=x, edge_index=edge_index, edge_weight=edge_weight"
+            "forward_parameters": "x=x, edge_index=edge_index"
 		}
  },
  "GATConv": {
@@ -40,7 +40,7 @@
 		{
 			"import_info":  ["GATConv", ["torch_geometric.nn"]],
             "need_full_gnn_flag": false,
-            "forward_parameters": "x=x, edge_index=edge_index, edge_weight=edge_weight"
+            "forward_parameters": "x=x, edge_index=edge_index"
 		}
  },
  "SGConv": {
@@ -62,7 +62,7 @@
 		{
 			"import_info":  ["GINConv", ["torch_geometric.nn"]],
             "need_full_gnn_flag": false,
-            "forward_parameters": "x=x, edge_index=edge_index, edge_weight=edge_weight"
+            "forward_parameters": "x=x, edge_index=edge_index"
 		}
  },
   "TAGConv": {
@@ -118,7 +118,7 @@
 		{
 			"import_info":  ["GMM", ["models_builder.custom_layers"]],
             "need_full_gnn_flag": false,
-            "forward_parameters": "x=x, edge_index=edge_index, edge_weight=edge_weight"
+            "forward_parameters": "x=x, edge_index=edge_index"
 		}
  },
  "CGConv": {
