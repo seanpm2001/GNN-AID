@@ -13,6 +13,5 @@
     "drop": ["drop", "bool", true, {}, "?"],
     "train_iters": ["train_iters", "int", 50, {}, "?"]
  }
-
 }
 
