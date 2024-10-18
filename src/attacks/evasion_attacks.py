@@ -149,18 +149,6 @@ class NettackGroupEvasionAttacker(EvasionAttacker):
         self.perturb_structure = kwargs.get("perturb_structure")
         self.direct = kwargs.get("direct")
         self.n_influencers = kwargs.get("n_influencers")
-        # node_idx = 0,
-        # n_perturbations = None,
-        # perturb_features = True,
-        # perturb_structure = True,
-        # direct = True,
-        # n_influencers = 0
-        # self.attacker = NettackEvasionAttacker(0,
-        #                                        n_perturbations=self.n_perturbations,
-        #                                        perturb_features=self.perturb_features,
-        #                                        perturb_structure=self.perturb_structure,
-        #                                        direct=self.direct,
-        #                                        n_influencers=self.n_influencers)
         self.attacker = NettackEvasionAttacker(0, **kwargs)
 
     def attack(self, model_manager, gen_dataset, mask_tensor):
