@@ -14,6 +14,7 @@ from src.aux.configs import ModelModificationConfig, ConfigPattern
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
 from attacks.QAttack import qattack
+from defense.JaccardDefense import jaccard_def
 from attacks.metattack import meta_gradient_attack
 from defense.GNNGuard import gnnguard
 
@@ -27,6 +28,7 @@ def test_attack_defense():
     # full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     # full_name = ("single-graph", "custom", 'karate')
     full_name = ("single-graph", "Planetoid", 'Cora')
+    # full_name = ("single-graph", "Planetoid", 'CiteSeer')
     # full_name = ("multiple-graphs", "TUDataset", 'PROTEINS')
 
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
@@ -146,19 +148,28 @@ def test_attack_defense():
         }
     )
 
+    jaccard_poison_defense_config = ConfigPattern(
+        _class_name="JaccardDefender",
+        _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+        _config_class="PoisonDefenseConfig",
+        _config_kwargs={
+            "threshold": 0.05,
+        }
+    )
 
     qattack_evasion_attack_config = ConfigPattern(
         _class_name="QAttack",
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
         _config_kwargs={
-            "population_size": 50,
-            "individual_size": 30,
-            "generations": 50,
+            "population_size": 500,
+            "individual_size": 100,
+            "generations": 100,
             "prob_cross": 0.5,
             "prob_mutate": 0.02
         }
     )
+
     fgsm_evasion_attack_config = ConfigPattern(
         _class_name="FGSM",
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
@@ -178,7 +189,21 @@ def test_attack_defense():
             "perturb_features": True,
             "perturb_structure": True,
             "direct": True,
-            "n_influencers": 0
+            "n_influencers": 3
+        }
+    )
+
+    netattackgroup_evasion_attack_config =  ConfigPattern(
+        _class_name="NettackGroupEvasionAttacker",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+            "node_idxs": [random.randint(0, 500) for _ in range(20)], # Nodes for attack
+            "n_perturbations": 50,
+            "perturb_features": True,
+            "perturb_structure": True,
+            "direct": True,
+            "n_influencers": 10
         }
     )
 
@@ -190,19 +215,29 @@ def test_attack_defense():
             "regularization_strength": 0.1 * 10
         }
     )
+
+
+    fgsm_evasion_attack_config0 = ConfigPattern(
+        _class_name="FGSM",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+            "epsilon": 0.1 * 1,
+        }
+    )
     at_evasion_defense_config = ConfigPattern(
         _class_name="AdvTraining",
         _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
         _config_class="EvasionDefenseConfig",
         _config_kwargs={
             "attack_name": None,
-            "attack_config": fgsm_evasion_attack_config # evasion_attack_config
+            "attack_config": fgsm_evasion_attack_config0 # evasion_attack_config
         }
     )
 
-    gnn_model_manager.set_poison_attacker(poison_attack_config=metafull_poison_attack_config)
+    # gnn_model_manager.set_poison_attacker(poison_attack_config=random_poison_attack_config)
     # gnn_model_manager.set_poison_defender(poison_defense_config=gnnguard_poison_defense_config)
-    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=qattack_evasion_attack_config)
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=netattackgroup_evasion_attack_config)
     # gnn_model_manager.set_evasion_defender(evasion_defense_config=at_evasion_defense_config)
 
     warnings.warn("Start training")
