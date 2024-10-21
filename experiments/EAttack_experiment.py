@@ -155,7 +155,7 @@ def test():
             'run_config': explainer_run_config,
             'mode': 'local',
             'attack_inds': attack_inds,
-            'random_rewire': False
+            'random_rewire': True
         }
     )
 

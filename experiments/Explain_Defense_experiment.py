@@ -5,10 +5,13 @@ Experiment on attacking GNN via GNNExplainer's explanations
 import torch
 import numpy as np
 import warnings
+import copy
+import json
 
 from dig.sslgraph.dataset import get_node_dataset
 from pyscf.fci.cistring import gen_des_str_index
 from torch import device
+from tqdm import tqdm
 
 from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, \
     EVASION_DEFENSE_PARAMETERS_PATH
@@ -16,6 +19,8 @@ from src.models_builder.gnn_models import FrameworkGNNModelManager, Metric
 from src.aux.configs import ModelModificationConfig, ConfigPattern, CONFIG_OBJ
 from src.base.datasets_processing import DatasetManager
 from src.models_builder.models_zoo import model_configs_zoo
+
+from explainers.explainer import ProgressBar
 
 from aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
     EXPLAINERS_GLOBAL_RUN_PARAMETERS_PATH
@@ -27,7 +32,8 @@ from explainers.Zorro.out import ZorroExplainer
 
 def test():
     from attacks.EAttack.eattack_attack import EAttack
-    #from defense.JaccardDefense import
+    from defense.JaccardDefense import jaccard_def
+    from defense.evasion_defense import AdvTraining
 
     my_device = device('cpu')
 
@@ -62,18 +68,24 @@ def test():
 
     gnn_model_manager.gnn.to(my_device)
 
-    poison_defense_config = ConfigPattern(
-        _class_name="JaccardDefender",
-        _import_path=POISON_DEFENSE_PARAMETERS_PATH,
-        _config_class="PoisonDefenseConfig",
+    # poison_defense_config = ConfigPattern(
+    #     _class_name="JaccardDefense",
+    #     _import_path=POISON_DEFENSE_PARAMETERS_PATH,
+    #     _config_class="PoisonDefenseConfig",
+    #     _config_kwargs={
+    #     }
+    # )
+
+    evasion_defense_config = ConfigPattern(
+        _class_name="AdvTraining",
+        _import_path=EVASION_DEFENSE_PARAMETERS_PATH,
+        _config_class="EvasionDefenseConfig",
         _config_kwargs={
         }
     )
 
-    gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
-
-
-
+    #gnn_model_manager.set_poison_defender(poison_defense_config=poison_defense_config)
+    gnn_model_manager.set_evasion_defender(evasion_defense_config=evasion_defense_config)
 
     num_steps = 100
     gnn_model_manager.train_model(gen_dataset=dataset,
@@ -135,8 +147,31 @@ def test():
     #     }
     # )
 
+
+    # node_inds = np.arange(dataset.dataset.data.x.shape[0])
+    # explain_node_size = int((0.01 * len(node_inds)))
+    # explaind_inds = np.random.choice(node_inds, explain_node_size)
+
+    explaind_inds = [0, 1, 4, 5, 6, 8, 11, 13, 14, 15, 16, 17, 18, 22, 24, 25, 26, 29, 1862, 2130]
+
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
     explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+
+    mode = getattr(explainer_run_config, CONFIG_OBJ).mode
+    params = getattr(getattr(explainer_run_config, CONFIG_OBJ).kwargs, CONFIG_OBJ).to_dict()
+
+    explanations = []
+    for n in tqdm(explaind_inds):
+        params['element_idx'] = n
+        explainer.pbar = ProgressBar(None, "er", desc=f'{explainer.name} explaining')
+        explainer.run(mode, params, finalize=True)
+        explanations.append(copy.deepcopy(explainer.explanation))
+        # with open(f"/home/sazonov/PycharmProjects/GNN-AID/experiments/results/expl_{n}.json", "w") as fout:
+        #     json.dump(explainer.explanation.)
+    out = {int(explaind_inds[i]): explanations[i].dictionary['data']['edges'] for i in range(len(explaind_inds))}
+    with open(f"/home/sazonov/PycharmProjects/GNN-AID/experiments/results/expl_No_Def.json", "w") as fout:
+        json.dump(out, fout)
+
     # explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     # explainer = ZorroExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
 
@@ -186,4 +221,6 @@ def test():
 
 
 if __name__ == "__main__":
+    # torch.manual_seed(1000)
+    # np.random.seed(1000)
     test()

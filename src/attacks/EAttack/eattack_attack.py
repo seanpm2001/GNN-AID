@@ -50,7 +50,7 @@ class EAttack(EvasionAttacker):
             self.attack_inds = np.random.choice(node_inds, self.attacked_node_size)
 
         # get explanations
-        if self.random_rewire:
+        if False:
             # get random explanation
             for i in tqdm(range(len(self.attack_inds))):
                 edge_index = gen_dataset.dataset.data.edge_index.tolist()
@@ -84,12 +84,14 @@ class EAttack(EvasionAttacker):
         edge_index = gen_dataset.dataset.data.edge_index.tolist()
         edge_index_set = set([(u, v) for u, v in zip(edge_index[0], edge_index[1])])
         neighbours = {n: set() for n in self.attack_inds}
-        # neighbours_list = list(neighbours)
+        # hop_2 = {{n: set() for n in self.attack_inds}}
+        neighbours_list = list(neighbours)
         for u, v in  zip(edge_index[0], edge_index[1]):
             if u in neighbours.keys():
                 neighbours[u].add(v)
             elif v in neighbours.keys():
                 neighbours[v].add(u)
+
         for i, n in enumerate(self.attack_inds):
             max_rewire = self.max_rewire
             important_edges = sorted(list(explanations[i].dictionary['data']['edges'].items()), key=lambda x: x[1], reverse=True)
@@ -108,10 +110,19 @@ class EAttack(EvasionAttacker):
                 else:
                     continue
                 if max_rewire:
-                    neighbours_list = list(neighbours[n])
+                    if self.random_rewire:
+                        hop_2 = []
+                        for u, v in zip(edge_index[0], edge_index[1]):
+                            if u in neighbours[n] and v != n:
+                                hop_2.append((u, v))
+                            elif v in neighbours[n] and u != n:
+                                hop_2.append((u, v))
+                        rewire_node, neigh_node = random.sample(hop_2, 1)[0]
+                    #neighbours_list = list(neighbours[n])
                     sample = random.sample(neighbours_list, 2)
                     new_neigh = sample[0] if sample[0] != neigh_node else sample[1]
-                    edge_index_set.remove((u, v))
+                    #edge_index_set.remove((u, v))
+                    edge_index_set.remove((rewire_node, neigh_node))
                     edge_index_set.add((rewire_node, new_neigh))
                     max_rewire -= 1
         edge_index_new = [[],[]]
