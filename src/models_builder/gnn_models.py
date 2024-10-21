@@ -815,11 +815,30 @@ class FrameworkGNNModelManager(GNNModelManager):
         self.gnn.eval()
         return loss.cpu().detach().numpy().tolist()
 
-    def train_on_batch(self, batch, task_type=None):
+    def train_on_batch_full(self, batch, task_type=None):
         if self.mi_defender:
             self.mi_defender.pre_batch()
         if self.evasion_defender:
             self.evasion_defender.pre_batch(model_manager=self, batch=batch)
+        loss = self.train_on_batch(batch=batch, task_type=task_type)
+        if self.mi_defender:
+            self.mi_defender.post_batch()
+        evasion_defender_dict = None
+        if self.evasion_defender:
+            evasion_defender_dict = self.evasion_defender.post_batch(
+                model_manager=self, batch=batch, loss=loss,
+            )
+        if evasion_defender_dict and "loss" in evasion_defender_dict:
+            loss = evasion_defender_dict["loss"]
+        loss = self.optimizer_step(loss=loss)
+        return loss
+
+    def optimizer_step(self, loss):
+        loss.backward()
+        self.optimizer.step()
+        return loss
+
+    def train_on_batch(self, batch, task_type=None):
         loss = None
         if hasattr(batch, "edge_weight"):
             weight = batch.edge_weight
@@ -857,17 +876,6 @@ class FrameworkGNNModelManager(GNNModelManager):
             # loss.backward()
         else:
             raise ValueError("Unsupported task type")
-        if self.mi_defender:
-            self.mi_defender.post_batch()
-        evasion_defender_dict = None
-        if self.evasion_defender:
-            evasion_defender_dict = self.evasion_defender.post_batch(
-                model_manager=self, batch=batch, loss=loss,
-            )
-        if evasion_defender_dict and "loss" in evasion_defender_dict:
-            loss = evasion_defender_dict["loss"]
-        loss.backward()
-        self.optimizer.step()
         return loss
 
     def get_name(self, **kwargs):
@@ -1157,6 +1165,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         gen_dataset.train_mask, gen_dataset.val_mask, gen_dataset.test_mask, _ = torch.load(path)[:]
         return gen_dataset
 
+
 class ProtGNNModelManager(FrameworkGNNModelManager):
     # additional_config = ModelManagerConfig(
     #     loss_function={CONFIG_CLASS_NAME: "CrossEntropyLoss"},
@@ -1235,15 +1244,8 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             self.init()
         return self.gnn
 
-    # TODO Kirill train_on_batch to be divided into two parts
     def train_on_batch(self, batch, task_type=None):
-        if self.mi_defender:
-            self.mi_defender.pre_batch()
-        if self.evasion_defender:
-            self.evasion_defender.pre_batch(model_manager=self, batch=batch)
-        loss = None
         if task_type == "single-graph":
-            # TODO Prot with single-graph
             self.optimizer.zero_grad()
             logits = self.gnn(batch.x, batch.edge_index)
             min_distances = self.gnn.min_distances
@@ -1283,14 +1285,10 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             if self.clip is not None:
                 clip_grad_norm(self.gnn.parameters(), self.clip)
             self.optimizer.zero_grad()
-            # loss.backward()
-            # self.optimizer.step()
         elif task_type == "multiple-graphs":
             self.optimizer.zero_grad()
             logits = self.gnn(batch.x, batch.edge_index, batch.batch)
             loss = self.loss_function(logits, batch.y)
-            # loss.backward()
-            # self.optimizer.step()
         # TODO Kirill, remove False when release edge recommendation task
         elif task_type == "edge" and False:
             self.optimizer.zero_grad()
@@ -1305,18 +1303,11 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
 
             loss = pos_loss + neg_loss
-            # loss.backward()
         else:
             raise ValueError("Unsupported task type")
-        if self.mi_defender:
-            self.mi_defender.post_batch()
-        evasion_defender_dict = None
-        if self.evasion_defender:
-            evasion_defender_dict = self.evasion_defender.post_batch(
-                model_manager=self, batch=batch, loss=loss,
-            )
-        if evasion_defender_dict and "loss" in evasion_defender_dict:
-            loss = evasion_defender_dict["loss"]
+        return loss
+
+    def optimizer_step(self, loss):
         loss.backward()
         torch.nn.utils.clip_grad_value_(self.gnn.parameters(), clip_value=2.0)
         self.optimizer.step()
