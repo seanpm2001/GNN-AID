@@ -65,7 +65,7 @@ class PGDAttacker(EvasionAttacker):
         self.num_iterations = num_iterations
         self.num_rand_trials = num_rand_trials
 
-    def attack(self, model_manager, gen_dataset, mask_tensor):
+    def attack_old(self, model_manager, gen_dataset, mask_tensor):
         # Since the PGD attack is an attack on the graph structure, which requires optimization of the graph adjacency
         # matrix, we need to use the GCNConv graph model, implemented through matrix operations with the ability to
         # differentiate the adjacency matrix.
@@ -139,6 +139,32 @@ class PGDAttacker(EvasionAttacker):
 
         gen_dataset.data.edge_index = edge_index
         return gen_dataset
+
+    def attack(self, model_manager, gen_dataset, mask_tensor):
+        data = gen_dataset.data
+
+        edge_weight = torch.ones(data.edge_index.size(1), requires_grad=True)
+
+        model = model_manager.gnn
+        model.eval()
+        optimizer = torch.optim.Adam([edge_weight], lr=self.learning_rate, weight_decay=5e-4)
+
+        # Optimization cycle
+        progress_bar = tqdm(range(self.num_iterations), desc="Optimization cycle", leave=True, postfix={"Loss": 0.0})
+        for t in progress_bar:
+            preds = model(data.x, data.edge_index, edge_weight=edge_weight)
+
+            # calculate the loss
+            loss = self.__attack_loss(preds, data.y)
+            # print(f"iteration: {t}, loss: {loss:.4f}")
+            progress_bar.set_postfix({"Loss": f"{loss:.4f}"})
+
+            # backpropagation of gradients
+            optimizer.zero_grad()
+            loss.backward()
+
+            # Update M
+            optimizer.step()
 
     @staticmethod
     # TODO функция attack_loss должна совпадать с фунцкией потерь, используемой в процессе обучения модели
