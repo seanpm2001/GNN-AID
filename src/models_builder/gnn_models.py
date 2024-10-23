@@ -808,7 +808,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         loss = 0
         for batch in loader:
             self.before_batch(batch)
-            loss += self.train_on_batch(batch, task_type)
+            loss += self.train_on_batch_full(batch, task_type)
             self.after_batch(batch)
         print("loss %.8f" % loss)
         self.modification.epochs += 1
