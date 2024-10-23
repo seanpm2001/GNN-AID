@@ -1,12 +1,16 @@
 import collections
 import collections.abc
 collections.Callable = collections.abc.Callable
+import sys
+import os
+sys.path.append(f"{os.getcwd()}/src")
 
 import unittest
 import warnings
 import shutil
 import signal
 from time import time
+
 
 from aux import utils
 from aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH, EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH, \
