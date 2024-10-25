@@ -24,7 +24,8 @@ from typing import Dict, Optional
 class EAttack(EvasionAttacker):
     name = "EAttack"
 
-    def __init__(self, explainer, run_config, attack_size, attack_inds, targeted, max_rewire, random_rewire, **kwargs):
+    def __init__(self, explainer, run_config, attack_size, attack_inds, targeted, max_rewire, random_rewire,
+                 attack_edges, attack_features, **kwargs):
         super().__init__(**kwargs)
         self.explainer = explainer
         self.run_config = run_config
@@ -36,12 +37,15 @@ class EAttack(EvasionAttacker):
         self.max_rewire = max_rewire
         self.attack_inds = attack_inds
         self.random_rewire = random_rewire
+        self.attack_edges = attack_edges
+        self.attack_features = attack_features
 
 
     def attack(self, model_manager, gen_dataset, mask_tensor):
 
         explanations = []
         if not self.targeted:
+            # TODO check correctness
             # make sample
             node_inds = [i for i, x in enumerate(mask_tensor) if x]
             # dataset = gen_dataset.dataset.data[mask_tensor]
@@ -51,6 +55,7 @@ class EAttack(EvasionAttacker):
 
         # get explanations
         if False:
+            # TODO check correctness
             # get random explanation
             for i in tqdm(range(len(self.attack_inds))):
                 edge_index = gen_dataset.dataset.data.edge_index.tolist()
@@ -61,7 +66,6 @@ class EAttack(EvasionAttacker):
                         neighbours[u].add(v)
                     elif v in neighbours.keys():
                         neighbours[v].add(u)
-
         else:
             for i in tqdm(range(len(self.attack_inds))):
                 self.params['element_idx'] = self.attack_inds[i]

@@ -24,9 +24,11 @@ from explainers.explainers_manager import FrameworkExplainersManager
 from explainers.GNNExplainer.torch_geom_our.out import GNNExplainer
 from explainers.SubgraphX.out import SubgraphXExplainer
 from explainers.Zorro.out import ZorroExplainer
+from explainers.PGMExplainer.out import PGMExplainer
 
 def test():
-    from attacks.EAttack.eattack_attack import EAttack
+    #from attacks.EAttack.eattack_attack import EAttack
+    from attacks.EAttack.experimental_code import EAttack
 
     my_device = device('cpu')
 
@@ -39,7 +41,8 @@ def test():
     )
 
     # Train model on original dataset and remember the model metric and node predicted probability
-    gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+    # gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+    gcn_gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn_gcn')
 
     manager_config = ConfigPattern(
         _config_class="ModelManagerConfig",
@@ -53,7 +56,7 @@ def test():
     )
 
     gnn_model_manager = FrameworkGNNModelManager(
-        gnn=gcn_gcn,
+        gnn=gcn_gcn_gcn,
         dataset_path=results_dataset_path,
         manager_config=manager_config,
         modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
@@ -61,7 +64,7 @@ def test():
 
     gnn_model_manager.gnn.to(my_device)
 
-    num_steps = 100
+    num_steps = 200
     gnn_model_manager.train_model(gen_dataset=dataset,
                                   steps=num_steps,
                                   save_model_flag=False)
@@ -77,27 +80,27 @@ def test():
     print(f"BEFORE ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
     # print(f"Accuracy on test: {acc_test}")
 
-    explainer_init_config = ConfigPattern(
-        _class_name="GNNExplainer(torch-geom)",
-        _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-        _config_class="ExplainerInitConfig",
-        _config_kwargs={
-        }
-    )
-    explainer_run_config = ConfigPattern(
-        _config_class="ExplainerRunConfig",
-        _config_kwargs={
-            "mode": "local",
-            "kwargs": {
-                "_class_name": "GNNExplainer(torch-geom)",
-                "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                "_config_class": "Config",
-                "_config_kwargs": {
-
-                },
-            }
-        }
-    )
+    # explainer_init_config = ConfigPattern(
+    #     _class_name="GNNExplainer(torch-geom)",
+    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #     _config_class="ExplainerInitConfig",
+    #     _config_kwargs={
+    #     }
+    # )
+    # explainer_run_config = ConfigPattern(
+    #     _config_class="ExplainerRunConfig",
+    #     _config_kwargs={
+    #         "mode": "local",
+    #         "kwargs": {
+    #             "_class_name": "GNNExplainer(torch-geom)",
+    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+    #             "_config_class": "Config",
+    #             "_config_kwargs": {
+    #
+    #             },
+    #         }
+    #     }
+    # )
 
     # explainer_init_config = ConfigPattern(
     #     _class_name="SubgraphX",
@@ -121,10 +124,33 @@ def test():
     #     }
     # )
 
+    explainer_init_config = ConfigPattern(
+        _class_name="PGMExplainer",
+        _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+        _config_class="ExplainerInitConfig",
+        _config_kwargs={
+        }
+    )
+    explainer_run_config = ConfigPattern(
+        _config_class="ExplainerRunConfig",
+        _config_kwargs={
+            "mode": "local",
+            "kwargs": {
+                "_class_name": "PGMExplainer",
+                "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+                "_config_class": "Config",
+                "_config_kwargs": {
+
+                },
+            }
+        }
+    )
+
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
-    explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    # explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     # explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     # explainer = ZorroExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    explainer = PGMExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
 
     # node_inds = np.arange(dataset.dataset.data.x.shape[0])
     # dataset = gen_dataset.dataset.data[mask_tensor]
@@ -143,7 +169,7 @@ def test():
             if u not in adj_list[v]:
                 adj_list[v].append(u)
     node_inds = [n for n in adj_list.keys() if len(adj_list[n]) > 1]
-    attacked_node_size = int((0.02 * len(node_inds)))
+    attacked_node_size = int((0.002 * len(node_inds)))
     attack_inds = np.random.choice(node_inds, attacked_node_size)
 
     evasion_attack_config = ConfigPattern(
