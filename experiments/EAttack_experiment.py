@@ -1,6 +1,7 @@
 """
 Experiment on attacking GNN via GNNExplainer's explanations
 """
+import copy
 
 import torch
 import numpy as np
@@ -9,6 +10,7 @@ import warnings
 from dig.sslgraph.dataset import get_node_dataset
 from pyscf.fci.cistring import gen_des_str_index
 from torch import device
+from tqdm import tqdm
 
 from src.aux.utils import POISON_ATTACK_PARAMETERS_PATH, POISON_DEFENSE_PARAMETERS_PATH, EVASION_ATTACK_PARAMETERS_PATH, \
     EVASION_DEFENSE_PARAMETERS_PATH
@@ -80,27 +82,28 @@ def test():
     print(f"BEFORE ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
     # print(f"Accuracy on test: {acc_test}")
 
-    # explainer_init_config = ConfigPattern(
-    #     _class_name="GNNExplainer(torch-geom)",
-    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-    #     _config_class="ExplainerInitConfig",
-    #     _config_kwargs={
-    #     }
-    # )
-    # explainer_run_config = ConfigPattern(
-    #     _config_class="ExplainerRunConfig",
-    #     _config_kwargs={
-    #         "mode": "local",
-    #         "kwargs": {
-    #             "_class_name": "GNNExplainer(torch-geom)",
-    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-    #             "_config_class": "Config",
-    #             "_config_kwargs": {
-    #
-    #             },
-    #         }
-    #     }
-    # )
+    explainer_init_config = ConfigPattern(
+        _class_name="GNNExplainer(torch-geom)",
+        _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+        _config_class="ExplainerInitConfig",
+        _config_kwargs={
+            "node_mask_type": "attributes"
+        }
+    )
+    explainer_run_config = ConfigPattern(
+        _config_class="ExplainerRunConfig",
+        _config_kwargs={
+            "mode": "local",
+            "kwargs": {
+                "_class_name": "GNNExplainer(torch-geom)",
+                "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+                "_config_class": "Config",
+                "_config_kwargs": {
+
+                },
+            }
+        }
+    )
 
     # explainer_init_config = ConfigPattern(
     #     _class_name="SubgraphX",
@@ -124,33 +127,33 @@ def test():
     #     }
     # )
 
-    explainer_init_config = ConfigPattern(
-        _class_name="PGMExplainer",
-        _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
-        _config_class="ExplainerInitConfig",
-        _config_kwargs={
-        }
-    )
-    explainer_run_config = ConfigPattern(
-        _config_class="ExplainerRunConfig",
-        _config_kwargs={
-            "mode": "local",
-            "kwargs": {
-                "_class_name": "PGMExplainer",
-                "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
-                "_config_class": "Config",
-                "_config_kwargs": {
-
-                },
-            }
-        }
-    )
+    # explainer_init_config = ConfigPattern(
+    #     _class_name="PGMExplainer",
+    #     _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
+    #     _config_class="ExplainerInitConfig",
+    #     _config_kwargs={
+    #     }
+    # )
+    # explainer_run_config = ConfigPattern(
+    #     _config_class="ExplainerRunConfig",
+    #     _config_kwargs={
+    #         "mode": "local",
+    #         "kwargs": {
+    #             "_class_name": "PGMExplainer",
+    #             "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
+    #             "_config_class": "Config",
+    #             "_config_kwargs": {
+    #
+    #             },
+    #         }
+    #     }
+    # )
 
     init_kwargs = getattr(explainer_init_config, CONFIG_OBJ).to_dict()
-    # explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    explainer = GNNExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     # explainer = SubgraphXExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
     # explainer = ZorroExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
-    explainer = PGMExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
+    # explainer = PGMExplainer(gen_dataset=dataset, model=gnn_model_manager.gnn, device=my_device, **init_kwargs)
 
     # node_inds = np.arange(dataset.dataset.data.x.shape[0])
     # dataset = gen_dataset.dataset.data[mask_tensor]
@@ -169,7 +172,7 @@ def test():
             if u not in adj_list[v]:
                 adj_list[v].append(u)
     node_inds = [n for n in adj_list.keys() if len(adj_list[n]) > 1]
-    attacked_node_size = int((0.002 * len(node_inds)))
+    attacked_node_size = int((0.04 * len(node_inds)))
     attack_inds = np.random.choice(node_inds, attacked_node_size)
 
     evasion_attack_config = ConfigPattern(
@@ -185,25 +188,37 @@ def test():
         }
     )
 
-    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+    dataset_copy = copy.deepcopy(dataset)
 
-    mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=attack_inds)
+    succ_attack = 0
 
-    # explainer_GNNExpl.conduct_experiment(explainer_run_config)
+    for i in tqdm(attack_inds):
 
-    # Evaluate model
+        mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=[i])
 
-    acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
-    print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
+        evasion_attack_config = ConfigPattern(
+            _class_name="EAttack",
+            _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+            _config_class="EvasionAttackConfig",
+            _config_kwargs={
+                'explainer': explainer,
+                'run_config': explainer_run_config,
+                'mode': 'local',
+                'attack_inds': [i],
+                'random_rewire': True
+            }
+        )
 
-    # acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-    #                                              metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
-    #
-    #
-    # acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-    #                                             metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    # print(f"AFTER ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+        gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+
+        acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                     metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
+
+        succ_attack += acc_attack
+        # print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
+
+        dataset = copy.deepcopy(dataset_copy)
+    print(f"ACCURACY ON ATTACKED: {succ_attack / len(attack_inds)}")
 
 
 

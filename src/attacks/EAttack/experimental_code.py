@@ -105,15 +105,23 @@ class EAttack(EvasionAttacker):
                             edge_index_set.add((u, new_node[0]))
                             cnt += 1
                 elif self.edge_mode == 'rewire':
+                    max_rewire = self.max_rewire
                     for (u, v) in zip(edge_index[0], edge_index[1]):
                         if u != n and v != n and f"{u},{v}" in explanations[i]['edges'].keys():
                             edge_index_set.discard((u, v))
+                            edge_index_set.discard((v, u))
                             if (u, n) not in edge_index_set:
                                 cnt += 1
-                                edge_index_set.add((u, n))
+                                # edge_index_set.add((u, n))
+                                # edge_index_set.add((n, u))
+                                max_rewire -= 1
                             elif (v, n) not in edge_index_set:
                                 cnt += 1
-                                edge_index_set.add((v, n))
+                                # edge_index_set.add((v, n))
+                                # edge_index_set.add((n, v))
+                                max_rewire -= 1
+                        if max_rewire <= 0:
+                            break
 
                 # Update dataset edges
                 edge_index_new = [[], []]
