@@ -1,10 +1,10 @@
 import json
 
-from aux.configs import ExplainerInitConfig, ExplainerModificationConfig, ExplainerRunConfig, \
-    CONFIG_CLASS_NAME, CONFIG_OBJ, ConfigPattern
+from aux.configs import ExplainerInitConfig, ExplainerModificationConfig, CONFIG_OBJ, ConfigPattern
 from aux.declaration import Declare
 from aux.utils import EXPLAINERS_INIT_PARAMETERS_PATH
 from explainers.explainer import Explainer, ProgressBar
+from explainers.explainer_metrics import NodesExplainerMetric
 
 # TODO misha can we do it not manually?
 # Need to import all modules with subclasses of Explainer, otherwise python can't see them
@@ -168,6 +168,45 @@ class FrameworkExplainersManager:
             # TODO what if save_explanation_flag=False?
             if self.save_explanation_flag:
                 self.save_explanation(run_config)
+                self.model_manager.save_model_executor()
+        except Exception as e:
+            if socket:
+                socket.send("er", {"status": "FAILED"})
+            raise e
+
+        return result
+
+    def evaluate_metrics(self, target_nodes_indices, socket=None):
+        """
+        Evaluates explanation metrics between given node indices
+        """
+        # TODO: Refactor this method for framework design
+        self.explainer.pbar = ProgressBar(
+            socket, "er", desc=f'{self.explainer.name} explaining metrics calculation'
+        )  # progress bar
+        try:
+            print("Evaluating explanation metrics...")
+            if self.gen_dataset.is_multi():
+                raise NotImplementedError("Explanation metrics for graph classification")
+            else:
+                explanation_metrics_calculator = NodesExplainerMetric(
+                    model=self.gnn,
+                    graph=self.gen_dataset.data,
+                    explainer=self.explainer
+                )
+                result = explanation_metrics_calculator.evaluate(target_nodes_indices)
+            print("Explanation metrics are ready")
+
+            if socket:
+                # TODO: Handle this on frontend
+                socket.send("er", {
+                    "status": "OK",
+                    "explanation_metrics": result
+                })
+
+            # TODO what if save_explanation_flag=False?
+            if self.save_explanation_flag:
+                # self.save_explanation_metrics(run_config)
                 self.model_manager.save_model_executor()
         except Exception as e:
             if socket:
