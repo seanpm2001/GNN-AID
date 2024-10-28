@@ -6,21 +6,24 @@ class Projection:
     def __init__(self, eps):
         self.eps = eps
 
-    def __call__(self, a_matrix):
+    def __call__(self, a):
         """
-        a_matrix: torch.tensor((N,N))
         """
-        a = a_matrix.flatten()
+        # a = a_matrix.flatten()
 
         projection = self.projection(a)
 
-        projection_matrix = projection.view(a_matrix.shape)
-        return projection_matrix
+        # projection_matrix = projection.view(a_matrix.shape)
+        return projection
 
     def projection(self, a):
         """
         Calculating the projection of 'a' onto a set 'S'
         """
+        if torch.isnan(a).any():
+            # NaN found in vector a. Replace with zeros.
+            a = torch.nan_to_num(a, nan=0.0)
+
         # Projection onto [0, 1]
         s = torch.clamp(a, min=0, max=1)
 
@@ -62,12 +65,12 @@ class Projection:
 
 # TODO check name of variables in RandomSampling Algorithm
 class RandomSampling:
-    def __init__(self, K, eps, A, attack_loss, model, data):
+    def __init__(self, K, eps, attack_loss, model, edge_index_joint, data):
         """Random sampling from probabilistic to binary topology perturbation"""
         self.K = K
         # TODO add condition (1^T, s) <= eps on result
         self.eps = eps
-        self.A = A
+        self.edge_index_joint = edge_index_joint
         self.attack_loss = attack_loss
         self.model = model
         self.data = data
@@ -85,7 +88,7 @@ class RandomSampling:
         best_f_value = float('inf')
 
         for u in u_list:
-            preds = self.model(self.data.x, self.A - self.A * mask)
+            preds = self.model(self.data.x, self.edge_index_joint, None, edge_weight_perturbed)
             f_value = self.attack_loss(preds, self.data.y)
             if f_value < best_f_value:
                 best_f_value = f_value

@@ -825,8 +825,8 @@ def test_pgd():
         _config_class="EvasionAttackConfig",
         _config_kwargs={
             "perturb_ratio": 0.5,
-            "learning_rate": 0.01,
-            "num_iterations": 100,
+            "learning_rate": 0.001,
+            "num_iterations": 500,
             "num_rand_trials": 100
         }
     )
@@ -840,6 +840,68 @@ def test_pgd():
     print(f"Before attack: Accuracy on test: {acc_test_ba}")
     print(f"After PGD attack: Accuracy on test: {acc_test_aa}")
 
+def pgd_graph():
+    my_device = device('cpu')
+
+    # Load dataset
+    full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
+    dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
+        full_name=full_name,
+        dataset_ver_ind=0
+    )
+
+    model = model_configs_zoo(dataset=dataset, model_name='gin_gin_gin_lin_lin_con')
+
+    manager_config = ConfigPattern(
+        _config_class="ModelManagerConfig",
+        _config_kwargs={
+            "mask_features": [],
+            "optimizer": {
+                "_class_name": "Adam",
+                "_config_kwargs": {},
+            }
+        }
+    )
+
+    gnn_model_manager = FrameworkGNNModelManager(
+        gnn=model,
+        dataset_path=results_dataset_path,
+        manager_config=manager_config,
+        modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
+    )
+
+    gnn_model_manager.gnn.to(my_device)
+
+    num_steps = 20
+    gnn_model_manager.train_model(gen_dataset=dataset,
+                                  steps=num_steps,
+                                  save_model_flag=False)
+
+    # Evaluate model before attack on it
+    acc_test_ba = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    print(f"Accuracy on test: {acc_test_ba}")
+
+    # Attack config
+    evasion_attack_config = ConfigPattern(
+        _class_name="PGD",
+        _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+        _config_class="EvasionAttackConfig",
+        _config_kwargs={
+            "perturb_ratio": 0.5,
+            "learning_rate": 0.001,
+            "num_iterations": 500,
+            "num_rand_trials": 100
+        }
+    )
+
+    gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+
+    # Attack
+    acc_test_aa = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+
+
 
 if __name__ == '__main__':
     import random
@@ -848,4 +910,6 @@ if __name__ == '__main__':
     # torch.manual_seed(5000)
     # test_gnnguard()
     # test_jaccard()
-    test_attack_defense()
+    # test_attack_defense()
+    # test_pgd()
+    pgd_graph()
