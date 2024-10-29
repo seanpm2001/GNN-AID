@@ -111,8 +111,7 @@ class PGDAttacker(EvasionAttacker):
                 optimizer.step()
                 with torch.no_grad():
                     x.copy_(torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon))
-                    x_clamp = torch.clamp(x, -self.epsilon, self.epsilon)
-                    x.copy_(x_clamp)
+                    x.copy_(torch.clamp(x, -self.epsilon, self.epsilon))
             # return the modified lines back to the original tensor x
             gen_dataset.data.x[subset] = x.detach()
             self.attack_diff = gen_dataset
@@ -130,6 +129,7 @@ class PGDAttacker(EvasionAttacker):
 
         if self.is_feature_attack:  # feature attack
             x = x.clone()
+            orig_x = x.clone()
             x.requires_grad = True
             optimizer = torch.optim.Adam([x], lr=self.learning_rate, weight_decay=5e-4)
 
@@ -139,10 +139,11 @@ class PGDAttacker(EvasionAttacker):
                 # print(loss)
                 model.zero_grad()
                 loss.backward()
+                x.grad.sign_()
                 optimizer.step()
                 with torch.no_grad():
-                    x_clamp = torch.clamp(x, 0, self.epsilon)
-                    x.copy_(x_clamp)
+                    x.copy_(torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon))
+                    x.copy_(torch.clamp(x, -self.epsilon, self.epsilon))
             gen_dataset.dataset[graph_idx].x.copy_(x.detach())
             self.attack_diff = gen_dataset
         else:  # structure attack

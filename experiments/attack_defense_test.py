@@ -868,7 +868,6 @@ def test_pgd():
                                      "predicted_class": predicted_class,
                                      "predicted_probability": predicted_probability,
                                      "real_class": real_class}
-
     # ____________________________________________________________
 
     # ______________________ Attack on graph _____________________
