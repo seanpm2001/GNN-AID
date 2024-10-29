@@ -776,6 +776,7 @@ def test_adv_training():
     print(metric_loc)
 
 def test_pgd():
+    # ______________________ Attack on node ______________________
     my_device = device('cpu')
 
     # Load dataset
@@ -785,8 +786,7 @@ def test_pgd():
         dataset_ver_ind=0
     )
 
-    # Train model on original dataset and remember the model metric and node predicted probability
-    gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn_no_self_loops')
+    gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
 
     manager_config = ConfigPattern(
         _config_class="ModelManagerConfig",
@@ -813,10 +813,26 @@ def test_pgd():
                                   steps=num_steps,
                                   save_model_flag=False)
 
-    # Evaluate model before attack on it
-    acc_test_ba = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    # print(f"Before attack: Accuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+    print(f"Accuracy on test: {acc_test}")
+
+    # Node for attack
+    node_idx = 650
+
+    # Model prediction on a node before PGD attack on it
+    gnn_model_manager.gnn.eval()
+    with torch.no_grad():
+        probabilities = torch.exp(gnn_model_manager.gnn(dataset.data.x, dataset.data.edge_index))
+
+    predicted_class = probabilities[node_idx].argmax().item()
+    predicted_probability = probabilities[node_idx][predicted_class].item()
+    real_class = dataset.data.y[node_idx].item()
+
+    info_before_pgd_attack_on_node = {"node_idx": node_idx,
+                                      "predicted_class": predicted_class,
+                                      "predicted_probability": predicted_probability,
+                                      "real_class": real_class}
 
     # Attack config
     evasion_attack_config = ConfigPattern(
@@ -824,7 +840,9 @@ def test_pgd():
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
         _config_kwargs={
-            "perturb_ratio": 0.5,
+            "is_feature_attack": True,
+            "element_idx": node_idx,
+            "perturb_ratio": 1,
             "learning_rate": 0.001,
             "num_iterations": 500,
             "num_rand_trials": 100
@@ -834,15 +852,26 @@ def test_pgd():
     gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
     # Attack
-    acc_test_aa = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    _ = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                         metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
 
-    print(f"Before attack: Accuracy on test: {acc_test_ba}")
-    print(f"After PGD attack: Accuracy on test: {acc_test_aa}")
+    # Model prediction on a node after PGD attack on it
+    with torch.no_grad():
+        probabilities = torch.exp(gnn_model_manager.gnn(gnn_model_manager.evasion_attacker.attack_diff.data.x,
+                                                        gnn_model_manager.evasion_attacker.attack_diff.data.edge_index))
 
-def pgd_graph():
-    my_device = device('cpu')
+    predicted_class = probabilities[node_idx].argmax().item()
+    predicted_probability = probabilities[node_idx][predicted_class].item()
+    real_class = dataset.data.y[node_idx].item()
 
+    info_after_pgd_attack_on_node = {"node_idx": node_idx,
+                                     "predicted_class": predicted_class,
+                                     "predicted_probability": predicted_probability,
+                                     "real_class": real_class}
+
+    # ____________________________________________________________
+
+    # ______________________ Attack on graph _____________________
     # Load dataset
     full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
@@ -872,15 +901,32 @@ def pgd_graph():
 
     gnn_model_manager.gnn.to(my_device)
 
-    num_steps = 20
+    num_steps = 200
     gnn_model_manager.train_model(gen_dataset=dataset,
                                   steps=num_steps,
                                   save_model_flag=False)
 
-    # Evaluate model before attack on it
-    acc_test_ba = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
                                                 metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    print(f"Accuracy on test: {acc_test_ba}")
+    print(f"Accuracy on test: {acc_test}")
+
+    # Graph for attack
+    graph_idx = 0
+
+    # Model prediction on a graph before PGD attack on it
+    gnn_model_manager.gnn.eval()
+    with torch.no_grad():
+        probabilities = torch.exp(gnn_model_manager.gnn(dataset.dataset[graph_idx].x,
+                                                        dataset.dataset[graph_idx].edge_index))
+
+    predicted_class = probabilities.argmax().item()
+    predicted_probability = probabilities[0][predicted_class].item()
+    real_class = dataset.dataset[graph_idx].y.item()
+
+    info_before_pgd_attack_on_graph = {"graph_idx": graph_idx,
+                                       "predicted_class": predicted_class,
+                                       "predicted_probability": predicted_probability,
+                                       "real_class": real_class}
 
     # Attack config
     evasion_attack_config = ConfigPattern(
@@ -888,7 +934,9 @@ def pgd_graph():
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
         _config_kwargs={
-            "perturb_ratio": 0.5,
+            "is_feature_attack": True,
+            "element_idx": graph_idx,
+            "perturb_ratio": 1,
             "learning_rate": 0.001,
             "num_iterations": 500,
             "num_rand_trials": 100
@@ -898,9 +946,28 @@ def pgd_graph():
     gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
 
     # Attack
-    acc_test_aa = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    _ = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                         metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
 
+    # Model prediction on a graph after PGD attack on it
+    with torch.no_grad():
+        probabilities = torch.exp(gnn_model_manager.gnn(gnn_model_manager.evasion_attacker.attack_diff.dataset[graph_idx].x,
+                                                        gnn_model_manager.evasion_attacker.attack_diff.dataset[graph_idx].edge_index))
+
+    predicted_class = probabilities.argmax().item()
+    predicted_probability = probabilities[0][predicted_class].item()
+    real_class = dataset.dataset[graph_idx].y.item()
+
+    info_after_pgd_attack_on_graph = {"graph_idx": graph_idx,
+                                      "predicted_class": predicted_class,
+                                      "predicted_probability": predicted_probability,
+                                      "real_class": real_class}
+
+    # ____________________________________________________________
+    print(f"Before PGD attack on node (Cora dataset): {info_before_pgd_attack_on_node}")
+    print(f"After PGD attack on node (Cora dataset): {info_after_pgd_attack_on_node}")
+    print(f"Before PGD attack on graph (MUTAG dataset): {info_before_pgd_attack_on_graph}")
+    print(f"After PGD attack on graph (MUTAG dataset): {info_after_pgd_attack_on_graph}")
 
 
 if __name__ == '__main__':
@@ -911,5 +978,4 @@ if __name__ == '__main__':
     # test_gnnguard()
     # test_jaccard()
     # test_attack_defense()
-    # test_pgd()
-    pgd_graph()
+    test_pgd()

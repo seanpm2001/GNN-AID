@@ -54,6 +54,7 @@ class PGDAttacker(EvasionAttacker):
     name = "PGD"
 
     def __init__(self,
+                 is_feature_attack=False,
                  element_idx=0,
                  perturb_ratio=0.5,
                  learning_rate=0.001,
@@ -62,365 +63,91 @@ class PGDAttacker(EvasionAttacker):
 
         super().__init__()
         self.attack_diff = None
+        self.is_feature_attack = is_feature_attack  # feature / structure
         self.element_idx = element_idx
         self.perturb_ratio = perturb_ratio
         self.learning_rate = learning_rate
         self.num_iterations = num_iterations
         self.num_rand_trials = num_rand_trials
 
-    def attack_old(self, model_manager, gen_dataset, mask_tensor):
-        # Since the PGD attack is an attack on the graph structure, which requires optimization of the graph adjacency
-        # matrix, we need to use the GCNConv graph model, implemented through matrix operations with the ability to
-        # differentiate the adjacency matrix.
-        hidden = model_manager.gnn.structure.layers[0]['layer']['layer_kwargs']['out_channels']
-        model = MatGNN(num_features=gen_dataset.num_node_features, hidden=hidden, num_classes=gen_dataset.num_classes)
-
-        # Copy learned matrix
-        with torch.no_grad():
-            model.conv0.linear.weight.copy_(model_manager.gnn.GCNConv_0.lin.weight)  # W0
-            model.conv0.linear.bias.copy_(model_manager.gnn.GCNConv_0.bias)  # b0
-            model.conv1.linear.weight.copy_(model_manager.gnn.GCNConv_1.lin.weight)  # W1
-            model.conv1.linear.bias.copy_(model_manager.gnn.GCNConv_1.bias)  # b1
-
-        # Convert the list of edges into an adjacency matrix
-        data = gen_dataset.data
-        adj_matrix = to_dense_adj(data.edge_index).squeeze(0)
-
-        # eps - number of edges subject to perturbation
-        total_edges = data.edge_index.size(1)
-        eps = int(self.perturb_ratio * total_edges)
-
-        # Adjacency Matrix Optimization Process
-        # --------------- Start ---------------
-        A = adj_matrix
-        N = data.x.size(0)
-
-        # M - training mask matrix
-        M = torch.zeros((N, N), requires_grad=True)
-
-        # Projection operator
-        projection = Projection(eps=eps)
-
-        model.eval()
-        optimizer = torch.optim.Adam([M], lr=self.learning_rate, weight_decay=5e-4)
-
-        # Optimization cycle
-        progress_bar = tqdm(range(self.num_iterations), desc="Optimization cycle", leave=True, postfix={"Loss": 0.0})
-        for t in progress_bar:
-            # Perturbation of matrix A; A_pert is the perturbed matrix
-            A_pert = A - A * M
-            preds = model(data.x, A_pert)
-
-            # calculate the loss
-            loss = self.__attack_loss(preds, data.y)
-            # print(f"iteration: {t}, loss: {loss:.4f}")
-            progress_bar.set_postfix({"Loss": f"{loss:.4f}"})
-
-            # backpropagation of gradients
-            optimizer.zero_grad()
-            loss.backward()
-
-            # Update M
-            optimizer.step()
-
-            with torch.no_grad():
-                M.copy_(projection(M))
-        # ---------------- End ----------------
-
-        # Random Sampling
-        random_sampling = RandomSampling(K=self.num_rand_trials,
-                                         eps=eps,
-                                         A=A,
-                                         attack_loss=self.__attack_loss,
-                                         model=model,
-                                         data=data)
-        M_binary = random_sampling(M)
-        A_pert_binary = A - A * M_binary
-
-        # Convert adjacency matrix to edge list
-        edge_index, _ = dense_to_sparse(A_pert_binary)
-
-        gen_dataset.data.edge_index = edge_index
-        return gen_dataset
-
     def attack(self, model_manager, gen_dataset, mask_tensor):
-        data = gen_dataset.data
-        N = data.x.size(0)  # num nodes
-        E = data.edge_index.size(1)  # num edges
-
         if gen_dataset.is_multi():
             self._attack_on_graph(model_manager, gen_dataset)
         else:
             self._attack_on_node(model_manager, gen_dataset)
 
-        # edge_index = [[i for i in range(2708)], [i for i in range(2708)]]
-        # edge_index = torch.tensor(edge_index)
-        edge_index_can_remove = data.edge_index
-        edge_index_can_add = self.generate_edge_index_can_add(data.edge_index, N)
-        edge_index_joint = torch.cat([edge_index_can_remove, edge_index_can_add], dim=1)
-
-        mask_remove = torch.ones(E)
-        mask_add = torch.zeros(edge_index_can_add.size(1), requires_grad=True)
-        # mask_joint = torch.cat([mask_remove, mask_add], dim=0)
-
-        edge_weight = torch.ones(edge_index_joint.size(1))
-
-        # TODO если веса изначально есть то присваеваем их в edge_weight, если нет, то torch.ones
-        # edge_weight = torch.ones()
-        # mask = torch.rand(N, requires_grad=True)
-        # mask = torch.rand((data.x.size(0), data.x.size(1)), requires_grad=True)
-
-        model = model_manager.gnn
-        # model.eval()
-        optimizer = torch.optim.Adam([mask_add], lr=self.learning_rate, weight_decay=5e-4)
-
-        total_edges = data.edge_index.size(1)
-        eps = int(self.perturb_ratio * total_edges)
-        print(eps)
-        projection = Projection(eps=eps)
-
-        # Optimization cycle
-        progress_bar = tqdm(range(self.num_iterations), desc="Optimization cycle", leave=True, postfix={"Loss": 0.0})
-        # model.train()
-        from src.testing.soloviov_test.attacks.pgd_attack.try_with_my_gcnconv.run import metrics
-        for t in progress_bar:
-            mask_joint = torch.cat([mask_remove, mask_add], dim=0)
-            edge_weight_perturbed = edge_weight * mask_joint
-            preds = model(data.x, edge_index_joint, None, edge_weight_perturbed)
-
-            # calculate the loss
-            loss = self.__attack_loss(preds, data.y)
-            # print(f"iteration: {t}, loss: {loss:.4f}")
-            progress_bar.set_postfix({"Loss": f"{loss:.4f}"})
-            print(f"{loss:.4f}")
-
-            optimizer.zero_grad()
-            # backpropagation of gradients
-            loss.backward()
-
-            # Update mask
-            optimizer.step()
-
-            with torch.no_grad():
-                mask_add.copy_(projection(mask_add))
-
-            mask_add_bool = self.random_sampling(mask_add.clone())
-            mask_remove_bool = mask_remove.bool()
-            mask_joint_bool = torch.cat([mask_remove_bool, mask_add_bool], dim=0)
-
-            edge_index_joint_filtered = edge_index_joint[:, mask_joint_bool]
-            out = model(data.x, edge_index_joint_filtered)
-            train_acc, test_acc, train_stats, test_stats = metrics(out, data)
-            print(f"epoch: {t}, loss: {loss:.4f}, train_acc: {train_acc:.4f}, test_acc: {test_acc:.4f}")
-            # print(
-            #     f"epoch: {t}, loss: {loss:.4f}, train_acc: {train_acc:.4f}, test_acc: {test_acc:.4f}, mass: {train_stats}")
-
     def _attack_on_node(self, model_manager, gen_dataset):
         node_idx = self.element_idx
 
-        data = gen_dataset.data
+        edge_index = gen_dataset.data.edge_index
+        y = gen_dataset.data.y
+        x = gen_dataset.data.x
+
         model = model_manager.gnn
-
         num_hops = model.n_layers
-        N = data.x.size(0)  # num nodes
 
-        _, edge_index_can_remove, _, _ = k_hop_subgraph(node_idx=node_idx, num_hops=num_hops, edge_index=data.edge_index, relabel_nodes=False)
+        subset, edge_index_subset, inv, edge_mask = k_hop_subgraph(node_idx=node_idx,
+                                                                   num_hops=num_hops,
+                                                                   edge_index=edge_index,
+                                                                   relabel_nodes=True,
+                                                                   directed=False)
 
-        edge_index_can_add = self.generate_edge_index_can_add(edge_index_can_remove, N)
-        edge_index_joint = torch.cat([edge_index_can_remove, edge_index_can_add], dim=1)
+        if self.is_feature_attack:  # feature attack
+            node_idx_remap = torch.where(subset == node_idx)[0].item()
+            y = y.clone()
+            y = y[subset]
+            x = x.clone()
+            x = x[subset]
+            x.requires_grad = True
+            optimizer = torch.optim.Adam([x], lr=self.learning_rate, weight_decay=5e-4)
 
-        mask_remove = torch.ones(edge_index_can_remove.size(1))
-        mask_add = torch.zeros(edge_index_can_add.size(1), requires_grad=True)
-
-        edge_weight = torch.ones(edge_index_joint.size(1))
-
-        optimizer = torch.optim.Adam([mask_add], lr=self.learning_rate, weight_decay=5e-4)
-
-        total_edges = data.edge_index.size(1)
-        eps = int(self.perturb_ratio * total_edges)
-        print(eps)
-        projection = Projection(eps=eps)
-
-        prob = model(data.x, data.edge_index)[node_idx]
-        print(f"real_class:{data.y[node_idx]}, predicted_class: {torch.argmax(prob).item()}, prob: {torch.exp(torch.max(prob)).item()}")
-
-        for t in range(self.num_iterations):
-            mask_joint = torch.cat([mask_remove, mask_add], dim=0)
-            edge_weight_perturbed = edge_weight * mask_joint
-            pred = model(data.x, edge_index_joint, None, edge_weight_perturbed)[node_idx]
-
-            # calculate the loss
-            loss = self.__attack_loss(pred, data.y[node_idx])
-            # print(f"iteration: {t}, loss: {loss:.4f}")
-
-            optimizer.zero_grad()
-            # backpropagation of gradients
-            loss.backward()
-
-            # Update mask
-            optimizer.step()
-
-            with torch.no_grad():
-                mask_add.copy_(projection(mask_add))
-
-            mask_add_bool = self.random_sampling(mask_add.clone())
-            mask_remove_bool = mask_remove.bool()
-            mask_joint_bool = torch.cat([mask_remove_bool, mask_add_bool], dim=0)
-
-            edge_index_joint_filtered = edge_index_joint[:, mask_joint_bool]
-            prob = model(data.x, edge_index_joint_filtered)[node_idx]
-            print(f"epoch: {t}, loss: {loss:.4f}, real_class:{data.y[node_idx]}, predicted_class: {torch.argmax(prob).item()}, prob: {torch.exp(prob)}")
+            for t in tqdm(range(self.num_iterations)):
+                out = model(x, edge_index_subset)
+                loss = -model_manager.loss_function(out[node_idx_remap], y[node_idx_remap])
+                # print(loss)
+                model.zero_grad()
+                loss.backward()
+                optimizer.step()
+                with torch.no_grad():
+                    x_clamp = torch.clamp(x, 0, self.perturb_ratio)
+                    x.copy_(x_clamp)
+            # return the modified lines back to the original tensor x
+            gen_dataset.data.x[subset] = x.detach()
+            self.attack_diff = gen_dataset
+        else:  # structure attack
+            pass
 
     def _attack_on_graph(self, model_manager, gen_dataset):
         graph_idx = self.element_idx
 
-        data = gen_dataset.dataset[graph_idx]
-        model = model_manager.gnn
-
-        N = data.x.size(0)  # num nodes
-        edge_index_can_remove = data.edge_index
-        edge_index_can_add = self.generate_edge_index_can_add(edge_index_can_remove, N)
-        edge_index_joint = torch.cat([edge_index_can_remove, edge_index_can_add], dim=1)
-
-        mask_remove = torch.ones(edge_index_can_remove.size(1))
-        mask_add = torch.zeros(edge_index_can_add.size(1), requires_grad=True)
-
-        edge_weight = torch.ones(edge_index_joint.size(1))
-
-        optimizer = torch.optim.Adam([mask_add], lr=self.learning_rate, weight_decay=5e-4)
-
-        total_edges = data.edge_index.size(1)
-        eps = int(self.perturb_ratio * total_edges)
-        print(eps)
-        projection = Projection(eps=eps)
-
-        prob = model(data.x, data.edge_index)
-        print(f"real_class:{data.y}, predicted_class: {torch.argmax(prob).item()}, prob: {torch.exp(torch.max(prob)).item()}")
-
-        for t in range(self.num_iterations):
-            mask_joint = torch.cat([mask_remove, mask_add], dim=0)
-            edge_weight_perturbed = edge_weight * mask_joint
-            pred = model(data.x, edge_index_joint, None, edge_weight_perturbed)
-
-            # calculate the loss
-            loss = self.__attack_loss(pred, data.y)
-            # print(f"iteration: {t}, loss: {loss:.4f}")
-
-            optimizer.zero_grad()
-            # backpropagation of gradients
-            loss.backward()
-
-            # Update mask
-            optimizer.step()
-
-            with torch.no_grad():
-                mask_add.copy_(projection(mask_add))
-
-            mask_add_bool = self.random_sampling(mask_add.clone())
-            mask_remove_bool = mask_remove.bool()
-            mask_joint_bool = torch.cat([mask_remove_bool, mask_add_bool], dim=0)
-
-            edge_index_joint_filtered = edge_index_joint[:, mask_joint_bool]
-            prob = model(data.x, edge_index_joint_filtered)
-
-            print(
-                f"epoch: {t}, loss: {loss:.4f}, real_class:{data.y}, predicted_class: {torch.argmax(prob).item()}, prob: {torch.exp(prob)}")
-
-    def try_new_attack(self, model_manager, gen_dataset):
-        data = gen_dataset.data
-        N = data.x.size(0)  # num nodes
-        E = data.edge_index.size(1)  # num edges
-
-        # edge_index = [[i for i in range(2708)], [i for i in range(2708)]]
-        # edge_index = torch.tensor(edge_index)
-        edge_index_can_remove = data.edge_index
-        # edge_index_can_add = self.generate_edge_index_can_add(data.edge_index, N)
-        # edge_index_joint = torch.cat([edge_index_can_remove, edge_index_can_add], dim=1)
-
-        mask_remove = torch.ones(E, requires_grad=True)
-        # mask_add = torch.zeros(edge_index_can_add.size(1), requires_grad=True)
-        # mask_joint = torch.cat([mask_remove, mask_add], dim=0)
-
-        # edge_weight = torch.ones(edge_index_joint.size(1))
-
-        # TODO если веса изначально есть то присваеваем их в edge_weight, если нет, то torch.ones
-        # edge_weight = torch.ones()
-        # mask = torch.rand(N, requires_grad=True)
-        # mask = torch.rand((data.x.size(0), data.x.size(1)), requires_grad=True)
+        edge_index = gen_dataset.dataset[graph_idx].edge_index
+        y = gen_dataset.dataset[graph_idx].y
+        x = gen_dataset.dataset[graph_idx].x
 
         model = model_manager.gnn
-        # model.eval()
-        optimizer = torch.optim.Adam([mask_remove], lr=self.learning_rate, weight_decay=5e-4)
 
-        total_edges = data.edge_index.size(1)
-        eps = int(self.perturb_ratio * total_edges)
-        print(eps)
-        projection = Projection(eps=eps)
+        if self.is_feature_attack:  # feature attack
+            x = x.clone()
+            x.requires_grad = True
+            optimizer = torch.optim.Adam([x], lr=self.learning_rate, weight_decay=5e-4)
 
-        # Optimization cycle
-        progress_bar = tqdm(range(self.num_iterations), desc="Optimization cycle", leave=True, postfix={"Loss": 0.0})
-        # model.train()
-        from src.testing.soloviov_test.attacks.pgd_attack.try_with_my_gcnconv.run import metrics
-        for t in progress_bar:
-            # mask_joint = torch.cat([mask_remove, mask_add], dim=0)
-            edge_weight_perturbed = edge_weight * mask_joint
-            preds = model(data.x, edge_index_joint, None, edge_weight_perturbed)
+            for t in tqdm(range(self.num_iterations)):
+                out = model(x, edge_index)
+                loss = -model_manager.loss_function(out, y)
+                # print(loss)
+                model.zero_grad()
+                loss.backward()
+                optimizer.step()
+                with torch.no_grad():
+                    x_clamp = torch.clamp(x, 0, self.perturb_ratio)
+                    x.copy_(x_clamp)
+            gen_dataset.dataset[graph_idx].x.copy_(x.detach())
+            self.attack_diff = gen_dataset
+        else:  # structure attack
+            pass
 
-            # calculate the loss
-            loss = self.__attack_loss(preds, data.y)
-            # print(f"iteration: {t}, loss: {loss:.4f}")
-            progress_bar.set_postfix({"Loss": f"{loss:.4f}"})
-            print(f"{loss:.4f}")
-
-            optimizer.zero_grad()
-            # backpropagation of gradients
-            loss.backward()
-
-            # Update mask
-            optimizer.step()
-
-            with torch.no_grad():
-                mask_add.copy_(projection(mask_add))
-
-            mask_add_bool = self.random_sampling(mask_add.clone())
-            mask_remove_bool = mask_remove.bool()
-            mask_joint_bool = torch.cat([mask_remove_bool, mask_add_bool], dim=0)
-
-            edge_index_joint_filtered = edge_index_joint[:, mask_joint_bool]
-            out = model(data.x, edge_index_joint_filtered)
-            train_acc, test_acc, train_stats, test_stats = metrics(out, data)
-            print(f"epoch: {t}, loss: {loss:.4f}, train_acc: {train_acc:.4f}, test_acc: {test_acc:.4f}")
-
-
-    def random_sampling(self, mask):
-        random_matrix = torch.rand_like(mask)
-        u = random_matrix < mask
-        return u
-
-    def generate_edge_index_can_add(self, edge_index, N):
-        # Создаём все возможные рёбра с использованием torch.cartesian_prod
-        all_edges = torch.cartesian_prod(torch.arange(N), torch.arange(N)).t()
-
-        # Преобразуем edge_index в множество для быстрого поиска
-        edge_index_set = set(map(tuple, edge_index.t().tolist()))
-
-        # Преобразуем all_edges в множество для вычитания
-        all_edges_set = set(map(tuple, all_edges.t().tolist()))
-
-        # Вычитаем рёбра из edge_index
-        remaining_edges = all_edges_set - edge_index_set
-
-        # Преобразуем оставшиеся рёбра обратно в тензор формата (2, E)
-        edge_index_add = torch.tensor(list(remaining_edges)).t()
-
-        return edge_index_add
-
-
-    @staticmethod
-    # TODO функция attack_loss должна совпадать с фунцкией потерь, используемой в процессе обучения модели
-    #  (предложение авторов статьи). Поэтому следует расширить функционал атаки для различных loss функций
-    def __attack_loss(preds, labels):
-        return F.cross_entropy(preds, labels)
+    def attack_diff(self):
+        return self.attack_diff
 
 
 class NettackEvasionAttacker(EvasionAttacker):
