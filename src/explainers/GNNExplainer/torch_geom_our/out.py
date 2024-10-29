@@ -137,15 +137,18 @@ class GNNExplainer(Explainer):
             eps = 0.001
 
             # Edges
-            num_edges = edge_mask.size(0)
-            assert num_edges == self.edge_index.size(1)
-            edges = self.edge_index
+            if self.edge_mask_type=="object":
+                num_edges = edge_mask.size(0)
+                assert num_edges == self.edge_index.size(1)
+                edges = self.edge_index
 
-            for i in range(num_edges):
-                imp = float(edge_mask[i])
-                if not imp < eps:
-                    edge = edges[0][i], edges[1][i]
-                    important_edges[f"{edge[0]},{edge[1]}"] = format(imp, '.4f')
+                for i in range(num_edges):
+                    imp = float(edge_mask[i])
+                    if not imp < eps:
+                        edge = edges[0][i], edges[1][i]
+                        important_edges[f"{edge[0]},{edge[1]}"] = format(imp, '.4f')
+            else:  # if "common_attributes" or "attributes"
+                raise NotImplementedError(f"Edge mask type '{self.edge_mask_type}' is not yet implemented.")
 
             # Nodes
             if self.node_mask_type=="object":
@@ -156,7 +159,6 @@ class GNNExplainer(Explainer):
                     imp = float(node_mask[i][0])
                     if not imp < eps:
                         important_nodes[i] = format(imp, '.4f')
-
             # Features
             elif self.node_mask_type=="common_attributes":
                 num_features = node_mask.size(1)
@@ -166,6 +168,9 @@ class GNNExplainer(Explainer):
                     imp = float(node_mask[0][i])
                     if not imp < eps:
                         important_features[i] = format(imp, '.4f')
+            else:  # if "attributes"
+                # TODO add functional if node_mask_type=="attributes"
+                raise NotImplementedError(f"Node mask type '{self.node_mask_type}' is not yet implemented.")
 
         if self.gen_dataset.is_multi():
             important_edges = {self.graph_idx: important_edges}
