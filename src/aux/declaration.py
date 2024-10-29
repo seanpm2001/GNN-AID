@@ -183,6 +183,12 @@ class Declare:
             GNNModelManager_hash: str,
             model_ver_ind: int,
             gnn_name: str,
+            mi_defense_hash: str,
+            evasion_defense_hash: str,
+            poison_defense_hash: str,
+            mi_attack_hash: str,
+            evasion_attack_hash: str,
+            poison_attack_hash: str,
             epochs=None,
     ):
         """
@@ -202,8 +208,14 @@ class Declare:
         obj_info = {
             "gnn": gnn_name,
             "gnn_model_manager": GNNModelManager_hash,
-            "epochs": str(epochs),
             "model_ver_ind": str(model_ver_ind),
+            "poison_attacker": str(poison_attack_hash),
+            "poison_defender": str(poison_defense_hash),
+            "evasion_defender": str(evasion_defense_hash),
+            "mi_defender": str(mi_defense_hash),
+            "evasion_attacker": str(evasion_attack_hash),
+            "mi_attacker": str(mi_attack_hash),
+            "epochs": str(epochs),
         }
 
         path, files_paths = Declare.obj_info_to_path(previous_path=path, what_save=what_save,
