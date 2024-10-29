@@ -10,7 +10,6 @@ from src.attacks.nettack.utils import preprocess_graph, largest_connected_compon
 
 # PGD imports
 from attacks.evasion_attacks_collection.pgd.utils import Projection, RandomSampling
-from attacks.evasion_attacks_collection.pgd.model import MatGNN
 import torch.nn.functional as F
 from torch_geometric.utils import to_dense_adj, dense_to_sparse, k_hop_subgraph
 from tqdm import tqdm
@@ -56,7 +55,7 @@ class PGDAttacker(EvasionAttacker):
     def __init__(self,
                  is_feature_attack=False,
                  element_idx=0,
-                 perturb_ratio=0.5,
+                 epsilon=0.5,
                  learning_rate=0.001,
                  num_iterations=100,
                  num_rand_trials=100):
@@ -65,7 +64,7 @@ class PGDAttacker(EvasionAttacker):
         self.attack_diff = None
         self.is_feature_attack = is_feature_attack  # feature / structure
         self.element_idx = element_idx
-        self.perturb_ratio = perturb_ratio
+        self.epsilon = epsilon
         self.learning_rate = learning_rate
         self.num_iterations = num_iterations
         self.num_rand_trials = num_rand_trials
@@ -98,6 +97,7 @@ class PGDAttacker(EvasionAttacker):
             y = y[subset]
             x = x.clone()
             x = x[subset]
+            orig_x = x.clone()
             x.requires_grad = True
             optimizer = torch.optim.Adam([x], lr=self.learning_rate, weight_decay=5e-4)
 
@@ -107,9 +107,12 @@ class PGDAttacker(EvasionAttacker):
                 # print(loss)
                 model.zero_grad()
                 loss.backward()
+                x.grad.sign()
                 optimizer.step()
+                # x = torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon)
                 with torch.no_grad():
-                    x_clamp = torch.clamp(x, 0, self.perturb_ratio)
+                    x.copy_(torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon))
+                    x_clamp = torch.clamp(x, -self.epsilon, self.epsilon)
                     x.copy_(x_clamp)
             # return the modified lines back to the original tensor x
             gen_dataset.data.x[subset] = x.detach()
@@ -139,7 +142,7 @@ class PGDAttacker(EvasionAttacker):
                 loss.backward()
                 optimizer.step()
                 with torch.no_grad():
-                    x_clamp = torch.clamp(x, 0, self.perturb_ratio)
+                    x_clamp = torch.clamp(x, 0, self.epsilon)
                     x.copy_(x_clamp)
             gen_dataset.dataset[graph_idx].x.copy_(x.detach())
             self.attack_diff = gen_dataset

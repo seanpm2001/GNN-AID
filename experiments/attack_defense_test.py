@@ -842,7 +842,7 @@ def test_pgd():
         _config_kwargs={
             "is_feature_attack": True,
             "element_idx": node_idx,
-            "perturb_ratio": 1,
+            "epsilon": 0.1,
             "learning_rate": 0.001,
             "num_iterations": 500,
             "num_rand_trials": 100
@@ -936,7 +936,7 @@ def test_pgd():
         _config_kwargs={
             "is_feature_attack": True,
             "element_idx": graph_idx,
-            "perturb_ratio": 1,
+            "epsilon": 0.1,
             "learning_rate": 0.001,
             "num_iterations": 500,
             "num_rand_trials": 100

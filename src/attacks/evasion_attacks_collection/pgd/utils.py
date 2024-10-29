@@ -87,10 +87,10 @@ class RandomSampling:
         best_u = None
         best_f_value = float('inf')
 
-        for u in u_list:
-            preds = self.model(self.data.x, self.edge_index_joint, None, edge_weight_perturbed)
-            f_value = self.attack_loss(preds, self.data.y)
-            if f_value < best_f_value:
-                best_f_value = f_value
-                best_u = u
+        # for u in u_list:
+        #     preds = self.model(self.data.x, self.edge_index_joint, None, edge_weight_perturbed)
+        #     f_value = self.attack_loss(preds, self.data.y)
+        #     if f_value < best_f_value:
+        #         best_f_value = f_value
+        #         best_u = u
         return best_u
