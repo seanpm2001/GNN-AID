@@ -107,9 +107,8 @@ class PGDAttacker(EvasionAttacker):
                 # print(loss)
                 model.zero_grad()
                 loss.backward()
-                x.grad.sign()
+                x.grad.sign_()
                 optimizer.step()
-                # x = torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon)
                 with torch.no_grad():
                     x.copy_(torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon))
                     x_clamp = torch.clamp(x, -self.epsilon, self.epsilon)
