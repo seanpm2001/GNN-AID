@@ -4,12 +4,19 @@ from torch_geometric.utils import subgraph
 
 
 class NodesExplainerMetric:
-    def __init__(self, model, graph, explainer):
+    def __init__(self, model, graph, explainer, kwargs_dict):
         self.model = model
         self.explainer = explainer
         self.graph = graph
         self.x = self.graph.x
         self.edge_index = self.graph.edge_index
+        self.kwargs_dict = {
+            "stability_graph_perturbations_nums": 10,
+            "stability_feature_change_percent": 0.05,
+            "stability_node_removal_percent": 0.05,
+            "consistency_num_explanation_runs": 10
+        }
+        self.kwargs_dict.update(kwargs_dict)
         self.nodes_explanations = {}  # explanations cache. node_ind -> explanation
         self.dictionary = {
         }
@@ -22,8 +29,16 @@ class NodesExplainerMetric:
         for node_ind in target_nodes_indices:
             self.get_explanation(node_ind)
             sparsity += self.calculate_sparsity(node_ind)
-            stability += self.calculate_stability(node_ind)
-            consistency += self.calculate_consistency(node_ind)
+            stability += self.calculate_stability(
+                node_ind,
+                graph_perturbations_nums=self.kwargs_dict["stability_graph_perturbations_nums"],
+                feature_change_percent=self.kwargs_dict["stability_feature_change_percent"],
+                node_removal_percent=self.kwargs_dict["stability_node_removal_percent"]
+            )
+            consistency += self.calculate_consistency(
+                node_ind,
+                num_explanation_runs=self.kwargs_dict["consistency_num_explanation_runs"]
+            )
         fidelity = self.calculate_fidelity(target_nodes_indices)
         self.dictionary["sparsity"] = sparsity / num_targets
         self.dictionary["stability"] = stability / num_targets
@@ -53,27 +68,45 @@ class NodesExplainerMetric:
                 len(self.x) + len(self.edge_index))
         return sparsity
 
-    def calculate_stability(self, node_ind, feature_change_percent=0.05, node_removal_percent=0.05):
+    def calculate_stability(
+            self,
+            node_ind,
+            graph_perturbations_nums=10,
+            feature_change_percent=0.05,
+            node_removal_percent=0.05
+    ):
         base_explanation = self.get_explanation(node_ind)
-        new_x, new_edge_index = self.perturb_graph(
-            self.x, self.edge_index, node_ind, feature_change_percent, node_removal_percent
-        )
-        perturbed_explanation = self.calculate_explanation(new_x, new_edge_index, node_ind)
+        stability = 0
+        for _ in range(graph_perturbations_nums):
+            new_x, new_edge_index = self.perturb_graph(
+                self.x, self.edge_index, node_ind, feature_change_percent, node_removal_percent
+            )
+            perturbed_explanation = self.calculate_explanation(new_x, new_edge_index, node_ind)
+            base_explanation_vector, perturbed_explanation_vector = \
+                NodesExplainerMetric.calculate_explanation_vectors(base_explanation, perturbed_explanation)
 
-        base_explanation_vector, perturbed_explanation_vector = \
-            NodesExplainerMetric.calculate_explanation_vectors(base_explanation, perturbed_explanation)
+            stability += euclidean_distance(base_explanation_vector, perturbed_explanation_vector)
 
-        return euclidean_distance(base_explanation_vector, perturbed_explanation_vector)
+        stability = stability / graph_perturbations_nums
+        return stability
 
-    def calculate_consistency(self, node_ind):
-        base_explanation = self.get_explanation(node_ind)
-        perturbed_explanation = self.calculate_explanation(self.x, self.edge_index, node_ind)
-        base_explanation_vector, perturbed_explanation_vector = \
-            NodesExplainerMetric.calculate_explanation_vectors(base_explanation, perturbed_explanation)
-        return cosine_similarity(base_explanation_vector, perturbed_explanation_vector)
+    def calculate_consistency(self, node_ind, num_explanation_runs=10):
+        explanation = self.get_explanation(node_ind)
+        consistency = 0
+        for _ in range(num_explanation_runs):
+            perturbed_explanation = self.calculate_explanation(self.x, self.edge_index, node_ind)
+            base_explanation_vector, perturbed_explanation_vector = \
+                NodesExplainerMetric.calculate_explanation_vectors(explanation, perturbed_explanation)
+            consistency += cosine_similarity(base_explanation_vector, perturbed_explanation_vector)
+            explanation = perturbed_explanation
+
+        consistency = consistency / num_explanation_runs
+        return consistency
 
     def calculate_explanation(self, x, edge_index, node_idx, **kwargs):
+        print(f"Processing explanation calculation for node id {node_idx}.")
         self.explainer.evaluate_tensor_graph(x, edge_index, node_idx, **kwargs)
+        print(f"Explanation calculation for node id {node_idx} completed.")
         return self.explainer.explanation.dictionary
 
     def get_explanation(self, node_ind):
@@ -82,7 +115,6 @@ class NodesExplainerMetric:
         else:
             node_explanation = self.calculate_explanation(self.x, self.edge_index, node_ind)
             self.nodes_explanations[node_ind] = node_explanation
-            print(f"Processed explanation calculation for node id {node_ind}.")
         return node_explanation
 
     @staticmethod

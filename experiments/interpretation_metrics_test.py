@@ -76,7 +76,7 @@ def run_interpretation_test():
             "epochs": 10
         }
     )
-    explainer_run_config = ConfigPattern(
+    explainer_metrics_run_config = ConfigPattern(
         _config_class="ExplainerRunConfig",
         _config_kwargs={
             "mode": "local",
@@ -85,7 +85,10 @@ def run_interpretation_test():
                 "_import_path": EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH,
                 "_config_class": "Config",
                 "_config_kwargs": {
-                    "element_idx": 5
+                    "stability_graph_perturbations_nums": 10,
+                    "stability_feature_change_percent": 0.05,
+                    "stability_node_removal_percent": 0.05,
+                    "consistency_num_explanation_runs": 10
                 },
             }
         }
@@ -107,7 +110,7 @@ def run_interpretation_test():
     #     explainer=explainer_GNNExpl.explainer
     # )
     # res = explanation_metric.evaluate(node_indices)
-    explanation_metrics = explainer_GNNExpl.evaluate_metrics(node_indices)
+    explanation_metrics = explainer_GNNExpl.evaluate_metrics(node_indices, explainer_metrics_run_config)
     print(explanation_metrics)
 
 
