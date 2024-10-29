@@ -44,6 +44,10 @@ class EAttack(EvasionAttacker):
 
 
     def attack(self, model_manager, gen_dataset, mask_tensor):
+        """
+        Now edge modification designed in order to get list of attacked nodes that consist of one specific node TODO - refactor
+        Feature attack to be developed in order to attack targetted node
+        """
 
         assert self.attack_edges or self.attack_features
 
@@ -134,9 +138,41 @@ class EAttack(EvasionAttacker):
             print(cnt)
 
         if self.attack_features:
-            if self.features_mode == 'reverse':
-                pass
-            elif self.features_mode == 'drop':
-                pass
+            cnt = 0
+            for i, n in enumerate(self.attack_inds):
+                if self.features_mode == 'reverse':
+                    # get 2-hop
+                    hop_1 = set()
+                    hop_2 = set()
+                    for (u, v) in edge_index_set:
+                        if u == n:
+                            hop_1.add(v)
+                        elif v == n:
+                            hop_1.add(u)
+                    for (u, v) in edge_index_set:
+                        if u in hop_1 and v != n and v not in hop_1:
+                            hop_2.add(v)
+                        elif v in hop_1 and u != n and u not in hop_1:
+                            hop_2.add(u)
+
+                    #get features to be reversed
+                    #f_mask = torch.zeros_like(gen_dataset.dataset.data.x.shape[0])
+                    f_inds = []
+                    for f, v in explanations[i]['nodes'].items():
+                        if v:
+                            f_inds.append(int(f))
+                            cnt += 1
+                    f_inds = torch.tensor(f_inds)
+
+                    if not f_inds.numel():
+                        continue
+
+                    xor_mask = torch.ones_like(f_inds)
+
+                    for i in hop_2.union(hop_1).union(set([int(n)])):
+                        gen_dataset.dataset.data.x[i, f_inds] = torch.logical_xor(gen_dataset.dataset.data.x[i, f_inds], xor_mask).float()
+                elif self.features_mode == 'drop':
+                    pass
+            print(cnt)
 
         return gen_dataset

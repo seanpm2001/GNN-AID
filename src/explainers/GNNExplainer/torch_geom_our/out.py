@@ -106,7 +106,7 @@ class GNNExplainer(Explainer):
         mode = self._run_mode
         assert mode == "local"
 
-        edge_mask = self.raw_explanation.edge_mask
+        edge_mask = self.raw_explanation.edge_mask if hasattr(self.raw_explanation, 'edge_mask') else None
         node_mask = self.raw_explanation.node_mask
 
         self.explanation = AttributionExplanation(
@@ -137,7 +137,7 @@ class GNNExplainer(Explainer):
 
             # Nodes
             num_nodes = node_mask.size(0)
-            assert num_nodes == self.x.size(0)
+            # assert num_nodes == self.x.size(0)
 
             for i in range(num_nodes):
                 imp = float(node_mask[i][0])

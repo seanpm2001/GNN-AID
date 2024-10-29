@@ -35,7 +35,8 @@ def test():
     my_device = device('cpu')
 
     # Load dataset
-    full_name = ("single-graph", "Planetoid", 'Cora')
+    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ("single-graph", "Planetoid", "CiteSeer")
     # full_name = ('single-graph', 'pytorch-geometric-other', 'KarateClub')
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
@@ -43,8 +44,8 @@ def test():
     )
 
     # Train model on original dataset and remember the model metric and node predicted probability
-    # gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
-    gcn_gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn_gcn')
+    gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
+    # gcn_gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn_gcn')
 
     manager_config = ConfigPattern(
         _config_class="ModelManagerConfig",
@@ -58,7 +59,7 @@ def test():
     )
 
     gnn_model_manager = FrameworkGNNModelManager(
-        gnn=gcn_gcn_gcn,
+        gnn=gcn_gcn,
         dataset_path=results_dataset_path,
         manager_config=manager_config,
         modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
@@ -87,7 +88,8 @@ def test():
         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
         _config_class="ExplainerInitConfig",
         _config_kwargs={
-            "node_mask_type": "attributes"
+            "node_mask_type": "common_attributes",
+            "edge_mask_type": None
         }
     )
     explainer_run_config = ConfigPattern(
@@ -173,6 +175,7 @@ def test():
                 adj_list[v].append(u)
     node_inds = [n for n in adj_list.keys() if len(adj_list[n]) > 1]
     attacked_node_size = int((0.04 * len(node_inds)))
+    # attacked_node_size = int((0.002 * len(node_inds)))
     attack_inds = np.random.choice(node_inds, attacked_node_size)
 
     evasion_attack_config = ConfigPattern(
