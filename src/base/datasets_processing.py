@@ -676,6 +676,9 @@ class GeneralDataset:
         self.train_mask = train_mask
         self.test_mask = test_mask
         self.val_mask = val_mask
+        self.dataset.data.train_mask = train_mask
+        self.dataset.data.test_mask = test_mask
+        self.dataset.data.val_mask = val_mask
 
     def save_train_test_mask(self, path):
         """ Save current train/test mask to a given path (together with the model). """

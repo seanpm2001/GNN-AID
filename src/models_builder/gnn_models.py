@@ -15,7 +15,8 @@ from torch_geometric.loader import NeighborLoader, LinkNeighborLoader
 
 from aux.configs import ModelManagerConfig, ModelModificationConfig, ModelConfig, CONFIG_CLASS_NAME
 from aux.data_info import UserCodeInfo
-from aux.utils import import_by_name, all_subclasses, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, hash_data_sha256, \
+from aux.utils import import_by_name, all_subclasses, FRAMEWORK_PARAMETERS_PATH, model_managers_info_by_names_list, \
+    hash_data_sha256, \
     TECHNICAL_PARAMETER_KEY, IMPORT_INFO_KEY, OPTIMIZERS_PARAMETERS_PATH, FUNCTIONS_PARAMETERS_PATH
 from aux.declaration import Declare
 from explainers.explainer import ProgressBar
@@ -247,7 +248,13 @@ class GNNModelManager:
                 model_ver_ind=kwargs.get('model_ver_ind') if 'model_ver_ind' in kwargs else
                 self.modification.model_ver_ind,
                 epochs=self.modification.epochs,
-                gnn_name=self.gnn.get_hash()
+                gnn_name=self.gnn.get_hash(),
+                mi_defense_hash=self.mi_defense_config.hash_for_config(),
+                evasion_defense_hash=self.evasion_defense_config.hash_for_config(),
+                poison_defense_hash=self.poison_defense_config.hash_for_config(),
+                mi_attack_hash=self.mi_attack_config.hash_for_config(),
+                evasion_attack_hash=self.evasion_attack_config.hash_for_config(),
+                poison_attack_hash=self.poison_attack_config.hash_for_config(),
             )
             path = model_dir_path / 'model'
         else:
@@ -556,6 +563,12 @@ class GNNModelManager:
             epochs=int(model_path['epochs']) if model_path['epochs'] != 'None' else None,
             model_ver_ind=int(model_path['model_ver_ind']),
             gnn_name=model_path['gnn'],
+            poison_attack_hash=model_path['poison_attacker'],
+            poison_defense_hash=model_path['poison_defender'],
+            evasion_defense_hash=model_path['evasion_defender'],
+            mi_defense_hash=model_path['mi_defender'],
+            evasion_attack_hash=model_path['evasion_attacker'],
+            mi_attack_hash=model_path['mi_attacker'],
         )
 
         gnn_mm_file = files_paths[1]
@@ -808,22 +821,45 @@ class FrameworkGNNModelManager(GNNModelManager):
         loss = 0
         for batch in loader:
             self.before_batch(batch)
-            loss += self.train_on_batch(batch, task_type)
+            loss += self.train_on_batch_full(batch, task_type)
             self.after_batch(batch)
         print("loss %.8f" % loss)
         self.modification.epochs += 1
         self.gnn.eval()
         return loss.cpu().detach().numpy().tolist()
 
-    def train_on_batch(self, batch, task_type=None):
+    def train_on_batch_full(self, batch, task_type=None):
         if self.mi_defender:
             self.mi_defender.pre_batch()
         if self.evasion_defender:
             self.evasion_defender.pre_batch(model_manager=self, batch=batch)
+        loss = self.train_on_batch(batch=batch, task_type=task_type)
+        if self.mi_defender:
+            self.mi_defender.post_batch()
+        evasion_defender_dict = None
+        if self.evasion_defender:
+            evasion_defender_dict = self.evasion_defender.post_batch(
+                model_manager=self, batch=batch, loss=loss,
+            )
+        if evasion_defender_dict and "loss" in evasion_defender_dict:
+            loss = evasion_defender_dict["loss"]
+        loss = self.optimizer_step(loss=loss)
+        return loss
+
+    def optimizer_step(self, loss):
+        loss.backward()
+        self.optimizer.step()
+        return loss
+
+    def train_on_batch(self, batch, task_type=None):
         loss = None
+        if hasattr(batch, "edge_weight"):
+            weight = batch.edge_weight
+        else:
+            weight = None
         if task_type == "single-graph":
             self.optimizer.zero_grad()
-            logits = self.gnn(batch.x, batch.edge_index)
+            logits = self.gnn(batch.x, batch.edge_index, weight)
             loss = self.loss_function(logits, batch.y)
             if self.clip is not None:
                 clip_grad_norm(self.gnn.parameters(), self.clip)
@@ -832,7 +868,7 @@ class FrameworkGNNModelManager(GNNModelManager):
             # self.optimizer.step()
         elif task_type == "multiple-graphs":
             self.optimizer.zero_grad()
-            logits = self.gnn(batch.x, batch.edge_index, batch.batch)
+            logits = self.gnn(batch.x, batch.edge_index, batch.batch, weight)
             loss = self.loss_function(logits, batch.y)
             # loss.backward()
             # self.optimizer.step()
@@ -843,8 +879,8 @@ class FrameworkGNNModelManager(GNNModelManager):
             pos_edge_index = edge_index[:, batch.y == 1]
             neg_edge_index = edge_index[:, batch.y == 0]
 
-            pos_out = self.gnn(batch.x, pos_edge_index)
-            neg_out = self.gnn(batch.x, neg_edge_index)
+            pos_out = self.gnn(batch.x, pos_edge_index, weight)
+            neg_out = self.gnn(batch.x, neg_edge_index, weight)
 
             pos_loss = self.loss_function(pos_out, torch.ones_like(pos_out))
             neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
@@ -853,17 +889,6 @@ class FrameworkGNNModelManager(GNNModelManager):
             # loss.backward()
         else:
             raise ValueError("Unsupported task type")
-        if self.mi_defender:
-            self.mi_defender.post_batch()
-        evasion_defender_dict = None
-        if self.evasion_defender:
-            evasion_defender_dict = self.evasion_defender.post_batch(
-                model_manager=self, batch=batch, loss=loss,
-            )
-        if evasion_defender_dict and "loss" in evasion_defender_dict:
-            loss = evasion_defender_dict["loss"]
-        loss.backward()
-        self.optimizer.step()
         return loss
 
     def get_name(self, **kwargs):
@@ -1153,6 +1178,7 @@ class FrameworkGNNModelManager(GNNModelManager):
         gen_dataset.train_mask, gen_dataset.val_mask, gen_dataset.test_mask, _ = torch.load(path)[:]
         return gen_dataset
 
+
 class ProtGNNModelManager(FrameworkGNNModelManager):
     # additional_config = ModelManagerConfig(
     #     loss_function={CONFIG_CLASS_NAME: "CrossEntropyLoss"},
@@ -1169,7 +1195,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
                 "_class_import_info": ["torch.optim"],
                 "_config_kwargs": {},
             },
-            #FUNCTIONS_PARAMETERS_PATH,
+            # FUNCTIONS_PARAMETERS_PATH,
             "loss_function": {
                 "_config_class": "Config",
                 "_class_name": "CrossEntropyLoss",
@@ -1188,7 +1214,7 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         _config_obj = getattr(self.manager_config, CONFIG_OBJ)
         self.clst = _config_obj.clst
         self.sep = _config_obj.sep
-        #lr = _config_obj.lr
+        # lr = _config_obj.lr
         self.early_stopping_marker = _config_obj.early_stopping
         self.proj_epochs = _config_obj.proj_epochs
         self.warm_epoch = _config_obj.warm_epoch
@@ -1231,15 +1257,8 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             self.init()
         return self.gnn
 
-    # TODO Kirill train_on_batch to be divided into two parts
     def train_on_batch(self, batch, task_type=None):
-        if self.mi_defender:
-            self.mi_defender.pre_batch()
-        if self.evasion_defender:
-            self.evasion_defender.pre_batch(model_manager=self, batch=batch)
-        loss = None
         if task_type == "single-graph":
-            # TODO Prot with single-graph
             self.optimizer.zero_grad()
             logits = self.gnn(batch.x, batch.edge_index)
             min_distances = self.gnn.min_distances
@@ -1279,14 +1298,10 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             if self.clip is not None:
                 clip_grad_norm(self.gnn.parameters(), self.clip)
             self.optimizer.zero_grad()
-            # loss.backward()
-            # self.optimizer.step()
         elif task_type == "multiple-graphs":
             self.optimizer.zero_grad()
             logits = self.gnn(batch.x, batch.edge_index, batch.batch)
             loss = self.loss_function(logits, batch.y)
-            # loss.backward()
-            # self.optimizer.step()
         # TODO Kirill, remove False when release edge recommendation task
         elif task_type == "edge" and False:
             self.optimizer.zero_grad()
@@ -1301,18 +1316,11 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             neg_loss = self.loss_function(neg_out, torch.zeros_like(neg_out))
 
             loss = pos_loss + neg_loss
-            # loss.backward()
         else:
             raise ValueError("Unsupported task type")
-        if self.mi_defender:
-            self.mi_defender.post_batch()
-        evasion_defender_dict = None
-        if self.evasion_defender:
-            evasion_defender_dict = self.evasion_defender.post_batch(
-                model_manager=self, batch=batch, loss=loss,
-            )
-        if evasion_defender_dict and "loss" in evasion_defender_dict:
-            loss = evasion_defender_dict["loss"]
+        return loss
+
+    def optimizer_step(self, loss):
         loss.backward()
         torch.nn.utils.clip_grad_value_(self.gnn.parameters(), clip_value=2.0)
         self.optimizer.step()
@@ -1323,7 +1331,8 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
         train_ind = [n for n, x in enumerate(gen_dataset.train_mask) if x]
         # Prototype projection
         if cur_step > self.proj_epochs and cur_step % self.proj_epochs == 0:
-            self.prot_layer.projection(self.gnn, gen_dataset.dataset, train_ind, gen_dataset.dataset.data, thrsh=self.prot_thrsh)
+            self.prot_layer.projection(self.gnn, gen_dataset.dataset, train_ind, gen_dataset.dataset.data,
+                                       thrsh=self.prot_thrsh)
         self.gnn.train()
         for p in self.gnn.parameters():
             p.requires_grad = True
@@ -1350,7 +1359,6 @@ class ProtGNNModelManager(FrameworkGNNModelManager):
             self.best_acc = self.cur_acc
             self.early_stop_count = 0
             self.gnn.best_prots = self.prot_layer.prototype_graphs
-
 
     def early_stopping(self, train_loss, gen_dataset, metrics, steps):
         step = self.modification.epochs

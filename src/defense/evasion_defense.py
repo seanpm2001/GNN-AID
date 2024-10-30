@@ -11,6 +11,7 @@ from torch_geometric import data
 
 import copy
 
+
 class EvasionDefender(Defender):
     def __init__(self, **kwargs):
         super().__init__()
@@ -67,6 +68,7 @@ class DataWrap:
         self.data = batch
         self.dataset = self
 
+
 class AdvTraining(EvasionDefender):
     name = "AdvTraining"
 
@@ -92,7 +94,7 @@ class AdvTraining(EvasionDefender):
         if self.attack_config._class_name == "FGSM":
             self.attack_type = "EVASION"
             # get attack params
-            self.epsilon = self.attack_config._config_kwargs['epsilon']
+            self.epsilon = self.attack_config._config_kwargs["epsilon"]
             # set attacker
             self.attacker = FGSMAttacker(self.epsilon)
         elif self.attack_config._class_name == "QAttack":
@@ -104,7 +106,7 @@ class AdvTraining(EvasionDefender):
             self.prob_cross = self.attack_config._config_kwargs["prob_cross"]
             self.prob_mutate = self.attack_config._config_kwargs["prob_mutate"]
             # set attacker
-            self.attacker = qattack.QAttacker(self.population_size, self.individual_size, 
+            self.attacker = qattack.QAttacker(self.population_size, self.individual_size,
                                               self.generations, self.prob_cross,
                                               self.prob_mutate)
         elif self.attack_config._class_name == "MetaAttackFull":
@@ -123,11 +125,10 @@ class AdvTraining(EvasionDefender):
         self.perturbed_gen_dataset.dataset = self.perturbed_gen_dataset.data
         self.perturbed_gen_dataset.dataset.data = self.perturbed_gen_dataset.data
         if self.attack_type == "EVASION":
-            self.perturbed_gen_dataset = self.attacker.attack(model_manager=model_manager, 
-                                                            gen_dataset=self.perturbed_gen_dataset,
-                                                            mask_tensor=self.perturbed_gen_dataset.data.train_mask)
+            self.perturbed_gen_dataset = self.attacker.attack(model_manager=model_manager,
+                                                              gen_dataset=self.perturbed_gen_dataset,
+                                                              mask_tensor=self.perturbed_gen_dataset.data.train_mask)
 
-    
     def post_batch(self, model_manager, batch, loss) -> dict:
         super().post_batch(model_manager=model_manager, batch=batch, loss=loss)
         # Output on perturbed data
