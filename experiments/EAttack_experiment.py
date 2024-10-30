@@ -35,8 +35,8 @@ def test():
     my_device = device('cpu')
 
     # Load dataset
-    # full_name = ("single-graph", "Planetoid", 'Cora')
-    full_name = ("single-graph", "Planetoid", "CiteSeer")
+    full_name = ("single-graph", "Planetoid", 'Cora')
+    # full_name = ("single-graph", "Planetoid", "CiteSeer")
     # full_name = ('single-graph', 'pytorch-geometric-other', 'KarateClub')
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
@@ -68,19 +68,19 @@ def test():
     gnn_model_manager.gnn.to(my_device)
 
     num_steps = 200
-    gnn_model_manager.train_model(gen_dataset=dataset,
-                                  steps=num_steps,
-                                  save_model_flag=False)
+    # gnn_model_manager.train_model(gen_dataset=dataset,
+    #                               steps=num_steps,
+    #                               save_model_flag=False)
 
     # Evaluate model
 
-    acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                 metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
-
-
-    acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
-    print(f"BEFORE ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
+    # acc_train = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                              metrics=[Metric("Accuracy", mask='train')])['train']['Accuracy']
+    #
+    #
+    # acc_test = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+    #                                             metrics=[Metric("Accuracy", mask='test')])['test']['Accuracy']
+    # print(f"BEFORE ATTACK\nAccuracy on train: {acc_train}. Accuracy on test: {acc_test}")
     # print(f"Accuracy on test: {acc_test}")
 
     explainer_init_config = ConfigPattern(
@@ -88,8 +88,8 @@ def test():
         _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
         _config_class="ExplainerInitConfig",
         _config_kwargs={
-            "node_mask_type": "common_attributes",
-            "edge_mask_type": None
+            # "node_mask_type": "common_attributes",
+            # "edge_mask_type": None
         }
     )
     explainer_run_config = ConfigPattern(
@@ -174,12 +174,17 @@ def test():
             if u not in adj_list[v]:
                 adj_list[v].append(u)
     node_inds = [n for n in adj_list.keys() if len(adj_list[n]) > 1]
-    attacked_node_size = int((0.04 * len(node_inds)))
+    # attacked_node_size = int((0.04 * len(node_inds)))
+    attacked_node_size = 100
     # attacked_node_size = int((0.002 * len(node_inds)))
     attack_inds = np.random.choice(node_inds, attacked_node_size)
+    # with open('/home/sazonovg/PycharmProjects/GNN-AID/experiments/inds.npy', 'wb') as fin:
+    #     np.save(fin, attack_inds)
+    with open('/home/sazonovg/PycharmProjects/GNN-AID/experiments/inds.npy', 'rb') as fin:
+        attack_inds = np.load(fin)
 
     evasion_attack_config = ConfigPattern(
-        _class_name="EAttack",
+        _class_name="EAttackRandom",
         _import_path=EVASION_ATTACK_PARAMETERS_PATH,
         _config_class="EvasionAttackConfig",
         _config_kwargs={
@@ -193,35 +198,51 @@ def test():
 
     dataset_copy = copy.deepcopy(dataset)
 
-    succ_attack = 0
+    with open('/home/sazonovg/PycharmProjects/GNN-AID/experiments/results', 'w') as fout:
+        for j in tqdm(range(5)):
+            gcn_gcn = model_configs_zoo(dataset=dataset, model_name='gcn_gcn')
 
-    for i in tqdm(attack_inds):
+            gnn_model_manager = FrameworkGNNModelManager(
+                gnn=gcn_gcn,
+                dataset_path=results_dataset_path,
+                manager_config=manager_config,
+                modification=ModelModificationConfig(model_ver_ind=0, epochs=0)
+            )
 
-        mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=[i])
+            gnn_model_manager.train_model(gen_dataset=dataset,
+                                          steps=num_steps,
+                                          save_model_flag=False)
 
-        evasion_attack_config = ConfigPattern(
-            _class_name="EAttack",
-            _import_path=EVASION_ATTACK_PARAMETERS_PATH,
-            _config_class="EvasionAttackConfig",
-            _config_kwargs={
-                'explainer': explainer,
-                'run_config': explainer_run_config,
-                'mode': 'local',
-                'attack_inds': [i],
-                'random_rewire': True
-            }
-        )
+            succ_attack = 0
 
-        gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+            for i in tqdm(attack_inds):
 
-        acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
-                                                     metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
+                mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=[i])
 
-        succ_attack += acc_attack
-        # print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
+                evasion_attack_config = ConfigPattern(
+                    _class_name="EAttackRandom",
+                    _import_path=EVASION_ATTACK_PARAMETERS_PATH,
+                    _config_class="EvasionAttackConfig",
+                    _config_kwargs={
+                        'explainer': explainer,
+                        'run_config': explainer_run_config,
+                        'mode': 'local',
+                        'attack_inds': [i],
+                        'random_rewire': True
+                    }
+                )
 
-        dataset = copy.deepcopy(dataset_copy)
-    print(f"ACCURACY ON ATTACKED: {succ_attack / len(attack_inds)}")
+                gnn_model_manager.set_evasion_attacker(evasion_attack_config=evasion_attack_config)
+
+                acc_attack = gnn_model_manager.evaluate_model(gen_dataset=dataset,
+                                                             metrics=[Metric("Accuracy", mask=mask)])[mask]['Accuracy']
+
+                succ_attack += acc_attack
+                # print(f"AFTER ATTACK\nAccuracy: {acc_attack}")
+
+                dataset = copy.deepcopy(dataset_copy)
+            fout.write(f"{succ_attack / len(attack_inds)}\n")
+            print(f"ACCURACY ON ATTACKED: {succ_attack / len(attack_inds)}")
 
 
 
