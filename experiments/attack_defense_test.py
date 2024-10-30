@@ -25,7 +25,8 @@ def test_attack_defense():
 
     # full_name = ("multiple-graphs", "TUDataset", 'MUTAG')
     # full_name = ("single-graph", "custom", 'karate')
-    full_name = ("single-graph", "Planetoid", 'Cora')
+    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ("single-graph", "Amazon", 'Photo')
     # full_name = ("single-graph", "Planetoid", 'CiteSeer')
     # full_name = ("multiple-graphs", "TUDataset", 'PROTEINS')
 
@@ -235,8 +236,8 @@ def test_attack_defense():
 
     # gnn_model_manager.set_poison_attacker(poison_attack_config=random_poison_attack_config)
     # gnn_model_manager.set_poison_defender(poison_defense_config=gnnguard_poison_defense_config)
-    gnn_model_manager.set_evasion_attacker(evasion_attack_config=netattackgroup_evasion_attack_config)
-    # gnn_model_manager.set_evasion_defender(evasion_defense_config=at_evasion_defense_config)
+    # gnn_model_manager.set_evasion_attacker(evasion_attack_config=netattackgroup_evasion_attack_config)
+    gnn_model_manager.set_evasion_defender(evasion_defense_config=at_evasion_defense_config)
 
     warnings.warn("Start training")
     dataset.train_test_split()
@@ -266,7 +267,8 @@ def test_attack_defense():
 
 def test_meta():
     from attacks.metattack import meta_gradient_attack
-    my_device = device('cpu')
+    # my_device = device('cpu')
+    my_device = device('cuda' if torch.cuda.is_available() else 'cpu')
     full_name = ("single-graph", "Planetoid", 'Cora')
 
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
@@ -705,7 +707,8 @@ def test_adv_training():
     from defense.evasion_defense import AdvTraining
 
     my_device = device('cpu')
-    full_name = ("single-graph", "Planetoid", 'Cora')
+    # full_name = ("single-graph", "Planetoid", 'Cora')
+    full_name = ("single-graph", "Amazon", 'Photo')
 
     dataset, data, results_dataset_path = DatasetManager.get_by_full_name(
         full_name=full_name,
