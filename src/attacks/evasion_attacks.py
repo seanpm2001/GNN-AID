@@ -8,6 +8,13 @@ from attacks.attack_base import Attacker
 from src.attacks.nettack.nettack import Nettack
 from src.attacks.nettack.utils import preprocess_graph, largest_connected_components, data_to_csr_matrix, train_w1_w2
 
+# PGD imports
+from attacks.evasion_attacks_collection.pgd.utils import Projection, RandomSampling
+import torch.nn.functional as F
+from torch_geometric.utils import to_dense_adj, dense_to_sparse, k_hop_subgraph
+from tqdm import tqdm
+from torch_geometric.nn import SGConv
+
 
 class EvasionAttacker(Attacker):
     def __init__(self, **kwargs):
@@ -40,6 +47,110 @@ class FGSMAttacker(EvasionAttacker):
         perturbed_data_x = torch.clamp(perturbed_data_x, 0, 1)
         gen_dataset.data.x = perturbed_data_x.detach()
         return gen_dataset
+
+
+class PGDAttacker(EvasionAttacker):
+    name = "PGD"
+
+    def __init__(self,
+                 is_feature_attack=False,
+                 element_idx=0,
+                 epsilon=0.5,
+                 learning_rate=0.001,
+                 num_iterations=100,
+                 num_rand_trials=100):
+
+        super().__init__()
+        self.attack_diff = None
+        self.is_feature_attack = is_feature_attack  # feature / structure
+        self.element_idx = element_idx
+        self.epsilon = epsilon
+        self.learning_rate = learning_rate
+        self.num_iterations = num_iterations
+        self.num_rand_trials = num_rand_trials
+
+    def attack(self, model_manager, gen_dataset, mask_tensor):
+        if gen_dataset.is_multi():
+            self._attack_on_graph(model_manager, gen_dataset)
+        else:
+            self._attack_on_node(model_manager, gen_dataset)
+
+    def _attack_on_node(self, model_manager, gen_dataset):
+        node_idx = self.element_idx
+
+        edge_index = gen_dataset.data.edge_index
+        y = gen_dataset.data.y
+        x = gen_dataset.data.x
+
+        model = model_manager.gnn
+        num_hops = model.n_layers
+
+        subset, edge_index_subset, inv, edge_mask = k_hop_subgraph(node_idx=node_idx,
+                                                                   num_hops=num_hops,
+                                                                   edge_index=edge_index,
+                                                                   relabel_nodes=True,
+                                                                   directed=False)
+
+        if self.is_feature_attack:  # feature attack
+            node_idx_remap = torch.where(subset == node_idx)[0].item()
+            y = y.clone()
+            y = y[subset]
+            x = x.clone()
+            x = x[subset]
+            orig_x = x.clone()
+            x.requires_grad = True
+            optimizer = torch.optim.Adam([x], lr=self.learning_rate, weight_decay=5e-4)
+
+            for t in tqdm(range(self.num_iterations)):
+                out = model(x, edge_index_subset)
+                loss = -model_manager.loss_function(out[node_idx_remap], y[node_idx_remap])
+                # print(loss)
+                model.zero_grad()
+                loss.backward()
+                x.grad.sign_()
+                optimizer.step()
+                with torch.no_grad():
+                    x.copy_(torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon))
+                    x.copy_(torch.clamp(x, -self.epsilon, self.epsilon))
+            # return the modified lines back to the original tensor x
+            gen_dataset.data.x[subset] = x.detach()
+            self.attack_diff = gen_dataset
+        else:  # structure attack
+            pass
+
+    def _attack_on_graph(self, model_manager, gen_dataset):
+        graph_idx = self.element_idx
+
+        edge_index = gen_dataset.dataset[graph_idx].edge_index
+        y = gen_dataset.dataset[graph_idx].y
+        x = gen_dataset.dataset[graph_idx].x
+
+        model = model_manager.gnn
+
+        if self.is_feature_attack:  # feature attack
+            x = x.clone()
+            orig_x = x.clone()
+            x.requires_grad = True
+            optimizer = torch.optim.Adam([x], lr=self.learning_rate, weight_decay=5e-4)
+
+            for t in tqdm(range(self.num_iterations)):
+                out = model(x, edge_index)
+                loss = -model_manager.loss_function(out, y)
+                # print(loss)
+                model.zero_grad()
+                loss.backward()
+                x.grad.sign_()
+                optimizer.step()
+                with torch.no_grad():
+                    x.copy_(torch.max(torch.min(x, orig_x + self.epsilon), orig_x - self.epsilon))
+                    x.copy_(torch.clamp(x, -self.epsilon, self.epsilon))
+            gen_dataset.dataset[graph_idx].x.copy_(x.detach())
+            self.attack_diff = gen_dataset
+        else:  # structure attack
+            pass
+
+    def attack_diff(self):
+        return self.attack_diff
 
 
 class NettackEvasionAttacker(EvasionAttacker):
