@@ -78,7 +78,8 @@ class Block:
             raise RuntimeError(f'Block[{self.name}] failed to finalize')
 
     def _finalize(self):
-        """ Returns True or False
+        """ Checks whether the config is correct to create the object.
+        Returns True if OK or False.
         # TODO can we send to front errors to be fixed?
         """
         raise NotImplementedError

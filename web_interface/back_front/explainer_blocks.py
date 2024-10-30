@@ -11,7 +11,7 @@ from base.datasets_processing import GeneralDataset
 from explainers.explainers_manager import FrameworkExplainersManager
 from models_builder.gnn_models import GNNModelManager
 from web_interface.back_front.block import Block, WrapperBlock
-from web_interface.back_front.utils import json_loads
+from web_interface.back_front.utils import json_loads, get_config_keys
 
 
 class ExplainerWBlock(WrapperBlock):
@@ -46,8 +46,8 @@ class ExplainerLoadBlock(Block):
         # return self.get_index()
 
     def _finalize(self):
-        # if 1:  # TODO better check
-        #     return False
+        if set(get_config_keys("explanations")) != set(self._config.keys()):
+            return False
 
         self.explainer_path = self._config
         return True
@@ -57,8 +57,6 @@ class ExplainerLoadBlock(Block):
                                                          explainer_path=self.explainer_path)
         modification_config = ExplainerModificationConfig(
             explainer_ver_ind=self.explainer_path["explainer_ver_ind"],
-            # FIXME Kirill front attack
-            explainer_attack_type=self.explainer_path["explainer_attack_type"]
         )
 
         from explainers.explainers_manager import FrameworkExplainersManager

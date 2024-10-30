@@ -8,13 +8,14 @@ from aux.configs import ModelStructureConfig, ModelConfig, ModelModificationConf
 from aux.data_info import UserCodeInfo, DataInfo
 from aux.declaration import Declare
 from aux.prefix_storage import PrefixStorage
-from aux.utils import import_by_name, model_managers_info_by_names_list, GRAPHS_DIR, TECHNICAL_PARAMETER_KEY, \
+from aux.utils import import_by_name, model_managers_info_by_names_list, GRAPHS_DIR, \
+    TECHNICAL_PARAMETER_KEY, \
     IMPORT_INFO_KEY
 from base.datasets_processing import GeneralDataset, VisiblePart
 from models_builder.gnn_constructor import FrameworkGNNConstructor
 from models_builder.gnn_models import ModelManagerConfig, GNNModelManager, Metric
 from web_interface.back_front.block import Block, WrapperBlock
-from web_interface.back_front.utils import WebInterfaceError, json_dumps
+from web_interface.back_front.utils import WebInterfaceError, json_dumps, get_config_keys
 
 
 class ModelWBlock(WrapperBlock):
@@ -43,7 +44,7 @@ class ModelLoadBlock(Block):
         return self.get_index()
 
     def _finalize(self):
-        if not (len(self._config.keys()) == 5):  # TODO better check
+        if set(get_config_keys("models")) != set(self._config.keys()):
             return False
 
         self.model_path = self._config
@@ -178,9 +179,6 @@ class ModelManagerBlock(Block):
         return mm_info
 
     def _finalize(self):
-        # if 1:  # TODO better check
-        #     return False
-
         self.klass = self._config.pop("class")
         self.model_manager_config = ModelManagerConfig(**self._config)
         return True

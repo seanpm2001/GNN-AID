@@ -5,7 +5,7 @@ from aux.utils import TORCH_GEOM_GRAPHS_PATH
 from base.datasets_processing import DatasetManager, GeneralDataset
 from aux.configs import DatasetConfig, DatasetVarConfig
 from web_interface.back_front.block import Block
-from web_interface.back_front.utils import json_dumps
+from web_interface.back_front.utils import json_dumps, get_config_keys
 
 
 class DatasetBlock(Block):
@@ -18,7 +18,7 @@ class DatasetBlock(Block):
         pass
 
     def _finalize(self):
-        if not (len(self._config.keys()) == 3):  # TODO better check
+        if set(get_config_keys("data_root")) != set(self._config.keys()):
             return False
 
         self.dataset_config = DatasetConfig(**self._config)
@@ -68,7 +68,7 @@ class DatasetVarBlock(Block):
         return self.gen_dataset.info.to_dict()
 
     def _finalize(self):
-        if not (len(self._config.keys()) == 3):  # TODO better check
+        if set(get_config_keys("data_prepared")) != set(self._config.keys()):
             return False
 
         self.dataset_var_config = DatasetVarConfig(**self._config)
