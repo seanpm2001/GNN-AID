@@ -427,7 +427,7 @@ class FrameworkGNNConstructor(GNNConstructorTorch):
                         tensor_storage[layer_ind] = torch.clone(x)
                 layer_ind = curr_layer_ind
                 x_copy = torch.clone(x)
-                connection_tensor = torch.Tensor()
+                connection_tensor = torch.empty(0, device=x_copy.device)
                 for key, value in self.conn_dict.items():
                     if key[1] == curr_layer_ind:
                         if key[1] - key[0] == 1:
