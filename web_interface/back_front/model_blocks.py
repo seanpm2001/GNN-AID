@@ -291,11 +291,6 @@ class ModelTrainerBlock(Block):
             self._train_model(mode=mode, steps=steps, metrics=metrics)
             return ''
 
-        elif do == "stop":
-            # BACK_FRONT.model_manager.stop_signal = True  # TODO remove stop_signal
-            self.stop_model()
-            return ''
-
         elif do == "save":
             return self._save_model()
 
@@ -335,28 +330,6 @@ class ModelTrainerBlock(Block):
             metrics_values=metrics_values, stats_data=stats_data, socket=self.socket)
 
     def _train_model(self, mode, steps, metrics):
-        # # Remove unpickable socket
-        # self.model_manager.gnn_mm.socket = None
-        #
-        # assert self.model_training_subprocess is None or not self.model_training_subprocess.is_alive()
-        #
-        # queue = tQueue()
-        # self.model_training_subprocess = tProcess(
-        #     target=run_function, args=(
-        #         self.model_manager, 'train_model', {
-        #             "gen_dataset": self.gen_dataset, "save_model_flag": False, "mode": mode,
-        #             "steps": steps, "metrics": metrics},
-        #         queue))
-        #
-        # self.model_training_subprocess.start()
-        # self.socket.send("model", {"status": "STARTED"})
-        # self.model_training_subprocess.join()
-        #
-        # # Get result if present - otherwise nothing changed
-        # self.model_manager = queue.get_nowait()
-        # # Put unpickable socket back
-        # self.model_manager.gnn_mm.socket = self.socket
-
         self._check_metrics(metrics)
         self.model_manager.train_model(
             gen_dataset=self.gen_dataset, save_model_flag=False,

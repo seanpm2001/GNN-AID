@@ -152,6 +152,7 @@ class ParamsBuilder {
                     $input.css("min-width", "60px")
                     delete possible.special
                 }
+
                 if (type === "int") {
                     $input.attr("step", 1)
                     $input.attr("pattern", "\d+")
@@ -166,6 +167,9 @@ class ParamsBuilder {
                 }
                 for (const [key, value] of Object.entries(possible))
                     $input.attr(key, value)
+
+                // Check input value when user unfocus it or change it
+                addValueChecker($input, type, def, possible["min"], possible["max"], "change")
             }
 
             else if (type === "string") {

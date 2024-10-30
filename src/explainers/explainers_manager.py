@@ -168,7 +168,8 @@ class FrameworkExplainersManager:
             # TODO what if save_explanation_flag=False?
             if self.save_explanation_flag:
                 self.save_explanation(run_config)
-                self.model_manager.save_model_executor()
+                path = self.model_manager.save_model_executor()
+                self.gen_dataset.save_train_test_mask(path)
         except Exception as e:
             if socket:
                 socket.send("er", {"status": "FAILED"})

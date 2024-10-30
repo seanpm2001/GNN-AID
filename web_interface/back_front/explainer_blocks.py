@@ -114,10 +114,6 @@ class ExplainerInitBlock(Block):
         return FrameworkExplainersManager.available_explainers(self.gen_dataset, self.gmm)
 
     def _finalize(self):
-        # if 1:  # TODO better check
-        #     return False
-
-        # self.explainer_init_config = ExplainerInitConfig(**self._config)
         self.explainer_init_config = ConfigPattern(
             **self._config,
             _import_path=EXPLAINERS_INIT_PARAMETERS_PATH,
@@ -147,49 +143,8 @@ class ExplainerRunBlock(Block):
                 self.explainer_manager.gen_dataset.is_multi(),
                 self.explainer_manager.explainer.name]
 
-    def _finalize(self):
-        # if 1:  # TODO better check
-        #     return False
-        raise NotImplementedError
-
-        # self.explainer_run_config = ExplainerRunConfig(**self._config)  # FIXME add class_name
-        import copy
-        config = copy.deepcopy(self._config)
-        config['_config_kwargs']['kwargs']["_import_path"] = EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH
-        config['_config_kwargs']['kwargs']["_config_class"] = "Config"
-        self.explainer_run_config = ConfigPattern(
-            **config,
-            _config_class="ExplainerRunConfig"
-        )
-        return True
-
-    def _submit(self):
-        raise NotImplementedError
-        # # NOTE: multiprocess = multiprocessing + dill instead of pickle, so it can serialize our objects and
-        # # send them via a Queue
-        # # NOTE 2: should be imported separately from torch.multiprocessing
-        # from multiprocess import Process as mpProcess, Queue as mpQueue
-
-        # queue = mpQueue()
-        # self.explainer_subprocess = mpProcess(
-        #     target=run_function, args=(
-        #         self.explainer_manager, 'conduct_experiment',
-        #         self.explainer_run_config, queue))
-        # self.explainer_subprocess.start()
-        # self.socket.send("explainer", {"status": "STARTED", "mode": self.explainer_run_config["mode"]})
-        # self.explainer_subprocess.join()
-        #
-        # # Get result if present - otherwise nothing changed
-        # if not queue.empty():
-        #     self.explainer_manager = queue.get_nowait()
-
-        self.socket.send(block="er", msg=
-        {"status": "STARTED", "mode": self.explainer_run_config.mode})
-        self.explainer_manager.conduct_experiment(self.explainer_run_config, socket=self.socket)
-
     def do(self, do, params):
         if do == "run":
-            import copy
             config = json_loads(params.get('explainerRunConfig'))
             config['_config_kwargs']['kwargs']["_import_path"] =\
                 EXPLAINERS_LOCAL_RUN_PARAMETERS_PATH \
@@ -205,48 +160,15 @@ class ExplainerRunBlock(Block):
             self._run_explainer()
             return ''
 
-        elif do == "stop":
-            # BACK_FRONT.model_manager.stop_signal = True  # TODO misha remove stop_signal
-            self._stop_explainer()
-            return ''
-
-        elif do == "save":
-            return self._save_explainer()
+        # elif do == "save":
+        #     return self._save_explainer()
 
     def _run_explainer(self):
-        # self.explainer_run_config = explainer_run_config
-
-        # # NOTE: multiprocess = multiprocessing + dill instead of pickle, so it can serialize our objects and
-        # # send them via a Queue
-        # # NOTE 2: should be imported separately from torch.multiprocessing
-        # from multiprocess import Process as mpProcess, Queue as mpQueue
-        #
-        # # queue = mpQueue()
-        # # self.explainer_subprocess = mpProcess(
-        # #     target=run_function, args=(
-        # #         self.explainer_manager, 'conduct_experiment',
-        # #         self.explainer_run_config, queue))
-        # # self.explainer_subprocess.start()
-        # # self.socket.send("explainer", {"status": "STARTED", "mode": self.explainer_run_config["mode"]})
-        # # self.explainer_subprocess.join()
-        # #
-        # # # Get result if present - otherwise nothing changed
-        # # if not queue.empty():
-        # #     self.explainer_manager = queue.get_nowait()
-
         self.socket.send("explainer", {
             "status": "STARTED", "mode": self.explainer_run_config.mode})
+        # Saves explanation by default, save_explanation_flag=True
         self.explainer_manager.conduct_experiment(self.explainer_run_config, socket=self.socket)
 
-    def _stop_explainer(self):
-        raise NotImplementedError
-        # FIXME not implemented
-        print('stop explainer')
-        if self.explainer_subprocess and self.explainer_subprocess.is_alive():
-            self.explainer_subprocess.terminate()
-            self.socket.send("er", {"status": "INTERRUPTED", "mode": mode})
-            self.explanation_data = None
-
-    def _save_explainer(self):
-        # self.explainer.save_explanation() TODO is it necessary?
-        return str(self.explainer_manager.explainer_result_file_path)
+    # def _save_explainer(self):
+    #     # self.explainer_manager.save_explanation()
+    #     return str(self.explainer_manager.explainer_result_file_path)

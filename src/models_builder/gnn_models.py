@@ -98,8 +98,8 @@ class GNNModelManager:
                  manager_config=None,
                  modification: ModelModificationConfig = None):
         """
-        :param manager_config: socket to use for sending data to frontend
-        :param modification: socket to use for sending data to frontend
+        :param manager_config: ?
+        :param modification: ?
         """
         if manager_config is None:
             # raise RuntimeError("model manager config must be specified")
@@ -170,9 +170,7 @@ class GNNModelManager:
         self.mi_defense_flag = False
 
         self.gnn = None
-        # We do not want store socket because it is not picklable for a subprocess
-        self.socket = None
-        self.stop_signal = False
+        self.socket = None  # Websocket for sending info to frontend, we avoid to store it since it is not pickleable
         self.stats_data = None  # Stores some stats to be sent to frontend
 
         self.set_poison_defender()
@@ -751,7 +749,6 @@ class FrameworkGNNModelManager(GNNModelManager):
         # Add fields from additional config
         self.manager_config = self.manager_config.merge(self.additional_config)
 
-        self.stop_signal = False  # TODO misha do we need it?
         self.gnn = gnn
 
         if self.modification.epochs is None:

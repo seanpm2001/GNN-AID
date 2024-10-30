@@ -98,6 +98,7 @@ class VisualsView extends View {
         let $graphInput = $("<input>").attr("type", "number")
             .attr("min", "0").attr("step", "1")
             .attr("id", this.idPrefix + '-' + this.multiGraphId)
+        addValueChecker($graphInput, "int", 0, 0, null, "change")
         $cb.append($graphInput)
         $graphInput.change((e) => this._update(
             this.multiGraphId, $graphInput.val(), true, $graphInput))
@@ -116,6 +117,7 @@ class VisualsView extends View {
             this.setEnabled(this.multiArrangeId, val > 0)
             this._update(this.multiDepthId, val, true, $depthInput)
         })
+        addValueChecker($depthInput, "int", 0, 0, null, "change")
 
         $cb = $("<div></div>").attr("class", "control-block")
         this.$multiDiv.append($cb)
@@ -179,18 +181,20 @@ class VisualsView extends View {
         $cb.append($nodeInput)
         $nodeInput.change(async (e) => await this._update(
             this.singleNeighNodeId, $nodeInput.val(), true, $nodeInput))
+        addValueChecker($nodeInput, "int", 0, 0, null, "change")
 
         $cb = $("<div></div>").attr("class", "control-block")
         this.$neighborhoodDiv.append($cb)
         $label = $("<label></label>").text("Neighborhood depth")
         $cb.append($label)
-        let $depthSelect = $("<input>").attr("type", "number")
+        let $depthInput = $("<input>").attr("type", "number")
             .attr("min", "0").attr("max", Neighborhood.MAX_DEPTH)
             .attr("step", "1")
             .attr("id", this.idPrefix + '-' + this.singleNeighDepthId)
-        $cb.append($depthSelect)
-        $depthSelect.change((e) => this._update(
-            this.singleNeighDepthId, $depthSelect.val(), true, $depthSelect))
+        $cb.append($depthInput)
+        $depthInput.change((e) => this._update(
+            this.singleNeighDepthId, $depthInput.val(), true, $depthInput))
+        addValueChecker($depthInput, "int", 0, 0, null, "change")
 
         $cb = $("<div></div>").attr("class", "control-block")
         this.$neighborhoodDiv.append($cb)
