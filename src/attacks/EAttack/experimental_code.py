@@ -26,7 +26,7 @@ class EAttack(EvasionAttacker):
     name = "EAttack"
 
     def __init__(self, explainer, run_config, attack_size, attack_inds, targeted, max_rewire, random_rewire,
-                 attack_edges, attack_features, edge_mode, features_mode, edge_prob, **kwargs):
+                 attack_edges, attack_features, edge_mode, features_mode, edge_prob, feature_prob, **kwargs):
         super().__init__(**kwargs)
         self.explainer = explainer
         self.run_config = run_config
@@ -43,6 +43,7 @@ class EAttack(EvasionAttacker):
         self.edge_mode = edge_mode
         self.features_mode = features_mode
         self.edge_prob = edge_prob
+        self.feature_prob = feature_prob
 
 
     def attack(self, model_manager, gen_dataset, mask_tensor):
@@ -96,13 +97,13 @@ class EAttack(EvasionAttacker):
                             # TEST
                             edge_index_set.discard((v, u))
                             max_attack -= 1
-                            if not max_attack:
+                            if max_attack < 0:
                                 break
                 elif self.edge_mode == 'add':
                     first_set = hop_2.union(hop_1).union({int(n)})
                     second_set = hop_1.union({int(n)})
                     hop = list(itertools.product(first_set, second_set))
-                    max_attack = len(hop) * self.edge_prob
+                    max_attack = int(len(hop) * self.edge_prob)
                     unimportant_nodes = set()
                     important_nodes = set()
                     for (u, v) in zip(edge_index[0], edge_index[1]):
@@ -134,10 +135,10 @@ class EAttack(EvasionAttacker):
                             edge_index_set.add((new_node[0], v))
                             cnt += 1
                             max_attack -= 1
-                        if not max_attack:
+                        if max_attack < 0:
                             break
                 elif self.edge_mode == 'rewire':
-                    max_attack = len(hop_2) * self.edge_prob
+                    max_attack = int(len(hop_2) * self.edge_prob)
                     for (u, v) in zip(edge_index[0], edge_index[1]):
                         if u != n and v != n and f"{u},{v}" in explanations[i]['edges'].keys():
                             edge_index_set.discard((u, v))
@@ -167,29 +168,34 @@ class EAttack(EvasionAttacker):
 
         if self.attack_features:
             cnt = 0
+            max_attack = int(gen_dataset.dataset.data.x[0].shape[0]) * self.feature_prob
             for i, n in enumerate(self.attack_inds):
                 if self.features_mode == 'reverse':
-                    # get 2-hop
-                    hop_1 = set()
-                    hop_2 = set()
-                    for (u, v) in edge_index_set:
-                        if u == n:
-                            hop_1.add(v)
-                        elif v == n:
-                            hop_1.add(u)
-                    for (u, v) in edge_index_set:
-                        if u in hop_1 and v != n and v not in hop_1:
-                            hop_2.add(v)
-                        elif v in hop_1 and u != n and u not in hop_1:
-                            hop_2.add(u)
+                    # # get 2-hop
+                    # hop_1 = set()
+                    # hop_2 = set()
+                    # for (u, v) in edge_index_set:
+                    #     if u == n:
+                    #         hop_1.add(v)
+                    #     elif v == n:
+                    #         hop_1.add(u)
+                    # for (u, v) in edge_index_set:
+                    #     if u in hop_1 and v != n and v not in hop_1:
+                    #         hop_2.add(v)
+                    #     elif v in hop_1 and u != n and u not in hop_1:
+                    #         hop_2.add(u)
 
                     #get features to be reversed
                     #f_mask = torch.zeros_like(gen_dataset.dataset.data.x.shape[0])
                     f_inds = []
-                    for f, v in explanations[i]['nodes'].items():
+                    feature_tuple = sorted(tuple((f, v) for f, v in explanations[i]['features'].items()), key=lambda x: float(x[1]), reverse=True)
+                    for f, v in feature_tuple:
                         if v:
                             f_inds.append(int(f))
                             cnt += 1
+                            max_attack -= 1
+                        if max_attack < 0:
+                            break
                     f_inds = torch.tensor(f_inds)
 
                     if not f_inds.numel():
@@ -210,7 +216,7 @@ class EAttackRandom(EvasionAttacker):
     name = "EAttackRandom"
 
     def __init__(self, explainer, run_config, attack_size, attack_inds, targeted, max_rewire, random_rewire,
-                 attack_edges, attack_features, edge_mode, features_mode, edge_prob, **kwargs):
+                 attack_edges, attack_features, edge_mode, features_mode, edge_prob, feature_prob, **kwargs):
         super().__init__(**kwargs)
         self.explainer = explainer
         self.run_config = run_config
@@ -227,6 +233,7 @@ class EAttackRandom(EvasionAttacker):
         self.edge_mode = edge_mode
         self.features_mode = features_mode
         self.edge_prob = edge_prob
+        self.feature_prob = feature_prob
 
 
     def attack(self, model_manager, gen_dataset, mask_tensor):
@@ -315,29 +322,34 @@ class EAttackRandom(EvasionAttacker):
 
         if self.attack_features:
             cnt = 0
+            max_attack = int(int(gen_dataset.dataset.data.x[0].shape[0]) * self.feature_prob)
             for i, n in enumerate(self.attack_inds):
                 if self.features_mode == 'reverse':
-                    # get 2-hop
-                    hop_1 = set()
-                    hop_2 = set()
-                    for (u, v) in edge_index_set:
-                        if u == n:
-                            hop_1.add(v)
-                        elif v == n:
-                            hop_1.add(u)
-                    for (u, v) in edge_index_set:
-                        if u in hop_1 and v != n and v not in hop_1:
-                            hop_2.add(v)
-                        elif v in hop_1 and u != n and u not in hop_1:
-                            hop_2.add(u)
+                    # # get 2-hop
+                    # hop_1 = set()
+                    # hop_2 = set()
+                    # for (u, v) in edge_index_set:
+                    #     if u == n:
+                    #         hop_1.add(v)
+                    #     elif v == n:
+                    #         hop_1.add(u)
+                    # for (u, v) in edge_index_set:
+                    #     if u in hop_1 and v != n and v not in hop_1:
+                    #         hop_2.add(v)
+                    #     elif v in hop_1 and u != n and u not in hop_1:
+                    #         hop_2.add(u)
 
                     #get features to be reversed
                     #f_mask = torch.zeros_like(gen_dataset.dataset.data.x.shape[0])
-                    f_inds = []
-                    for f, v in explanations[i]['nodes'].items():
-                        if v:
-                            f_inds.append(int(f))
-                            cnt += 1
+                    #f_inds = []
+                    f_inds = random.sample(range(int(gen_dataset.dataset.data.x[0].shape[0])), max_attack)
+                    # for f, v in explanations[i]['nodes'].items():
+                    #     if v:
+                    #         f_inds.append(int(f))
+                    #         max_attack -= 1
+                    #         cnt += 1
+                    #     if not max_attack:
+                    #         break
                     f_inds = torch.tensor(f_inds)
 
                     if not f_inds.numel():

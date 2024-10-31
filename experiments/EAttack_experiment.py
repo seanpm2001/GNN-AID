@@ -220,7 +220,7 @@ def test():
                 mask = Metric.create_mask_by_target_list(y_true=dataset.labels, target_list=[i])
 
                 evasion_attack_config = ConfigPattern(
-                    _class_name="EAttackRandom",
+                    _class_name="EAttack",
                     _import_path=EVASION_ATTACK_PARAMETERS_PATH,
                     _config_class="EvasionAttackConfig",
                     _config_kwargs={
