@@ -17,6 +17,8 @@ from models_builder.gnn_models import ModelManagerConfig, GNNModelManager, Metri
 from web_interface.back_front.block import Block, WrapperBlock
 from web_interface.back_front.utils import WebInterfaceError, json_dumps, get_config_keys
 
+TENSOR_SIZE_LIMIT = 1024  # Max size of weights tensor we sent to frontend
+
 
 class ModelWBlock(WrapperBlock):
     def __init__(self, name, blocks, *args, **kwargs):
@@ -58,7 +60,7 @@ class ModelLoadBlock(Block):
 
         self._object = self.model_manager
         self._result = self._object.get_full_info()
-        self._result.update(self._object.gnn.get_full_info())
+        self._result.update(self._object.gnn.get_full_info(tensor_size_limit=TENSOR_SIZE_LIMIT))
 
     def get_index(self):
         """ Get all available models with respect to current dataset
@@ -71,9 +73,8 @@ class ModelLoadBlock(Block):
         keys_list, full_keys_list, dir_structure, _ = DataInfo.take_keys_etc_by_prefix(
             prefix=("data_root", "data_prepared")
         )
-        values_info = DataInfo.values_list_by_path_and_keys(path=path,
-                                                            full_keys_list=full_keys_list,
-                                                            dir_structure=dir_structure)
+        values_info = DataInfo.values_list_by_path_and_keys(
+            path=path, full_keys_list=full_keys_list, dir_structure=dir_structure)
         ps = index.filter(dict(zip(keys_list, values_info)))
         return [ps.to_json(), json_dumps(info)]
 
@@ -105,7 +106,7 @@ class ModelConstructorBlock(Block):
 
     def _submit(self):
         self._object = FrameworkGNNConstructor(self.model_config)
-        self._result = self._object.get_full_info()
+        self._result = self._object.get_full_info(tensor_size_limit=TENSOR_SIZE_LIMIT)
 
 
 class ModelCustomBlock(Block):
@@ -140,7 +141,7 @@ class ModelCustomBlock(Block):
         assert cm_path
 
         self._object = UserCodeInfo.take_user_model_obj(cm_path, self.model_name["model"])
-        self._result = self._object.get_full_info()
+        self._result = self._object.get_full_info(tensor_size_limit=TENSOR_SIZE_LIMIT)
 
     def get_index(self):
         """ Get all available models with respect to current dataset

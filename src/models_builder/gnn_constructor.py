@@ -108,7 +108,7 @@ class GNNConstructor:
         gnn_name_hash = hash_data_sha256(json_object.encode('utf-8'))
         return gnn_name_hash
 
-    def get_full_info(self):
+    def get_full_info(self, tensor_size_limit=None):
         """ Get available info about model for frontend
         """
         # FIXMe architecture and weights can be not accessible
@@ -118,7 +118,7 @@ class GNNConstructor:
         except (AttributeError, NotImplementedError):
             pass
         try:
-            result["weights"] = self.get_weights()
+            result["weights"] = self.get_weights(tensor_size_limit=tensor_size_limit)
         except (AttributeError, NotImplementedError):
             pass
         try:
@@ -165,9 +165,8 @@ class GNNConstructorTorch(GNNConstructor, torch.nn.Module):
                 neurons.append(n_neurons)
         return neurons
 
-    def get_weights(self):
-        """
-        Get model weights calling torch.nn.Module.state_dict() to draw them on the frontend.
+    def get_weights(self, tensor_size_limit=None):
+        """ Get model weights calling torch.nn.Module.state_dict() to draw them on the frontend.
         """
         try:
             state_dict = self.state_dict()
@@ -185,8 +184,15 @@ class GNNConstructorTorch(GNNConstructor, torch.nn.Module):
 
             k = sub_keys[-1]
             if type(value) == UninitializedParameter:
-                continue
-            part[k] = value.numpy().tolist()
+                part[k] = '?'
+            else:
+                size = 1
+                for dim in value.shape:
+                    size *= dim
+                if tensor_size_limit and size > tensor_size_limit:  # Tensor is too big - return just its shape
+                    part[k] = 'x'.join(str(d) for d in value.shape)
+                else:
+                    part[k] = value.numpy().tolist()
         return model_data
 
 
